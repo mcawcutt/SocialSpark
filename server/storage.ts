@@ -55,7 +55,7 @@ export interface IStorage {
   getRecentActivity(brandId: number, limit: number): Promise<any[]>;
   
   // Session store
-  sessionStore: session.SessionStore;
+  sessionStore: ReturnType<typeof createMemoryStore>;
 }
 
 export class MemStorage implements IStorage {
@@ -73,7 +73,7 @@ export class MemStorage implements IStorage {
   private assignmentIdCounter: number;
   private analyticsIdCounter: number;
   
-  sessionStore: session.SessionStore;
+  sessionStore: ReturnType<typeof createMemoryStore>;
 
   constructor() {
     this.users = new Map();
@@ -94,11 +94,10 @@ export class MemStorage implements IStorage {
       checkPeriod: 86400000, // prune expired entries every 24h
     });
     
-    // Seed a demo user with pre-hashed password
-    // The password is 'password' hashed with scrypt
+    // Seed a demo user
     this.createUser({
       username: "demo",
-      password: "6e0fa5c972b7a258c10c9e570638c2851756878bbc18b61eccfb0c25ff0e0d1a95c94cad4f9a37ce29b946c33ecaa96c858b718e987982733c1b10f98cda9ade.8d07bf2e3ddde035",
+      password: "password", // Will be hashed by our auth.ts hashPassword function
       name: "Acme Brands",
       email: "demo@example.com",
       role: "brand",

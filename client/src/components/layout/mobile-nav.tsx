@@ -69,13 +69,12 @@ export function MobileNav() {
     <>
       {/* Mobile Header */}
       <header className="bg-white border-b border-gray-200 py-4 px-4 flex justify-between items-center md:hidden sticky top-0 z-10">
-        <div className="flex items-center">
+        <div>
           <img 
-            src="/attached_assets/image_1744364224836.png" 
+            src="/attached_assets/IGNYT_Logo Black Web.png" 
             alt="Ignyt Logo" 
-            className="h-8 mr-2" 
+            className="h-9" 
           />
-          <span className="text-2xl font-semibold text-primary-600">Ignyt</span>
         </div>
         <Button variant="ghost" size="icon" onClick={toggleMenu} className="text-gray-500 hover:text-gray-700 focus:outline-none">
           <Menu className="h-6 w-6" />
@@ -96,13 +95,12 @@ export function MobileNav() {
           onClick={(e) => e.stopPropagation()}
         >
           <div className="px-6 flex justify-between items-center mb-6">
-            <div className="flex items-center">
+            <div>
               <img 
-                src="/attached_assets/image_1744364224836.png" 
+                src="/attached_assets/IGNYT_Logo Black Web.png" 
                 alt="Ignyt Logo" 
-                className="h-8 mr-2" 
+                className="h-9" 
               />
-              <span className="text-2xl font-semibold text-primary-600">Ignyt</span>
             </div>
             <Button variant="ghost" size="icon" onClick={closeMenu} className="text-gray-600">
               <X className="h-6 w-6" />

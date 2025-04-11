@@ -90,13 +90,12 @@ export default function AuthPage() {
         {/* Hero section */}
         <div className="hidden lg:flex flex-col justify-center p-8 bg-primary-500 text-white rounded-l-lg">
           <div>
-            <div className="flex items-center mb-6">
+            <div className="mb-6">
               <img 
-                src="/attached_assets/image_1744364224836.png" 
+                src="/attached_assets/IGNYT_Logo White Web.png" 
                 alt="Ignyt Logo" 
-                className="h-14 mr-3" 
+                className="h-16" 
               />
-              <h1 className="text-4xl font-bold">Ignyt</h1>
             </div>
             <h2 className="text-2xl font-semibold mb-4">Empower Your Brand Network</h2>
             <p className="text-lg mb-8">
@@ -123,13 +122,12 @@ export default function AuthPage() {
         <Card className="shadow-sm">
           <CardContent className="p-8">
             <div className="flex flex-col items-center mb-6">
-              <div className="flex items-center mb-2">
+              <div className="mb-2">
                 <img 
-                  src="/attached_assets/image_1744364224836.png" 
+                  src="/attached_assets/IGNYT_Logo Black Web.png" 
                   alt="Ignyt Logo" 
-                  className="h-10 mr-2" 
+                  className="h-12 mx-auto" 
                 />
-                <h2 className="text-2xl font-bold">Welcome to Ignyt</h2>
               </div>
               <p className="text-gray-500 text-sm text-center">
                 Your B2B2C Social Media Management Platform

@@ -14,8 +14,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
 
+  // Debug endpoint to check if server is running correctly
+  app.get("/api/debug", (req, res) => {
+    res.json({ 
+      message: "Debug endpoint reached", 
+      sessionExists: !!req.session,
+      isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : false,
+      user: req.user || null,
+      timestamp: new Date().toISOString()
+    });
+  });
+
   // Check authentication middleware
   const requireAuth = (req: any, res: any, next: any) => {
+    console.log("Auth check:", req.isAuthenticated ? req.isAuthenticated() : "isAuthenticated not available");
+    console.log("Session:", req.session);
+    console.log("User:", req.user);
+    
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Unauthorized" });
     }

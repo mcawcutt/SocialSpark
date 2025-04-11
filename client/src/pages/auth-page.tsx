@@ -90,7 +90,14 @@ export default function AuthPage() {
         {/* Hero section */}
         <div className="hidden lg:flex flex-col justify-center p-8 bg-primary-500 text-white rounded-l-lg">
           <div>
-            <h1 className="text-4xl font-bold mb-6">Ignyt</h1>
+            <div className="flex items-center mb-6">
+              <img 
+                src="/attached_assets/image_1744364224836.png" 
+                alt="Ignyt Logo" 
+                className="h-14 mr-3" 
+              />
+              <h1 className="text-4xl font-bold">Ignyt</h1>
+            </div>
             <h2 className="text-2xl font-semibold mb-4">Empower Your Brand Network</h2>
             <p className="text-lg mb-8">
               Connect with your retail partners and schedule branded content across multiple social media channels. Ignyt helps you maintain brand consistency while enabling local personalization.
@@ -115,9 +122,19 @@ export default function AuthPage() {
         {/* Auth forms */}
         <Card className="shadow-sm">
           <CardContent className="p-8">
-            <h2 className="text-2xl font-bold text-center mb-6">
-              Welcome to Ignyt
-            </h2>
+            <div className="flex flex-col items-center mb-6">
+              <div className="flex items-center mb-2">
+                <img 
+                  src="/attached_assets/image_1744364224836.png" 
+                  alt="Ignyt Logo" 
+                  className="h-10 mr-2" 
+                />
+                <h2 className="text-2xl font-bold">Welcome to Ignyt</h2>
+              </div>
+              <p className="text-gray-500 text-sm text-center">
+                Your B2B2C Social Media Management Platform
+              </p>
+            </div>
             
             <Tabs defaultValue="login" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">

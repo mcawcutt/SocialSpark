@@ -59,7 +59,14 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex md:flex-col w-64 bg-white border-r border-gray-200 h-screen sticky top-0">
       <div className="p-6">
-        <span className="text-2xl font-semibold text-primary-600">Ignyt</span>
+        <div className="flex items-center">
+          <img 
+            src="/attached_assets/image_1744364224836.png" 
+            alt="Ignyt Logo" 
+            className="h-8 mr-2" 
+          />
+          <span className="text-2xl font-semibold text-primary-600">Ignyt</span>
+        </div>
       </div>
       
       {/* User Info */}

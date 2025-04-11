@@ -70,6 +70,16 @@ export default function AuthPage() {
     if (user) {
       navigate("/");
     }
+    
+    // Debug code to check session
+    fetch('/api/debug', { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => {
+        console.log('Debug endpoint response:', data);
+      })
+      .catch(error => {
+        console.error('Debug endpoint error:', error);
+      });
   }, [user, navigate]);
 
   // Handle login form submission
@@ -190,6 +200,39 @@ export default function AuthPage() {
                 
                 <div className="mt-4 text-center text-sm text-gray-500">
                   <p>For demo purposes, use username: <strong>demo</strong> and password: <strong>password</strong></p>
+                  <button 
+                    onClick={() => {
+                      console.log('Attempting direct login...');
+                      fetch('/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: 'demo', password: 'password' }),
+                        credentials: 'include'
+                      })
+                      .then(async res => {
+                        console.log('Login response status:', res.status);
+                        console.log('Login response headers:', Array.from(res.headers.entries()));
+                        const data = await res.json();
+                        console.log('Login response data:', data);
+                        
+                        // Now check if we can access the user data
+                        return fetch('/api/user', { credentials: 'include' });
+                      })
+                      .then(async res => {
+                        console.log('User check response status:', res.status);
+                        if (res.ok) {
+                          const userData = await res.json();
+                          console.log('User data after login:', userData);
+                        } else {
+                          console.log('Failed to get user data after login');
+                        }
+                      })
+                      .catch(error => console.error('Login error:', error));
+                    }}
+                    className="text-blue-500 hover:underline mt-2"
+                  >
+                    Test Direct Login
+                  </button>
                 </div>
               </TabsContent>
               

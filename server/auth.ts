@@ -177,4 +177,15 @@ export function setupAuth(app: Express) {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     res.json(req.user);
   });
+  
+  // Debug endpoint to check session status
+  app.get("/api/debug", (req, res) => {
+    return res.json({
+      isAuthenticated: req.isAuthenticated(),
+      hasSession: !!req.session,
+      sessionID: req.sessionID,
+      sessionCookie: req.headers.cookie,
+      user: req.user || null,
+    });
+  });
 }

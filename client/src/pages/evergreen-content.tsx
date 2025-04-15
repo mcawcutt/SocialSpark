@@ -146,8 +146,10 @@ export default function EvergreenContent() {
 
   // Filter posts based on category and search query
   const filteredPosts = evergreenPosts?.filter(post => {
+    const metadata = post.metadata as { tags?: string[], category?: string } | null | undefined;
+    
     const matchesCategory = selectedCategory === "all" || 
-      (post.metadata && post.metadata.category === selectedCategory);
+      (metadata && metadata.category === selectedCategory);
     
     const matchesSearch = !searchQuery || 
       post.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -162,7 +164,9 @@ export default function EvergreenContent() {
     
     if (evergreenPosts) {
       evergreenPosts.forEach(post => {
-        const category = post.metadata?.category || "Uncategorized";
+        const metadata = post.metadata as { tags?: string[], category?: string } | null | undefined;
+        const category = metadata?.category || "Uncategorized";
+        
         if (!categorized[category]) {
           categorized[category] = [];
         }
@@ -490,7 +494,12 @@ export default function EvergreenContent() {
 
 // Evergreen content card component
 interface EvergreenContentCardProps {
-  post: ContentPost & { metadata?: { tags?: string[], category?: string } };
+  post: ContentPost & { 
+    metadata?: { 
+      tags?: string[], 
+      category?: string 
+    } | null | undefined
+  };
   onDelete: () => void;
 }
 

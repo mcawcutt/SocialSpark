@@ -8,6 +8,7 @@ import RetailPartners from "@/pages/retail-partners";
 import Analytics from "@/pages/analytics";
 import Settings from "@/pages/settings";
 import AuthPage from "@/pages/auth-page";
+import EvergreenContent from "@/pages/evergreen-content";
 
 function Router() {
   return (
@@ -16,6 +17,7 @@ function Router() {
       <ProtectedRoute path="/calendar" component={ContentCalendar} />
       <ProtectedRoute path="/partners" component={RetailPartners} />
       <ProtectedRoute path="/analytics" component={Analytics} />
+      <ProtectedRoute path="/evergreen" component={EvergreenContent} />
       <ProtectedRoute path="/settings" component={Settings} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />

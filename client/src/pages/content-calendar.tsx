@@ -46,7 +46,7 @@ export default function ContentCalendar() {
 
   // Query content posts
   const { data: posts, isLoading } = useQuery({
-    queryKey: ["/api/content-posts", { brandId: 1 }],
+    queryKey: ["/api/content-posts?brandId=1"],
   });
 
   // Handle month navigation

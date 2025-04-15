@@ -1,6 +1,6 @@
 import { useState, useRef, ChangeEvent, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { ContentPost, InsertContentPost, RetailPartner } from "@shared/schema";
+import { ContentPost, InsertContentPost, RetailPartner, MediaLibraryItem } from "@shared/schema";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -20,6 +20,7 @@ import { ImageIcon, Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Badge } from "@/components/ui/badge";
+import { MediaSelector } from "@/components/media/media-selector";
 
 // Define validation schema for new content
 const contentPostSchema = z.object({

@@ -529,7 +529,6 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                     <DatePicker
                       date={field.value}
                       setDate={field.onChange}
-                      showTimePicker
                     />
                     <FormMessage />
                   </FormItem>

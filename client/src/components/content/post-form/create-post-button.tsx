@@ -6,11 +6,13 @@ import { PlusIcon } from "lucide-react";
 interface CreatePostButtonProps extends ButtonProps {
   isEvergreen?: boolean;
   label?: string;
+  scheduledDate?: Date;
 }
 
 export function CreatePostButton({ 
   isEvergreen = false, 
-  label, 
+  label,
+  scheduledDate,
   ...props 
 }: CreatePostButtonProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -30,6 +32,7 @@ export function CreatePostButton({
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         isEvergreen={isEvergreen}
+        initialData={scheduledDate ? { scheduledDate } : undefined}
       />
     </>
   );

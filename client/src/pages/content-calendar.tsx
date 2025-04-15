@@ -142,7 +142,7 @@ export default function ContentCalendar() {
                 </SelectContent>
               </Select>
               <CreatePostButton 
-                scheduleDate={currentDate}
+                scheduledDate={currentDate}
                 label="New Post"
               />
             </div>

@@ -1,6 +1,6 @@
-import { useState, useRef, ChangeEvent } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ContentPost, InsertContentPost } from "@shared/schema";
+import { useState, useRef, ChangeEvent, useEffect } from "react";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { ContentPost, InsertContentPost, RetailPartner } from "@shared/schema";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -54,6 +54,29 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(initialData?.imageUrl || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
+
+  // Fetch retail partners to extract tags
+  const { data: partners } = useQuery<RetailPartner[]>({
+    queryKey: ['/api/retail-partners'],
+    enabled: isOpen && !isEvergreen
+  });
+
+  // Extract unique tags from all partners
+  useEffect(() => {
+    if (partners && partners.length > 0) {
+      const allTags = partners.reduce((tags: string[], partner) => {
+        if (partner.metadata?.tags && Array.isArray(partner.metadata.tags)) {
+          return [...tags, ...partner.metadata.tags];
+        }
+        return tags;
+      }, []);
+      
+      // Get unique tags only
+      const uniqueTags = [...new Set(allTags)];
+      setAvailableTags(uniqueTags);
+    }
+  }, [partners]);
 
   // Fetch categories (in a real app, this would come from the backend)
   const categories = ["Tips & Advice", "Promotions", "Seasonal", "Product Highlights", "Industry News"];

@@ -657,10 +657,24 @@ export class MemStorage implements IStorage {
       // Create the post
       const id = this.postIdCounter++;
       const now = new Date();
+      
+      // Assign specific images to certain posts to replace placeholders
+      let imageUrl = "https://placehold.co/600x400";
+      
+      if (postData.title === "10 Ways to Improve Your Cycling") {
+        imageUrl = "/assets/image_1744731251867.png";
+      } else if (postData.title === "Summer Gear Essentials") {
+        imageUrl = "/assets/image_1744731657291.png";
+      } else if (postData.title === "Limited Edition Hiking Boots") {
+        imageUrl = "/assets/image_1744733659358.png";
+      } else if (postData.title === "Weekend Flash Sale") {
+        imageUrl = "/assets/image_1744364224836.png";
+      }
+      
       const createdPost: ContentPost = { 
         ...postData,
         brandId: 1,
-        imageUrl: "https://placehold.co/600x400", 
+        imageUrl, 
         id,
         createdAt: now,
         updatedAt: now,

@@ -98,31 +98,31 @@ export default function AuthPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-6xl grid gap-6 grid-cols-1 lg:grid-cols-2">
         {/* Hero section */}
-        <div className="hidden lg:flex flex-col justify-center p-8 bg-primary-500 text-white rounded-l-lg">
+        <div className="hidden lg:flex flex-col justify-center p-8 bg-primary-600 text-white rounded-l-lg shadow-md">
           <div>
             <div className="mb-6">
               <img 
-                src="/attached_assets/IGNYT_Logo White Web.png" 
+                src="/assets/IGNYT_Logo White Web.png" 
                 alt="Ignyt Logo" 
                 className="h-16" 
               />
             </div>
-            <h2 className="text-2xl font-semibold mb-4">Empower Your Brand Network</h2>
-            <p className="text-lg mb-8">
+            <h2 className="text-3xl font-bold mb-4 text-white">Empower Your Brand Network</h2>
+            <p className="text-lg mb-8 text-white font-medium">
               Connect with your retail partners and schedule branded content across multiple social media channels. Ignyt helps you maintain brand consistency while enabling local personalization.
             </p>
             <div className="space-y-4">
               <div className="flex items-start">
-                <div className="mr-2 w-6 h-6 rounded-full bg-white text-primary-500 flex items-center justify-center">✓</div>
-                <p>Seamlessly schedule content to multiple retail partners</p>
+                <div className="mr-2 w-6 h-6 rounded-full bg-white text-primary-600 flex items-center justify-center font-bold">✓</div>
+                <p className="text-white font-medium">Seamlessly schedule content to multiple retail partners</p>
               </div>
               <div className="flex items-start">
-                <div className="mr-2 w-6 h-6 rounded-full bg-white text-primary-500 flex items-center justify-center">✓</div>
-                <p>Localize messages while maintaining brand consistency</p>
+                <div className="mr-2 w-6 h-6 rounded-full bg-white text-primary-600 flex items-center justify-center font-bold">✓</div>
+                <p className="text-white font-medium">Localize messages while maintaining brand consistency</p>
               </div>
               <div className="flex items-start">
-                <div className="mr-2 w-6 h-6 rounded-full bg-white text-primary-500 flex items-center justify-center">✓</div>
-                <p>Track performance across your entire retail network</p>
+                <div className="mr-2 w-6 h-6 rounded-full bg-white text-primary-600 flex items-center justify-center font-bold">✓</div>
+                <p className="text-white font-medium">Track performance across your entire retail network</p>
               </div>
             </div>
           </div>
@@ -158,7 +158,7 @@ export default function AuthPage() {
                       name="username"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Username</FormLabel>
+                          <FormLabel className="text-gray-800 font-medium">Username</FormLabel>
                           <FormControl>
                             <Input placeholder="Enter your username" {...field} />
                           </FormControl>
@@ -172,7 +172,7 @@ export default function AuthPage() {
                       name="password"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Password</FormLabel>
+                          <FormLabel className="text-gray-800 font-medium">Password</FormLabel>
                           <FormControl>
                             <Input type="password" placeholder="Enter your password" {...field} />
                           </FormControl>
@@ -198,8 +198,10 @@ export default function AuthPage() {
                   </form>
                 </Form>
                 
-                <div className="mt-4 text-center text-sm text-gray-500">
-                  <p>For demo purposes, use username: <strong>demo</strong> and password: <strong>password</strong></p>
+                <div className="mt-4 text-center">
+                  <p className="text-sm font-medium text-gray-800 border p-2 rounded bg-gray-100">
+                    For demo purposes, use username: <strong className="text-primary-600">demo</strong> and password: <strong className="text-primary-600">password</strong>
+                  </p>
                   <button 
                     onClick={() => {
                       console.log('Attempting direct login...');
@@ -229,7 +231,7 @@ export default function AuthPage() {
                       })
                       .catch(error => console.error('Login error:', error));
                     }}
-                    className="text-blue-500 hover:underline mt-2"
+                    className="text-blue-600 font-medium hover:underline mt-2"
                   >
                     Test Direct Login
                   </button>
@@ -244,7 +246,7 @@ export default function AuthPage() {
                       name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Company Name</FormLabel>
+                          <FormLabel className="text-gray-800 font-medium">Company Name</FormLabel>
                           <FormControl>
                             <Input placeholder="Enter your company name" {...field} />
                           </FormControl>
@@ -258,7 +260,7 @@ export default function AuthPage() {
                       name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email</FormLabel>
+                          <FormLabel className="text-gray-800 font-medium">Email</FormLabel>
                           <FormControl>
                             <Input type="email" placeholder="Enter your email" {...field} />
                           </FormControl>
@@ -272,7 +274,7 @@ export default function AuthPage() {
                       name="username"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Username</FormLabel>
+                          <FormLabel className="text-gray-800 font-medium">Username</FormLabel>
                           <FormControl>
                             <Input placeholder="Choose a username" {...field} />
                           </FormControl>
@@ -287,7 +289,7 @@ export default function AuthPage() {
                         name="password"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Password</FormLabel>
+                            <FormLabel className="text-gray-800 font-medium">Password</FormLabel>
                             <FormControl>
                               <Input type="password" placeholder="Create a password" {...field} />
                             </FormControl>
@@ -301,7 +303,7 @@ export default function AuthPage() {
                         name="confirmPassword"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Confirm Password</FormLabel>
+                            <FormLabel className="text-gray-800 font-medium">Confirm Password</FormLabel>
                             <FormControl>
                               <Input type="password" placeholder="Confirm password" {...field} />
                             </FormControl>

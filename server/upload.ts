@@ -72,5 +72,6 @@ export function setupUploadRoutes(app: Express) {
 
 // Serve uploaded files
 export function serveUploads(app: Express) {
+  // Use the Express.static middleware
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 }

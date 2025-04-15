@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, ChangeEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ContentPost, InsertContentPost } from "@shared/schema";
 import { z } from "zod";
@@ -42,6 +42,10 @@ export default function EvergreenContent() {
   const [isAddContentOpen, setIsAddContentOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch evergreen content
   const { data: evergreenPosts, isLoading } = useQuery<ContentPost[]>({
@@ -139,6 +143,60 @@ export default function EvergreenContent() {
       });
     },
   });
+
+  // Upload image mutation
+  const uploadImageMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload image');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      // Update the form with the uploaded image URL
+      form.setValue('imageUrl', data.file.url);
+      setImagePreview(data.file.url);
+      setUploadingImage(false);
+      toast({
+        title: "Image uploaded",
+        description: "Your image has been uploaded successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      setUploadingImage(false);
+      toast({
+        title: "Error uploading image",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Handle file selection
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      
+      // Create a preview URL
+      const fileUrl = URL.createObjectURL(file);
+      setImagePreview(fileUrl);
+      
+      // Upload the file
+      setUploadingImage(true);
+      uploadImageMutation.mutate(file);
+    }
+  };
 
   // Form submission handler
   const onSubmit = (data: EvergreenContentFormValues) => {

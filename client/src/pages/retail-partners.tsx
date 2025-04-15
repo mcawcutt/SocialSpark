@@ -27,6 +27,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -191,15 +192,30 @@ export default function RetailPartners() {
 
   // Handle new partner form submission
   const onSubmit = (data: NewPartnerFormValues) => {
-    createPartnerMutation.mutate(data);
+    // Ensure tags are properly structured in metadata
+    const partnerData = {
+      ...data,
+      metadata: {
+        tags: data.tags || []
+      }
+    };
+    createPartnerMutation.mutate(partnerData);
   };
   
   // Handle edit partner form submission
   const onEditSubmit = (data: EditPartnerFormValues) => {
     if (selectedPartner) {
+      // Preserve existing metadata and update tags
+      const updatedData = {
+        ...data,
+        metadata: {
+          ...selectedPartner.metadata,
+          tags: data.tags || []
+        }
+      };
       updatePartnerMutation.mutate({ 
         id: selectedPartner.id, 
-        data
+        data: updatedData
       });
     }
   };
@@ -350,8 +366,9 @@ export default function RetailPartners() {
                                       if (e.key === 'Enter') {
                                         e.preventDefault();
                                         const value = e.currentTarget.value.trim();
-                                        if (value && !field.value.includes(value)) {
-                                          field.onChange([...field.value, value]);
+                                        const currentTags = field.value || [];
+                                        if (value && !currentTags.includes(value)) {
+                                          field.onChange([...currentTags, value]);
                                           e.currentTarget.value = '';
                                         }
                                       }
@@ -364,8 +381,9 @@ export default function RetailPartners() {
                                   onClick={() => {
                                     const input = document.querySelector('input[placeholder="e.g. outdoor, premium, large"]') as HTMLInputElement;
                                     const value = input?.value.trim();
-                                    if (value && !field.value.includes(value)) {
-                                      field.onChange([...field.value, value]);
+                                    const currentTags = field.value || [];
+                                    if (value && !currentTags.includes(value)) {
+                                      field.onChange([...currentTags, value]);
                                       if (input) input.value = '';
                                     }
                                   }}
@@ -476,6 +494,15 @@ export default function RetailPartners() {
                                   <div className="ml-3">
                                     <p className="font-medium text-gray-800">{partner.name}</p>
                                     <p className="text-gray-500 text-sm">{partner.address || "No address provided"}</p>
+                                    {partner.metadata?.tags && partner.metadata.tags.length > 0 && (
+                                      <div className="flex flex-wrap gap-1 mt-1">
+                                        {partner.metadata.tags.map((tag: string) => (
+                                          <span key={tag} className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600 border border-gray-200">
+                                            {tag}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               </td>
@@ -659,6 +686,76 @@ export default function RetailPartners() {
                     <p className="text-xs text-gray-500 mt-1">
                       This template will be automatically appended to all content posts shared with this partner.
                     </p>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editForm.control}
+                name="tags"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tags</FormLabel>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex gap-2">
+                        <FormControl>
+                          <Input 
+                            placeholder="e.g. outdoor, premium, large" 
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                const value = e.currentTarget.value.trim();
+                                const currentTags = field.value || [];
+                                if (value && !currentTags.includes(value)) {
+                                  field.onChange([...currentTags, value]);
+                                  e.currentTarget.value = '';
+                                }
+                              }
+                            }}
+                          />
+                        </FormControl>
+                        <Button 
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            const inputs = document.querySelectorAll('input[placeholder="e.g. outdoor, premium, large"]');
+                            const input = inputs[inputs.length - 1] as HTMLInputElement;
+                            const value = input?.value.trim();
+                            const currentTags = field.value || [];
+                            if (value && !currentTags.includes(value)) {
+                              field.onChange([...currentTags, value]);
+                              if (input) input.value = '';
+                            }
+                          }}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                      
+                      {field.value && field.value.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {field.value.map((tag) => (
+                            <div key={tag} className="flex items-center gap-1 bg-gray-100 text-gray-800 py-1 px-2 rounded-md text-sm">
+                              {tag}
+                              <button
+                                type="button" 
+                                onClick={() => {
+                                  const newTags = field.value ? field.value.filter((t) => t !== tag) : [];
+                                  field.onChange(newTags);
+                                }}
+                                className="w-4 h-4 rounded-full inline-flex items-center justify-center text-xs text-gray-500 hover:text-gray-700"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <FormDescription>
+                        Press Enter to add multiple tags. These will be used for content targeting.
+                      </FormDescription>
+                      <FormMessage />
+                    </div>
                   </FormItem>
                 )}
               />

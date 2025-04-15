@@ -33,6 +33,7 @@ export const retailPartners = pgTable("retail_partners", {
   contactPhone: text("contact_phone"),
   address: text("address"),
   footerTemplate: text("footer_template"), // Default footer template for all posts
+  metadata: jsonb("metadata"), // Store additional data like tags, categories, etc.
   createdAt: timestamp("created_at").defaultNow(),
   connectionDate: timestamp("connection_date"),
 });
@@ -45,6 +46,7 @@ export const insertRetailPartnerSchema = createInsertSchema(retailPartners).pick
   contactPhone: true,
   address: true,
   footerTemplate: true,
+  metadata: true,
 });
 
 // Social accounts schema

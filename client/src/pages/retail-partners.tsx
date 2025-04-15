@@ -44,6 +44,7 @@ const newPartnerSchema = z.object({
   contactPhone: z.string().optional(),
   address: z.string().optional(),
   status: z.string().default("pending"),
+  tags: z.array(z.string()).optional(),
 });
 
 // Form schema for editing a retail partner
@@ -54,6 +55,7 @@ const editPartnerSchema = z.object({
   address: z.string().optional(),
   status: z.string(),
   footerTemplate: z.string().optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 type NewPartnerFormValues = z.infer<typeof newPartnerSchema>;

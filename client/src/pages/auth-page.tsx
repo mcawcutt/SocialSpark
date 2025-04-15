@@ -98,7 +98,7 @@ export default function AuthPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-6xl grid gap-6 grid-cols-1 lg:grid-cols-2">
         {/* Hero section */}
-        <div className="hidden lg:flex flex-col justify-center p-8 bg-primary-600 text-white rounded-l-lg shadow-md">
+        <div className="hidden lg:flex flex-col justify-center p-8 bg-gray-900 text-white rounded-l-lg shadow-md">
           <div>
             <div className="mb-6">
               <img 

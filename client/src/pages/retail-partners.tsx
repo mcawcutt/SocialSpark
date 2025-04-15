@@ -153,6 +153,7 @@ export default function RetailPartners() {
       contactPhone: "",
       address: "",
       status: "pending",
+      tags: [],
     },
   });
 
@@ -166,12 +167,16 @@ export default function RetailPartners() {
       address: "",
       status: "",
       footerTemplate: "",
+      tags: [],
     },
   });
 
   // Reset and initialize edit form when selected partner changes
   useEffect(() => {
     if (selectedPartner) {
+      // Extract tags from metadata if available
+      const tags = selectedPartner.metadata?.tags || [];
+      
       editForm.reset({
         name: selectedPartner.name,
         contactEmail: selectedPartner.contactEmail,
@@ -179,6 +184,7 @@ export default function RetailPartners() {
         address: selectedPartner.address || "",
         status: selectedPartner.status,
         footerTemplate: selectedPartner.footerTemplate || "",
+        tags: Array.isArray(tags) ? tags : [],
       });
     }
   }, [selectedPartner, editForm]);
@@ -325,6 +331,73 @@ export default function RetailPartners() {
                               <Input placeholder="Enter address" {...field} />
                             </FormControl>
                             <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="tags"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Tags</FormLabel>
+                            <div className="flex flex-col gap-2">
+                              <div className="flex gap-2">
+                                <FormControl>
+                                  <Input 
+                                    placeholder="e.g. outdoor, premium, large" 
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        const value = e.currentTarget.value.trim();
+                                        if (value && !field.value.includes(value)) {
+                                          field.onChange([...field.value, value]);
+                                          e.currentTarget.value = '';
+                                        }
+                                      }
+                                    }}
+                                  />
+                                </FormControl>
+                                <Button 
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => {
+                                    const input = document.querySelector('input[placeholder="e.g. outdoor, premium, large"]') as HTMLInputElement;
+                                    const value = input?.value.trim();
+                                    if (value && !field.value.includes(value)) {
+                                      field.onChange([...field.value, value]);
+                                      if (input) input.value = '';
+                                    }
+                                  }}
+                                >
+                                  Add
+                                </Button>
+                              </div>
+                              
+                              {field.value && field.value.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {field.value.map((tag) => (
+                                    <div key={tag} className="flex items-center gap-1 bg-gray-100 text-gray-800 py-1 px-2 rounded-md text-sm">
+                                      {tag}
+                                      <button
+                                        type="button" 
+                                        onClick={() => {
+                                          const newTags = field.value ? field.value.filter((t) => t !== tag) : [];
+                                          field.onChange(newTags);
+                                        }}
+                                        className="w-4 h-4 rounded-full inline-flex items-center justify-center text-xs text-gray-500 hover:text-gray-700"
+                                      >
+                                        ×
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              <FormDescription>
+                                Press Enter to add multiple tags. These will be used for content targeting.
+                              </FormDescription>
+                              <FormMessage />
+                            </div>
                           </FormItem>
                         )}
                       />

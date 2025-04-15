@@ -11,6 +11,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { AIContentGenerator } from "@/components/content/ai-content-generator";
 import { CreatePostButton } from "@/components/content/post-form/create-post-button";
+import { ContentPostForm } from "@/components/content/post-form/content-post-form";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -690,6 +691,13 @@ interface EvergreenContentCardProps {
 
 function EvergreenContentCard({ post, onDelete }: EvergreenContentCardProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  
+  // Import ContentPostForm at the top of the file
+  // Function to close the edit dialog
+  const handleCloseEditDialog = () => {
+    setIsEditDialogOpen(false);
+  };
   
   return (
     <Card>
@@ -744,9 +752,23 @@ function EvergreenContentCard({ post, onDelete }: EvergreenContentCardProps) {
           )}
         </div>
         <div className="flex gap-2">
-          <Button variant="ghost" size="icon">
+          {/* Edit button with proper onClick handler */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => setIsEditDialogOpen(true)}
+          >
             <PencilIcon className="h-4 w-4" />
           </Button>
+          
+          {/* ContentPostForm for editing */}
+          <ContentPostForm
+            isOpen={isEditDialogOpen}
+            onClose={handleCloseEditDialog}
+            initialData={post}
+            isEvergreen={true}
+          />
+          
           <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
             <DialogTrigger asChild>
               <Button variant="ghost" size="icon">

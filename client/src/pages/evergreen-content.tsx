@@ -236,7 +236,10 @@ export default function EvergreenContent() {
               {filteredPosts.map((post) => (
                 <EvergreenContentCard 
                   key={post.id} 
-                  post={post} 
+                  post={{
+                    ...post,
+                    metadata: post.metadata as { tags?: string[], category?: string } | null | undefined
+                  }} 
                   onDelete={() => deleteEvergreenMutation.mutate(post.id)} 
                 />
               ))}
@@ -266,7 +269,10 @@ export default function EvergreenContent() {
                     {posts.map((post) => (
                       <EvergreenContentCard 
                         key={post.id} 
-                        post={post} 
+                        post={{
+                          ...post,
+                          metadata: post.metadata as { tags?: string[], category?: string } | null | undefined
+                        }} 
                         onDelete={() => deleteEvergreenMutation.mutate(post.id)} 
                       />
                     ))}

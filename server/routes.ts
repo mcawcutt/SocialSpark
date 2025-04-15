@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
+import { setupContentRoutes } from "./api/content";
 import { z } from "zod";
 import {
   insertRetailPartnerSchema,
@@ -13,6 +14,9 @@ import {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
+  
+  // Set up content routes
+  setupContentRoutes(app);
 
   // Debug endpoint to check if server is running correctly
   app.get("/api/debug", (req, res) => {

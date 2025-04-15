@@ -45,11 +45,12 @@ export default function EvergreenContent() {
 
   // Fetch evergreen content
   const { data: evergreenPosts, isLoading } = useQuery<ContentPost[]>({
-    queryKey: ["/api/content-posts/evergreen"],
+    queryKey: ["/api/content-posts/evergreen", user?.id],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/content-posts/evergreen");
+      const res = await apiRequest("GET", `/api/content-posts/evergreen?brandId=${user?.id}`);
       return await res.json();
     },
+    enabled: !!user?.id,
   });
 
   // Fetch categories (in a real app, this would come from the backend)
@@ -105,7 +106,7 @@ export default function EvergreenContent() {
         title: "Content created",
         description: "Your evergreen content has been added to the library.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/content-posts/evergreen"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/content-posts/evergreen", user?.id] });
       form.reset();
       setIsAddContentOpen(false);
     },
@@ -128,7 +129,7 @@ export default function EvergreenContent() {
         title: "Content deleted",
         description: "The evergreen content has been removed from your library.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/content-posts/evergreen"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/content-posts/evergreen", user?.id] });
     },
     onError: (error: Error) => {
       toast({

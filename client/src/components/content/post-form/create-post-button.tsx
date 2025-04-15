@@ -16,23 +16,43 @@ export function CreatePostButton({
   ...props 
 }: CreatePostButtonProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const buttonLabel = label || (isEvergreen ? "Add Evergreen Content" : "Create Post");
+  
+  const handleClick = () => {
+    console.log("Opening post form dialog");
+    setIsFormOpen(true);
+  };
+  
+  const handleClose = () => {
+    console.log("Closing post form dialog");
+    setIsFormOpen(false);
+  };
+
+  // Prepare initial data if scheduledDate is provided
+  const initialData = scheduledDate ? { 
+    scheduledDate,
+    // We can add any default values here
+    title: "",
+    description: "",
+    platforms: ["facebook", "instagram"],
+  } : undefined;
 
   return (
     <>
       <Button 
-        onClick={() => setIsFormOpen(true)} 
+        onClick={handleClick} 
         className="flex items-center"
         {...props}
       >
         <PlusIcon className="mr-2 h-4 w-4" />
-        {label || (isEvergreen ? "Add Evergreen Content" : "Create Post")}
+        {buttonLabel}
       </Button>
 
       <ContentPostForm
         isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
+        onClose={handleClose}
         isEvergreen={isEvergreen}
-        initialData={scheduledDate ? { scheduledDate } : undefined}
+        initialData={initialData}
       />
     </>
   );

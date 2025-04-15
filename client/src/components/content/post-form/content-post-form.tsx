@@ -43,6 +43,8 @@ interface ContentPostFormProps {
 }
 
 export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = false }: ContentPostFormProps) {
+  console.log('ContentPostForm initialData:', initialData);
+  
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -54,6 +56,18 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
   // Fetch categories (in a real app, this would come from the backend)
   const categories = ["Tips & Advice", "Promotions", "Seasonal", "Product Highlights", "Industry News"];
 
+  // Log when the dialog is opened/closed
+  console.log('Dialog is open:', isOpen);
+  
+  // Prepare default values with proper handling of scheduledDate
+  const schedDate = initialData?.scheduledDate 
+    ? (initialData.scheduledDate instanceof Date 
+        ? initialData.scheduledDate 
+        : new Date(initialData.scheduledDate)) 
+    : undefined;
+  
+  console.log('Using scheduledDate:', schedDate);
+
   // Form setup
   const form = useForm<ContentPostFormValues>({
     resolver: zodResolver(contentPostSchema),
@@ -62,13 +76,13 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
       description: initialData?.description || "",
       imageUrl: initialData?.imageUrl || "",
       platforms: initialData?.platforms || ["facebook", "instagram"],
-      scheduledDate: initialData?.scheduledDate ? new Date(initialData.scheduledDate) : undefined,
+      scheduledDate: schedDate,
       tags: initialData?.metadata && typeof initialData.metadata === 'object' && 'tags' in initialData.metadata
         ? (initialData.metadata.tags as string[]).join(", ")
         : "",
       category: initialData?.metadata && typeof initialData.metadata === 'object' && 'category' in initialData.metadata
         ? initialData.metadata.category as string
-        : "",
+        : categories[0],
       isEvergreen: initialData?.isEvergreen || isEvergreen
     }
   });

@@ -30,7 +30,11 @@ export interface IStorage {
   // Social Account operations
   getSocialAccount(id: number): Promise<SocialAccount | undefined>;
   getSocialAccountsByPartnerIds(partnerIds: number[]): Promise<SocialAccount[]>;
+  getSocialAccountsByPartnerId(partnerId: number): Promise<SocialAccount[]>;
+  getSocialAccountByPlatformId(platform: string, platformId: string): Promise<SocialAccount | undefined>;
   createSocialAccount(socialAccount: InsertSocialAccount): Promise<SocialAccount>;
+  updateSocialAccount(id: number, data: Partial<SocialAccount>): Promise<SocialAccount>;
+  deleteSocialAccount(id: number): Promise<void>;
   
   // Content Post operations
   getContentPost(id: number): Promise<ContentPost | undefined>;
@@ -218,6 +222,39 @@ export class MemStorage implements IStorage {
     return Array.from(this.socialAccounts.values()).filter(
       (account) => partnerIds.includes(account.partnerId),
     );
+  }
+  
+  async getSocialAccountsByPartnerId(partnerId: number): Promise<SocialAccount[]> {
+    return Array.from(this.socialAccounts.values()).filter(
+      (account) => account.partnerId === partnerId
+    );
+  }
+  
+  async getSocialAccountByPlatformId(platform: string, platformId: string): Promise<SocialAccount | undefined> {
+    return Array.from(this.socialAccounts.values()).find(
+      (account) => account.platform === platform && account.accountId === platformId
+    );
+  }
+  
+  async updateSocialAccount(id: number, data: Partial<SocialAccount>): Promise<SocialAccount> {
+    const account = await this.getSocialAccount(id);
+    if (!account) {
+      throw new Error(`Social account with ID ${id} not found`);
+    }
+    
+    const updatedAccount = { ...account, ...data };
+    this.socialAccounts.set(id, updatedAccount);
+    
+    return updatedAccount;
+  }
+  
+  async deleteSocialAccount(id: number): Promise<void> {
+    const exists = this.socialAccounts.has(id);
+    if (!exists) {
+      throw new Error(`Social account with ID ${id} not found`);
+    }
+    
+    this.socialAccounts.delete(id);
   }
 
   async createSocialAccount(insertAccount: InsertSocialAccount): Promise<SocialAccount> {

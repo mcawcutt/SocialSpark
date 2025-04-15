@@ -12,7 +12,8 @@ import {
   Settings, 
   HelpCircle,
   LogOut,
-  Flame
+  Flame,
+  Image
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -147,6 +148,13 @@ export function MobileNav() {
               icon={Store} 
               label="Retail Partners" 
               active={location === '/partners'} 
+              onClick={closeMenu}
+            />
+            <NavItem 
+              href="/media" 
+              icon={Image} 
+              label="Media Library" 
+              active={location === '/media'} 
               onClick={closeMenu}
             />
             <NavItem 

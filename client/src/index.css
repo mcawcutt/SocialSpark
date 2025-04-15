@@ -12,23 +12,28 @@
   }
 }
 
-/* Only turn blue buttons pink, leave everything else as is */
-.bg-primary,
-.border-primary,
-.bg-blue-600,
-.bg-blue-500,
-.bg-blue-700,
-button[class*="blue"],
-button[class*="primary"],
-[class*="button"]:not([class*="secondary"]):not([class*="destructive"]):not([class*="outline"]):not([class*="ghost"]),
-[class*="primary"]:not([class*="text"]):not(input):not(select):not(textarea),
-button:is(.bg-blue-500, .bg-blue-600, .bg-blue-700, .bg-primary) {
+/* Make the "New Post" button pink */
+a[href*="new-post"],
+button:has(svg[data-lucide="plus"]),
+.rounded-full:has(svg[data-lucide="plus"]) {
   background-color: #e03eb6 !important;
   border-color: #e03eb6 !important;
 }
 
-/* Shadcn specific selectors */
-.inline-flex.items-center.justify-center.whitespace-nowrap.rounded-md.text-sm.font-medium.ring-offset-background.transition-colors:not([data-variant='secondary']):not([data-variant='destructive']):not([data-variant='outline']):not([data-variant='ghost']):not([data-variant='link']) {
+/* Reset toggle buttons in content calendar */
+div:has(> button[class*="Grid3X3"]) button,
+div:has(> button[class*="List"]) button,
+[role="tab"],
+[data-state="on"],
+[data-state="active"],
+button:has(svg[data-lucide="grid-3x3"]),
+button:has(svg[data-lucide="list"]) {
+  background-color: initial !important;
+  border-color: initial !important;
+}
+
+/* Override for specific buttons */
+button[type="submit"]:not([aria-label="search"]):not(.inline-flex) {
   background-color: #e03eb6 !important;
   border-color: #e03eb6 !important;
 }

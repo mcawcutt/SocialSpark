@@ -62,19 +62,36 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
     enabled: isOpen && !isEvergreen
   });
 
+  // Log partners data
+  useEffect(() => {
+    if (partners) {
+      console.log('Retail partners data:', partners);
+    }
+  }, [partners]);
+
   // Extract unique tags from all partners
   useEffect(() => {
     if (partners && partners.length > 0) {
-      const allTags = partners.reduce((tags: string[], partner) => {
-        if (partner.metadata?.tags && Array.isArray(partner.metadata.tags)) {
-          return [...tags, ...partner.metadata.tags];
+      const allTags: string[] = [];
+      
+      // Extract all tags from partners
+      partners.forEach(partner => {
+        console.log('Partner metadata:', partner.name, partner.metadata);
+        if (partner.metadata && typeof partner.metadata === 'object' && 'tags' in partner.metadata) {
+          const tags = partner.metadata.tags;
+          if (Array.isArray(tags)) {
+            allTags.push(...tags.filter(tag => typeof tag === 'string'));
+          }
         }
-        return tags;
-      }, []);
+      });
       
       // Get unique tags only
-      const uniqueTags = [...new Set(allTags)];
-      setAvailableTags(uniqueTags);
+      const uniqueTagsSet = new Set<string>();
+      allTags.forEach(tag => uniqueTagsSet.add(tag));
+      
+      const tagsArray = Array.from(uniqueTagsSet);
+      console.log('Available partner tags:', tagsArray);
+      setAvailableTags(tagsArray);
     }
   }, [partners]);
 
@@ -652,10 +669,17 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="premium">Premium Partners</SelectItem>
-                              <SelectItem value="newYork">New York Region</SelectItem>
-                              <SelectItem value="westCoast">West Coast</SelectItem>
-                              <SelectItem value="highVolume">High Volume</SelectItem>
+                              {availableTags.length > 0 ? (
+                                availableTags.map((tag) => (
+                                  <SelectItem key={tag} value={tag}>
+                                    {tag}
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <SelectItem value="no-tags" disabled>
+                                  No partner tags available
+                                </SelectItem>
+                              )}
                             </SelectContent>
                           </Select>
                           

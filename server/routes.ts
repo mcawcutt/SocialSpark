@@ -4,6 +4,7 @@ import path from "path";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { setupContentRoutes } from "./api/content";
+import { setupUploadRoutes, serveUploads } from "./upload";
 import { z } from "zod";
 import {
   insertRetailPartnerSchema,
@@ -21,6 +22,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up content routes
   setupContentRoutes(app);
+  
+  // Set up file upload routes
+  setupUploadRoutes(app);
+  
+  // Serve uploaded files
+  serveUploads(app);
 
   // Debug endpoint to check if server is running correctly
   app.get("/api/debug", (req, res) => {

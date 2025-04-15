@@ -20,6 +20,13 @@ button:has(svg[data-lucide="plus"]),
   border-color: #e03eb6 !important;
 }
 
+/* Make Login button pink with white text */
+form:has(input[name="username"][placeholder="Enter your username"]) button[type="submit"] {
+  background-color: #e03eb6 !important;
+  border-color: #e03eb6 !important;
+  color: white !important;
+}
+
 /* Reset toggle buttons in content calendar */
 div:has(> button[class*="Grid3X3"]) button,
 div:has(> button[class*="List"]) button,
@@ -30,10 +37,4 @@ button:has(svg[data-lucide="grid-3x3"]),
 button:has(svg[data-lucide="list"]) {
   background-color: initial !important;
   border-color: initial !important;
-}
-
-/* Override for specific buttons */
-button[type="submit"]:not([aria-label="search"]):not(.inline-flex) {
-  background-color: #e03eb6 !important;
-  border-color: #e03eb6 !important;
 }

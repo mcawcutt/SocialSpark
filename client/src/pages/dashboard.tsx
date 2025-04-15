@@ -7,7 +7,8 @@ import { UpcomingPosts } from "@/components/dashboard/upcoming-posts";
 import { PartnerStatus } from "@/components/dashboard/partner-status";
 import { PerformanceSnapshot } from "@/components/dashboard/performance-snapshot";
 import { Button } from "@/components/ui/button";
-import { FilterIcon, PlusIcon, Loader2 } from "lucide-react";
+import { FilterIcon, Loader2 } from "lucide-react";
+import { CreatePostButton } from "@/components/content/post-form/create-post-button";
 
 export default function Dashboard() {
   // Fetch dashboard data
@@ -58,10 +59,7 @@ export default function Dashboard() {
                 <FilterIcon className="mr-2 h-4 w-4" />
                 Filter
               </Button>
-              <Button className="flex items-center">
-                <PlusIcon className="mr-2 h-4 w-4" />
-                Create Post
-              </Button>
+              <CreatePostButton />
             </div>
           </div>
 

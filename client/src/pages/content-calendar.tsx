@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { CreatePostButton } from "@/components/content/post-form/create-post-button";
+import { ContentPostForm } from "@/components/content/post-form/content-post-form";
 import { 
   Calendar as CalendarIcon, 
   PlusIcon, 
@@ -113,6 +114,22 @@ export default function ContentCalendar() {
     }
   };
 
+  // State for new post dialog
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [isNewPostDialogOpen, setIsNewPostDialogOpen] = useState(false);
+  
+  // Handle day click to open new post dialog
+  const handleDayClick = (day: number) => {
+    const clickedDate = new Date(currentYear, currentMonth, day);
+    setSelectedDate(clickedDate);
+    setIsNewPostDialogOpen(true);
+  };
+  
+  // Close the new post dialog
+  const handleCloseNewPostDialog = () => {
+    setIsNewPostDialogOpen(false);
+  };
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
       <MobileNav />
@@ -149,6 +166,20 @@ export default function ContentCalendar() {
               />
             </div>
           </div>
+          
+          {/* New Post Dialog */}
+          {selectedDate && (
+            <ContentPostForm
+              isOpen={isNewPostDialogOpen}
+              onClose={handleCloseNewPostDialog}
+              initialData={{
+                scheduledDate: selectedDate,
+                title: "",
+                description: "",
+                platforms: ["facebook", "instagram"],
+              }}
+            />
+          )}
 
           <Card>
             <CardHeader className="border-b border-gray-200">
@@ -212,9 +243,10 @@ export default function ContentCalendar() {
                         <div 
                           key={`day-${day}`} 
                           className={cn(
-                            "h-24 lg:h-32 border border-gray-200 p-1 overflow-hidden",
+                            "h-24 lg:h-32 border border-gray-200 p-1 overflow-hidden cursor-pointer",
                             isToday ? "bg-primary-50 border-primary-200" : "bg-white"
                           )}
+                          onClick={() => handleDayClick(day)}
                         >
                           <div className="flex justify-between items-start">
                             <span className={cn(

@@ -36,12 +36,16 @@ export function CreatePostButton({
     description: "",
     platforms: ["facebook", "instagram"],
   } : undefined;
+  
+  // Add a special class if this is the dashboard "Create New Post" button
+  const isCreateNewPost = buttonLabel === "Create New Post";
+  const buttonClass = `flex items-center ${isCreateNewPost ? 'create-new-post-button' : ''}`;
 
   return (
     <>
       <Button 
         onClick={handleClick} 
-        className="flex items-center"
+        className={buttonClass}
         {...props}
       >
         <PlusIcon className="mr-2 h-4 w-4" />

@@ -12,12 +12,11 @@
   }
 }
 
-/* Make the "New Post" button pink */
-a[href*="new-post"],
-button:has(svg[data-lucide="plus"]),
-.rounded-full:has(svg[data-lucide="plus"]) {
+/* Make specific buttons pink */
+.create-new-post-button {
   background-color: #e03eb6 !important;
   border-color: #e03eb6 !important;
+  color: white !important;
 }
 
 /* Make Login button pink with white text */
@@ -25,6 +24,13 @@ form:has(input[name="username"][placeholder="Enter your username"]) button[type=
   background-color: #e03eb6 !important;
   border-color: #e03eb6 !important;
   color: white !important;
+}
+
+/* New Post button in calendar */
+a[href*="new-post"],
+button:has(svg[data-lucide="plus"]).rounded-full {
+  background-color: #e03eb6 !important;
+  border-color: #e03eb6 !important;
 }
 
 /* Reset toggle buttons in content calendar */

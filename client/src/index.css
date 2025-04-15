@@ -11,3 +11,27 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* Custom button styling */
+.btn-primary,
+button[type="submit"],
+.button,
+.btn,
+button:not([data-variant]),
+[role="button"] {
+  background-color: #e03eb6 !important;
+  border-color: #e03eb6 !important;
+}
+
+/* Keep form elements with their original style */
+input, select, textarea, .form-control {
+  background-color: initial !important;
+  border-color: hsl(var(--input)) !important;
+}
+
+/* Ensure focus styles are maintained */
+input:focus, select:focus, textarea:focus, .form-control:focus {
+  border-color: hsl(var(--input)) !important;
+  outline-color: hsl(var(--input)) !important;
+  ring-color: hsl(var(--input)) !important;
+}

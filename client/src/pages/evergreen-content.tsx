@@ -87,7 +87,7 @@ export default function EvergreenContent() {
         brandId: user!.id,
         title: data.title,
         description: data.description,
-        imageUrl: data.imageUrl || "https://placehold.co/600x400",
+        imageUrl: data.imageUrl,
         platforms: data.platforms,
         status: "draft",
         isEvergreen: true
@@ -111,7 +111,7 @@ export default function EvergreenContent() {
         description: "Your evergreen content has been added to the library.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/content-posts/evergreen", user?.id] });
-      form.reset();
+      resetForm();
       setIsAddContentOpen(false);
     },
     onError: (error: Error) => {
@@ -198,8 +198,20 @@ export default function EvergreenContent() {
     }
   };
 
+  // Reset form when dialog closes
+  const resetForm = () => {
+    form.reset();
+    setSelectedFile(null);
+    setImagePreview(null);
+  };
+
   // Form submission handler
   const onSubmit = (data: EvergreenContentFormValues) => {
+    // Make sure we have the most up-to-date imageUrl from the uploaded file
+    if (imagePreview && !data.imageUrl) {
+      data.imageUrl = imagePreview;
+    }
+    
     createEvergreenMutation.mutate(data);
   };
 
@@ -356,7 +368,7 @@ export default function EvergreenContent() {
         onOpenChange={(open) => {
           setIsAddContentOpen(open);
           if (!open) {
-            form.reset();
+            resetForm();
           }
         }}
       >
@@ -408,10 +420,64 @@ export default function EvergreenContent() {
                   name="imageUrl"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Image URL (optional)</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="https://..." />
-                      </FormControl>
+                      <FormLabel>Image</FormLabel>
+                      <div className="space-y-3">
+                        {imagePreview && (
+                          <div className="relative w-full h-32 rounded-md overflow-hidden border">
+                            <img 
+                              src={imagePreview} 
+                              alt="Preview" 
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
+                        <input
+                          type="hidden"
+                          {...field}
+                        />
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="relative"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploadingImage}
+                          >
+                            {uploadingImage ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <ImageIcon className="mr-2 h-4 w-4" />
+                                {imagePreview ? "Change Image" : "Upload Image"}
+                              </>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              ref={fileInputRef}
+                              className="absolute inset-0 opacity-0 cursor-pointer"
+                              onChange={handleFileChange}
+                            />
+                          </Button>
+                          {imagePreview && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setImagePreview(null);
+                                field.onChange("");
+                              }}
+                            >
+                              Remove
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}

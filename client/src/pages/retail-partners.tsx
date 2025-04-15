@@ -285,7 +285,7 @@ export default function RetailPartners() {
                     Invite Partner
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Invite New Retail Partner</DialogTitle>
                     <DialogDescription>
@@ -581,7 +581,7 @@ export default function RetailPartners() {
       
       {/* Edit Partner Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Retail Partner</DialogTitle>
             <DialogDescription>

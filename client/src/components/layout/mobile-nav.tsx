@@ -11,7 +11,8 @@ import {
   BarChart2, 
   Settings, 
   HelpCircle,
-  LogOut 
+  LogOut,
+  Flame
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -132,6 +133,13 @@ export function MobileNav() {
               icon={Calendar} 
               label="Content Calendar" 
               active={location === '/calendar'} 
+              onClick={closeMenu}
+            />
+            <NavItem 
+              href="/evergreen" 
+              icon={Flame} 
+              label="Evergreen Content" 
+              active={location === '/evergreen'} 
               onClick={closeMenu}
             />
             <NavItem 

@@ -284,6 +284,7 @@ export default function EvergreenContent() {
               <CreatePostButton 
                 isEvergreen={true}
                 label="Add Evergreen Content"
+                className="bg-[#e03eb6] hover:bg-[#e03eb6]/90 border-[#e03eb6] text-white"
               />
             </div>
           </div>

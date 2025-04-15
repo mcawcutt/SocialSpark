@@ -292,7 +292,15 @@ export default function EvergreenContent() {
       </Tabs>
 
       {/* Add New Evergreen Content Dialog */}
-      <Dialog open={isAddContentOpen} onOpenChange={setIsAddContentOpen}>
+      <Dialog 
+        open={isAddContentOpen} 
+        onOpenChange={(open) => {
+          setIsAddContentOpen(open);
+          if (!open) {
+            form.reset();
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Add New Evergreen Content</DialogTitle>

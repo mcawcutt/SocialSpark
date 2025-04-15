@@ -21,14 +21,16 @@ const storage = multer.diskStorage({
   }
 });
 
-// File filter for images
+// File filter for images and videos
 const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'];
+  const allowedMimeTypes = [...allowedImageTypes, ...allowedVideoTypes];
   
   if (allowedMimeTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.'));
+    cb(new Error('Invalid file type. Only JPEG, PNG, GIF, WebP images and MP4, WebM, MOV, AVI videos are allowed.'));
   }
 };
 
@@ -37,14 +39,14 @@ export const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB file size limit
+    fileSize: 50 * 1024 * 1024 // 50MB file size limit to accommodate videos
   }
 });
 
 // Setup upload routes
 export function setupUploadRoutes(app: Express) {
   // Single file upload endpoint
-  app.post('/api/upload', upload.single('image'), (req: Request, res: Response) => {
+  app.post('/api/upload', upload.single('media'), (req: Request, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });

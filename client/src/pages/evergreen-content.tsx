@@ -148,7 +148,7 @@ export default function EvergreenContent() {
   const uploadImageMutation = useMutation({
     mutationFn: async (file: File) => {
       const formData = new FormData();
-      formData.append('image', file);
+      formData.append('media', file);
       
       const response = await fetch('/api/upload', {
         method: 'POST',
@@ -420,15 +420,23 @@ export default function EvergreenContent() {
                   name="imageUrl"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Image</FormLabel>
+                      <FormLabel>Media</FormLabel>
                       <div className="space-y-3">
                         {imagePreview && (
                           <div className="relative w-full h-32 rounded-md overflow-hidden border">
-                            <img 
-                              src={imagePreview} 
-                              alt="Preview" 
-                              className="w-full h-full object-cover"
-                            />
+                            {selectedFile?.type.startsWith('video/') ? (
+                              <video 
+                                src={imagePreview} 
+                                className="w-full h-full object-cover"
+                                controls
+                              />
+                            ) : (
+                              <img 
+                                src={imagePreview} 
+                                alt="Preview" 
+                                className="w-full h-full object-cover"
+                              />
+                            )}
                           </div>
                         )}
                         <input
@@ -452,12 +460,12 @@ export default function EvergreenContent() {
                             ) : (
                               <>
                                 <ImageIcon className="mr-2 h-4 w-4" />
-                                {imagePreview ? "Change Image" : "Upload Image"}
+                                {imagePreview ? "Change Media" : "Upload Image/Video"}
                               </>
                             )}
                             <input
                               type="file"
-                              accept="image/*"
+                              accept="image/*, video/*"
                               ref={fileInputRef}
                               className="absolute inset-0 opacity-0 cursor-pointer"
                               onChange={handleFileChange}
@@ -662,11 +670,19 @@ function EvergreenContentCard({ post, onDelete }: EvergreenContentCardProps) {
           className="w-full h-40 bg-muted rounded-md mb-4 flex items-center justify-center overflow-hidden"
         >
           {post.imageUrl ? (
-            <img 
-              src={post.imageUrl} 
-              alt={post.title} 
-              className="w-full h-full object-cover"
-            />
+            post.imageUrl.endsWith('.mp4') || post.imageUrl.endsWith('.webm') || post.imageUrl.endsWith('.mov') ? (
+              <video 
+                src={post.imageUrl} 
+                className="w-full h-full object-cover" 
+                controls
+              />
+            ) : (
+              <img 
+                src={post.imageUrl} 
+                alt={post.title} 
+                className="w-full h-full object-cover"
+              />
+            )
           ) : (
             <ImageIcon className="h-12 w-12 text-muted-foreground/60" />
           )}

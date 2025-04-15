@@ -7,6 +7,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Sidebar } from "@/components/layout/sidebar";
+import { MobileNav } from "@/components/layout/mobile-nav";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -253,390 +255,398 @@ export default function EvergreenContent() {
   const postsByCategory = getPostsByCategory();
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">Evergreen Content Library</h1>
-          <p className="text-muted-foreground mt-2">
-            Create and manage content that can be randomly selected for your retail partners' social media.
-          </p>
-        </div>
-        <Button onClick={() => setIsAddContentOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" /> Add New Content
-        </Button>
-      </div>
-
-      <div className="mb-6 flex items-center gap-4">
-        <div className="relative flex-1">
-          <Input
-            placeholder="Search content..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-          <div className="absolute left-3 top-2.5 text-muted-foreground">
-            <FilterIcon className="h-4 w-4" />
+    <div className="min-h-screen flex flex-col md:flex-row">
+      <MobileNav />
+      <Sidebar />
+      
+      <main className="flex-1 overflow-auto">
+        <div className="p-4 md:p-6 lg:p-8">
+          {/* Page Header */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-800">Evergreen Content Library</h1>
+              <p className="text-gray-500">Create and manage content that can be randomly selected for your retail partners' social media.</p>
+            </div>
+            <div className="mt-4 md:mt-0">
+              <Button onClick={() => setIsAddContentOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" /> Add New Content
+              </Button>
+            </div>
           </div>
-        </div>
-        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Select Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {categories?.map((category) => (
-              <SelectItem key={category} value={category}>
-                {category}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
 
-      <Tabs defaultValue="grid">
-        <TabsList className="mb-6">
-          <TabsTrigger value="grid">Grid View</TabsTrigger>
-          <TabsTrigger value="categories">By Category</TabsTrigger>
-        </TabsList>
+          <div className="mb-6 flex flex-col md:flex-row items-start md:items-center gap-4">
+            <div className="relative flex-1 w-full">
+              <Input
+                placeholder="Search content..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+              <div className="absolute left-3 top-2.5 text-muted-foreground">
+                <FilterIcon className="h-4 w-4" />
+              </div>
+            </div>
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="w-full md:w-[200px]">
+                <SelectValue placeholder="Select Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories?.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        <TabsContent value="grid">
-          {isLoading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : filteredPosts && filteredPosts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredPosts.map((post) => (
-                <EvergreenContentCard 
-                  key={post.id} 
-                  post={{
-                    ...post,
-                    metadata: post.metadata as { tags?: string[], category?: string } | null | undefined
-                  }} 
-                  onDelete={() => deleteEvergreenMutation.mutate(post.id)} 
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 border rounded-lg bg-muted/20">
-              <p className="text-lg text-muted-foreground">
-                {evergreenPosts?.length === 0 ? 
-                  "Your evergreen content library is empty. Add your first piece of content!" : 
-                  "No content matches your search filters."}
-              </p>
-            </div>
-          )}
-        </TabsContent>
+          <Tabs defaultValue="grid">
+            <TabsList className="mb-6">
+              <TabsTrigger value="grid">Grid View</TabsTrigger>
+              <TabsTrigger value="categories">By Category</TabsTrigger>
+            </TabsList>
 
-        <TabsContent value="categories">
-          {isLoading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : Object.keys(postsByCategory).length > 0 ? (
-            <div className="space-y-8">
-              {Object.entries(postsByCategory).map(([category, posts]) => (
-                <div key={category}>
-                  <h2 className="text-xl font-semibold mb-4">{category}</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {posts.map((post) => (
-                      <EvergreenContentCard 
-                        key={post.id} 
-                        post={{
-                          ...post,
-                          metadata: post.metadata as { tags?: string[], category?: string } | null | undefined
-                        }} 
-                        onDelete={() => deleteEvergreenMutation.mutate(post.id)} 
-                      />
-                    ))}
-                  </div>
-                  <Separator className="mt-8" />
+            <TabsContent value="grid">
+              {isLoading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 border rounded-lg bg-muted/20">
-              <p className="text-lg text-muted-foreground">
-                Your evergreen content library is empty. Add your first piece of content!
-              </p>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+              ) : filteredPosts && filteredPosts.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredPosts.map((post) => (
+                    <EvergreenContentCard 
+                      key={post.id} 
+                      post={{
+                        ...post,
+                        metadata: post.metadata as { tags?: string[], category?: string } | null | undefined
+                      }} 
+                      onDelete={() => deleteEvergreenMutation.mutate(post.id)} 
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 border rounded-lg bg-muted/20">
+                  <p className="text-lg text-muted-foreground">
+                    {evergreenPosts?.length === 0 ? 
+                      "Your evergreen content library is empty. Add your first piece of content!" : 
+                      "No content matches your search filters."}
+                  </p>
+                </div>
+              )}
+            </TabsContent>
 
-      {/* Add New Evergreen Content Dialog */}
-      <Dialog 
-        open={isAddContentOpen} 
-        onOpenChange={(open) => {
-          setIsAddContentOpen(open);
-          if (!open) {
-            resetForm();
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Add New Evergreen Content</DialogTitle>
-            <DialogDescription>
-              Create content that can be randomly selected when scheduling posts
-            </DialogDescription>
-          </DialogHeader>
+            <TabsContent value="categories">
+              {isLoading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : Object.keys(postsByCategory).length > 0 ? (
+                <div className="space-y-8">
+                  {Object.entries(postsByCategory).map(([category, posts]) => (
+                    <div key={category}>
+                      <h2 className="text-xl font-semibold mb-4">{category}</h2>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {posts.map((post) => (
+                          <EvergreenContentCard 
+                            key={post.id} 
+                            post={{
+                              ...post,
+                              metadata: post.metadata as { tags?: string[], category?: string } | null | undefined
+                            }} 
+                            onDelete={() => deleteEvergreenMutation.mutate(post.id)} 
+                          />
+                        ))}
+                      </div>
+                      <Separator className="mt-8" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 border rounded-lg bg-muted/20">
+                  <p className="text-lg text-muted-foreground">
+                    Your evergreen content library is empty. Add your first piece of content!
+                  </p>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Title</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Enter a title for this content" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          {/* Add New Evergreen Content Dialog */}
+          <Dialog 
+            open={isAddContentOpen} 
+            onOpenChange={(open) => {
+              setIsAddContentOpen(open);
+              if (!open) {
+                resetForm();
+              }
+            }}
+          >
+            <DialogContent className="sm:max-w-[600px]">
+              <DialogHeader>
+                <DialogTitle>Add New Evergreen Content</DialogTitle>
+                <DialogDescription>
+                  Create content that can be randomly selected when scheduling posts
+                </DialogDescription>
+              </DialogHeader>
 
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Content</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        {...field} 
-                        placeholder="Write the post content here..." 
-                        className="min-h-[120px]"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Title</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Enter a title for this content" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="imageUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Media</FormLabel>
-                      <div className="space-y-3">
-                        {imagePreview && (
-                          <div className="relative w-full h-32 rounded-md overflow-hidden border">
-                            {selectedFile?.type.startsWith('video/') ? (
-                              <video 
-                                src={imagePreview} 
-                                className="w-full h-full object-cover"
-                                controls
-                              />
-                            ) : (
-                              <img 
-                                src={imagePreview} 
-                                alt="Preview" 
-                                className="w-full h-full object-cover"
-                              />
-                            )}
-                          </div>
-                        )}
-                        <input
-                          type="hidden"
-                          {...field}
-                        />
-                        <div className="flex items-center gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="relative"
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={uploadingImage}
-                          >
-                            {uploadingImage ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Uploading...
-                              </>
-                            ) : (
-                              <>
-                                <ImageIcon className="mr-2 h-4 w-4" />
-                                {imagePreview ? "Change Media" : "Upload Image/Video"}
-                              </>
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Content</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            {...field} 
+                            placeholder="Write the post content here..." 
+                            className="min-h-[120px]"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="imageUrl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Media</FormLabel>
+                          <div className="space-y-3">
+                            {imagePreview && (
+                              <div className="relative w-full h-32 rounded-md overflow-hidden border">
+                                {selectedFile?.type.startsWith('video/') ? (
+                                  <video 
+                                    src={imagePreview} 
+                                    className="w-full h-full object-cover"
+                                    controls
+                                  />
+                                ) : (
+                                  <img 
+                                    src={imagePreview} 
+                                    alt="Preview" 
+                                    className="w-full h-full object-cover"
+                                  />
+                                )}
+                              </div>
                             )}
                             <input
-                              type="file"
-                              accept="image/*, video/*"
-                              ref={fileInputRef}
-                              className="absolute inset-0 opacity-0 cursor-pointer"
-                              onChange={handleFileChange}
+                              type="hidden"
+                              {...field}
                             />
-                          </Button>
-                          {imagePreview && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setImagePreview(null);
-                                field.onChange("");
-                              }}
-                            >
-                              Remove
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                            <div className="flex items-center gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="relative"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={uploadingImage}
+                              >
+                                {uploadingImage ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Uploading...
+                                  </>
+                                ) : (
+                                  <>
+                                    <ImageIcon className="mr-2 h-4 w-4" />
+                                    {imagePreview ? "Change Media" : "Upload Image/Video"}
+                                  </>
+                                )}
+                                <input
+                                  type="file"
+                                  accept="image/*, video/*"
+                                  ref={fileInputRef}
+                                  className="absolute inset-0 opacity-0 cursor-pointer"
+                                  onChange={handleFileChange}
+                                />
+                              </Button>
+                              {imagePreview && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setImagePreview(null);
+                                    field.onChange("");
+                                  }}
+                                >
+                                  Remove
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={form.control}
-                  name="category"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Category</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                      >
+                    <FormField
+                      control={form.control}
+                      name="category"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Category</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a category" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {categories?.map((category) => (
+                                <SelectItem key={category} value={category}>
+                                  {category}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="tags"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tags (comma separated)</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a category" />
-                          </SelectTrigger>
+                          <Input {...field} placeholder="product, sale, tip, etc." />
                         </FormControl>
-                        <SelectContent>
-                          {categories?.map((category) => (
-                            <SelectItem key={category} value={category}>
-                              {category}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="tags"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tags (comma separated)</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="product, sale, tip, etc." />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={form.control}
+                    name="platforms"
+                    render={() => (
+                      <FormItem>
+                        <div className="mb-2">
+                          <FormLabel>Platforms</FormLabel>
+                        </div>
+                        <div className="flex gap-4">
+                          <FormField
+                            control={form.control}
+                            name="platforms"
+                            render={({ field }) => (
+                              <FormItem className="flex items-center space-x-2 space-y-0">
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value?.includes("facebook")}
+                                    onCheckedChange={(checked) => {
+                                      const updatedPlatforms = checked 
+                                        ? [...field.value, "facebook"] 
+                                        : field.value.filter(platform => platform !== "facebook");
+                                      field.onChange(updatedPlatforms);
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormLabel className="font-normal">Facebook</FormLabel>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="platforms"
+                            render={({ field }) => (
+                              <FormItem className="flex items-center space-x-2 space-y-0">
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value?.includes("instagram")}
+                                    onCheckedChange={(checked) => {
+                                      const updatedPlatforms = checked 
+                                        ? [...field.value, "instagram"] 
+                                        : field.value.filter(platform => platform !== "instagram");
+                                      field.onChange(updatedPlatforms);
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormLabel className="font-normal">Instagram</FormLabel>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="platforms"
+                            render={({ field }) => (
+                              <FormItem className="flex items-center space-x-2 space-y-0">
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value?.includes("google")}
+                                    onCheckedChange={(checked) => {
+                                      const updatedPlatforms = checked 
+                                        ? [...field.value, "google"] 
+                                        : field.value.filter(platform => platform !== "google");
+                                      field.onChange(updatedPlatforms);
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormLabel className="font-normal">Google Business</FormLabel>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="platforms"
-                render={() => (
-                  <FormItem>
-                    <div className="mb-2">
-                      <FormLabel>Platforms</FormLabel>
-                    </div>
-                    <div className="flex gap-4">
-                      <FormField
-                        control={form.control}
-                        name="platforms"
-                        render={({ field }) => (
-                          <FormItem className="flex items-center space-x-2 space-y-0">
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes("facebook")}
-                                onCheckedChange={(checked) => {
-                                  const updatedPlatforms = checked 
-                                    ? [...field.value, "facebook"] 
-                                    : field.value.filter(platform => platform !== "facebook");
-                                  field.onChange(updatedPlatforms);
-                                }}
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal">Facebook</FormLabel>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="platforms"
-                        render={({ field }) => (
-                          <FormItem className="flex items-center space-x-2 space-y-0">
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes("instagram")}
-                                onCheckedChange={(checked) => {
-                                  const updatedPlatforms = checked 
-                                    ? [...field.value, "instagram"] 
-                                    : field.value.filter(platform => platform !== "instagram");
-                                  field.onChange(updatedPlatforms);
-                                }}
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal">Instagram</FormLabel>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="platforms"
-                        render={({ field }) => (
-                          <FormItem className="flex items-center space-x-2 space-y-0">
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes("google")}
-                                onCheckedChange={(checked) => {
-                                  const updatedPlatforms = checked 
-                                    ? [...field.value, "google"] 
-                                    : field.value.filter(platform => platform !== "google");
-                                  field.onChange(updatedPlatforms);
-                                }}
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal">Google Business</FormLabel>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsAddContentOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit"
-                  disabled={createEvergreenMutation.isPending}
-                >
-                  {createEvergreenMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Add to Library"
-                  )}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+                  <DialogFooter>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => setIsAddContentOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit"
+                      disabled={createEvergreenMutation.isPending}
+                    >
+                      {createEvergreenMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        "Add to Library"
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </main>
     </div>
   );
 }

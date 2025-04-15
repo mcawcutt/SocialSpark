@@ -569,7 +569,11 @@ export class MemStorage implements IStorage {
         platforms: ["facebook", "instagram", "google"],
         status: "automated", 
         isEvergreen: true,
-        scheduledDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
+        scheduledDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+        metadata: {
+          tags: ["maintenance", "tips", "care"],
+          category: "Tips & Advice"
+        }
       },
       { 
         title: "Spring Collection", 
@@ -577,16 +581,99 @@ export class MemStorage implements IStorage {
         platforms: ["facebook", "instagram", "google"],
         status: "published", 
         publishedDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
+      },
+      {
+        title: "10 Ways to Improve Your Cycling",
+        description: "Discover tips from the pros on how to improve your cycling technique and endurance.",
+        platforms: ["facebook", "instagram"],
+        status: "draft",
+        isEvergreen: true,
+        metadata: {
+          tags: ["cycling", "tips", "fitness"],
+          category: "Tips & Advice"
+        }
+      },
+      {
+        title: "Summer Gear Essentials",
+        description: "Don't leave for your summer adventures without these essential items that will make your outdoor experience better than ever!",
+        platforms: ["facebook", "instagram", "google"],
+        status: "draft",
+        isEvergreen: true,
+        metadata: {
+          tags: ["summer", "gear", "essentials"],
+          category: "Seasonal"
+        }
+      },
+      {
+        title: "Limited Edition Hiking Boots",
+        description: "Our new limited edition hiking boots are crafted for the serious adventurer. With enhanced grip and waterproof technology, these boots are ready for any terrain.",
+        platforms: ["facebook", "instagram"],
+        status: "draft",
+        isEvergreen: true,
+        metadata: {
+          tags: ["hiking", "boots", "premium"],
+          category: "Product Highlights"
+        }
+      },
+      {
+        title: "Weekend Flash Sale",
+        description: "This weekend only! Get 30% off all outdoor apparel. Visit your local store or shop online.",
+        platforms: ["facebook", "instagram", "google"],
+        status: "draft",
+        isEvergreen: true,
+        metadata: {
+          tags: ["sale", "discount", "weekend"],
+          category: "Promotions"
+        }
+      },
+      {
+        title: "New Bike Maintenance Service",
+        description: "Introducing our premium bike maintenance service. Keep your bike in top condition year-round with our expert technicians.",
+        platforms: ["facebook", "instagram", "google"],
+        status: "draft",
+        isEvergreen: true,
+        metadata: {
+          tags: ["bike", "maintenance", "service"],
+          category: "Product Highlights"
+        }
+      },
+      {
+        title: "Industry Trends 2025",
+        description: "Explore the latest trends in outdoor gear and technology that are shaping the industry in 2025 and beyond.",
+        platforms: ["facebook", "instagram"],
+        status: "draft",
+        isEvergreen: true,
+        metadata: {
+          tags: ["trends", "industry", "2025"],
+          category: "Industry News"
+        }
       }
     ];
     
-    posts.forEach(post => {
-      this.createContentPost({
-        ...post,
+    // Manually create posts to handle metadata properly
+    for (const post of posts) {
+      const { metadata, ...postData } = post as any;
+      
+      // Create the post
+      const id = this.postIdCounter++;
+      const now = new Date();
+      const createdPost: ContentPost = { 
+        ...postData,
         brandId: 1,
-        imageUrl: "https://placehold.co/600x400"
-      });
-    });
+        imageUrl: "https://placehold.co/600x400", 
+        id,
+        createdAt: now,
+        updatedAt: now,
+        publishedDate: null,
+        metadata: metadata || null,
+        scheduledDate: postData.scheduledDate || null,
+        isEvergreen: postData.isEvergreen || false,
+        status: postData.status || "draft"
+      };
+      
+      // Save the post
+      this.contentPosts.set(id, createdPost);
+    }
     
     // Create post assignments
     for (let postId = 1; postId <= 4; postId++) {

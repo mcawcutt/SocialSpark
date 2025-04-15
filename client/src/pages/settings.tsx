@@ -43,7 +43,8 @@ import {
   Link,
   Facebook, 
   Instagram,
-  LinkedinIcon
+  LinkedinIcon,
+  Globe
 } from "lucide-react";
 
 // Profile schema

@@ -9,6 +9,7 @@ import Analytics from "@/pages/analytics";
 import Settings from "@/pages/settings";
 import AuthPage from "@/pages/auth-page";
 import EvergreenContent from "@/pages/evergreen-content";
+import TestUpload from "@/pages/test-upload";
 
 function Router() {
   return (
@@ -19,6 +20,7 @@ function Router() {
       <ProtectedRoute path="/analytics" component={Analytics} />
       <ProtectedRoute path="/evergreen" component={EvergreenContent} />
       <ProtectedRoute path="/settings" component={Settings} />
+      <ProtectedRoute path="/test-upload" component={TestUpload} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>

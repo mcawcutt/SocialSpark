@@ -205,10 +205,10 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
       console.log('Uploading file:', file.name, 'size:', file.size, 'type:', file.type);
       console.log('FormData content after append:', formData.get('media'));
       
-      // Debug upload by showing form data content
-      for (const [key, value] of formData.entries()) {
+      // Debug upload by showing form data content (using Array.from)
+      Array.from(formData.entries()).forEach(([key, value]) => {
         console.log(`FormData entry - key: ${key}, value type: ${typeof value}, value:`, value);
-      }
+      });
       
       // Create a direct XMLHttpRequest for more control
       return new Promise<void>((resolve, reject) => {

@@ -1,4 +1,4 @@
-import { useState, useRef, ChangeEvent, useEffect } from "react";
+import { useState, useRef, ChangeEvent, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { ContentPost, InsertContentPost, RetailPartner } from "@shared/schema";
 import { z } from "zod";
@@ -339,6 +339,40 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
   };
 
   const isPending = createPostMutation.isPending || updatePostMutation.isPending;
+  
+  // Calculate which partners will receive this post based on selected tags
+  const selectedPartnerTags = form.watch("partnerTags") || [];
+  const selectedDistributionMethod = form.watch("partnerDistribution");
+  
+  const targetedPartners = useMemo(() => {
+    if (!partners || partners.length === 0 || selectedDistributionMethod === "all") {
+      return [];
+    }
+    
+    console.log('Calculating targeted partners for tags:', selectedPartnerTags);
+    
+    // If distribution method is by tag, find all partners that have any of the selected tags
+    const filteredPartners = partners.filter(partner => {
+      if (!partner.metadata || typeof partner.metadata !== 'object' || !('tags' in partner.metadata)) {
+        console.log(`Partner ${partner.name} has no metadata tags`);
+        return false;
+      }
+      
+      const partnerTags = partner.metadata.tags;
+      if (!Array.isArray(partnerTags)) {
+        console.log(`Partner ${partner.name} tags are not an array:`, partnerTags);
+        return false;
+      }
+      
+      // Check if any of the selected tags match this partner's tags
+      const hasMatchingTag = selectedPartnerTags.some(tag => partnerTags.includes(tag));
+      console.log(`Partner ${partner.name} ${hasMatchingTag ? 'matches' : 'does not match'} the selected tags`);
+      return hasMatchingTag;
+    });
+    
+    console.log('Targeted partners:', filteredPartners.map(p => p.name));
+    return filteredPartners;
+  }, [partners, selectedDistributionMethod, selectedPartnerTags]);
 
   return (
     <Dialog 
@@ -704,6 +738,25 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                             </div>
                           )}
                           <FormMessage />
+                          
+                          {/* Display partners that will receive this post */}
+                          {selectedDistributionMethod === "byTag" && selectedPartnerTags.length > 0 && (
+                            <div className="mt-4 border rounded-md p-3 bg-muted/30">
+                              <h4 className="text-sm font-medium mb-2">Partners receiving this content:</h4>
+                              {targetedPartners.length > 0 ? (
+                                <div className="space-y-1">
+                                  {targetedPartners.map(partner => (
+                                    <div key={partner.id} className="text-sm flex items-center gap-2">
+                                      <div className="w-2 h-2 rounded-full bg-primary"></div>
+                                      {partner.name}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-muted-foreground">No partners match the selected tags.</p>
+                              )}
+                            </div>
+                          )}
                         </FormItem>
                       )}
                     />

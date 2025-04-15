@@ -40,7 +40,10 @@ import {
   Database,
   Smartphone,
   FileText,
-  Link
+  Link,
+  Facebook, 
+  Instagram,
+  LinkedinIcon
 } from "lucide-react";
 
 // Profile schema

@@ -194,66 +194,56 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
     setUploadingImage(true);
     
     try {
-      // First, create a preview URL immediately for better UX
-      const fileUrl = URL.createObjectURL(file);
-      setImagePreview(fileUrl);
+      // Note: We've already set the preview in handleFileChange
+      // This helps with the UI feeling more responsive
       
       // Create form data
       const formData = new FormData();
       formData.append('media', file);
       
       console.log('Uploading file:', file.name, 'size:', file.size, 'type:', file.type);
-      console.log('FormData content after append:', formData.get('media'));
       
       // Debug upload by showing form data content (using Array.from)
       Array.from(formData.entries()).forEach(([key, value]) => {
         console.log(`FormData entry - key: ${key}, value type: ${typeof value}, value:`, value);
       });
       
-      // Create a direct XMLHttpRequest for more control
-      return new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
+      // Use fetch API instead of XMLHttpRequest
+      try {
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
         
-        xhr.open('POST', '/api/upload', true);
+        console.log('Upload response status:', response.status);
         
-        xhr.onload = function() {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            console.log('Upload XHR successful response:', xhr.responseText);
-            try {
-              const data = JSON.parse(xhr.responseText);
-              form.setValue('imageUrl', data.file.url);
-              
-              const isVideo = file.type.startsWith('video/');
-              toast({
-                title: isVideo ? "Video uploaded" : "Image uploaded",
-                description: `Your ${isVideo ? 'video' : 'image'} has been uploaded successfully.`,
-              });
-              resolve();
-            } catch (e) {
-              console.error('Error parsing JSON response:', e);
-              reject(new Error('Invalid response from server'));
-            }
-          } else {
-            console.error('XHR error response:', xhr.status, xhr.statusText, xhr.responseText);
-            reject(new Error(`Upload failed: ${xhr.statusText}`));
-          }
-        };
+        if (!response.ok) {
+          throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+        }
         
-        xhr.onerror = function() {
-          console.error('XHR network error');
-          reject(new Error('Network error during upload'));
-        };
+        const responseText = await response.text();
+        console.log('Upload response text:', responseText);
         
-        xhr.upload.onprogress = function(e) {
-          if (e.lengthComputable) {
-            const percentComplete = (e.loaded / e.total) * 100;
-            console.log(`Upload progress: ${percentComplete.toFixed(2)}%`);
-          }
-        };
-        
-        // Send the form data
-        xhr.send(formData);
-      });
+        try {
+          const data = JSON.parse(responseText);
+          console.log('Upload successful, got URL:', data.file.url);
+          
+          // Update the form with the URL from the server
+          form.setValue('imageUrl', data.file.url);
+          
+          const isVideo = file.type.startsWith('video/');
+          toast({
+            title: isVideo ? "Video uploaded" : "Image uploaded",
+            description: `Your ${isVideo ? 'video' : 'image'} has been uploaded successfully.`,
+          });
+        } catch (e) {
+          console.error('Error parsing upload response JSON:', e);
+          throw new Error('Invalid response from server');
+        }
+      } catch (fetchError) {
+        console.error('Fetch error during upload:', fetchError);
+        throw fetchError;
+      }
     } catch (error) {
       console.error('Error uploading file:', error);
       const isVideo = file.type.startsWith('video/');
@@ -269,14 +259,23 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
     }
   };
 
-  // Handle file selection
+  // Handle file selection with a slight delay to ensure component state is stable
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      
+      // Create a preview URL immediately for better UX
+      const fileUrl = URL.createObjectURL(file);
+      setImagePreview(fileUrl);
       setSelectedFile(file);
       
-      // Upload the file
-      uploadImage(file);
+      console.log('File selected for upload:', file.name);
+      
+      // Process the file with a slight delay to ensure component has updated
+      setTimeout(() => {
+        // Upload the file
+        uploadImage(file);
+      }, 100);
       
       // Clear the input value to ensure the change event fires again even if the same file is selected
       e.target.value = '';

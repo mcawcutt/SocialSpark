@@ -186,63 +186,54 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
     },
   });
 
-  // Upload image function - rewritten with direct fetch for better handling
+  // Upload image function - completely rewritten for more direct handling
   const uploadImage = async (file: File) => {
     setUploadingImage(true);
     
     try {
-      // Note: We've already set the preview in handleFileChange
-      // This helps with the UI feeling more responsive
-      
       // Create form data
       const formData = new FormData();
       formData.append('media', file);
       
-      console.log('Uploading file:', file.name, 'size:', file.size, 'type:', file.type);
+      console.log('[UPLOAD] Starting upload for file:', file.name, 'size:', file.size);
       
-      // Debug upload by showing form data content (using Array.from)
-      Array.from(formData.entries()).forEach(([key, value]) => {
-        console.log(`FormData entry - key: ${key}, value type: ${typeof value}, value:`, value);
+      // Use fetch API with direct handling
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
       });
       
-      // Use fetch API instead of XMLHttpRequest
-      try {
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
-        
-        console.log('Upload response status:', response.status);
-        
-        if (!response.ok) {
-          throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
-        }
-        
-        const responseText = await response.text();
-        console.log('Upload response text:', responseText);
-        
-        try {
-          const data = JSON.parse(responseText);
-          console.log('Upload successful, got URL:', data.file.url);
-          
-          // Update the form with the URL from the server
-          form.setValue('imageUrl', data.file.url);
-          
-          const isVideo = file.type.startsWith('video/');
-          toast({
-            title: isVideo ? "Video uploaded" : "Image uploaded",
-            description: `Your ${isVideo ? 'video' : 'image'} has been uploaded successfully.`,
-          });
-        } catch (e) {
-          console.error('Error parsing upload response JSON:', e);
-          throw new Error('Invalid response from server');
-        }
-      } catch (fetchError) {
-        console.error('Fetch error during upload:', fetchError);
-        throw fetchError;
+      console.log('[UPLOAD] Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
       }
+      
+      // Parse the response
+      const data = await response.json();
+      console.log('[UPLOAD] Upload successful, got URL:', data.file.url);
+      
+      // CRITICAL: Directly set both the form value and state variables
+      // This ensures all ways of accessing the image URL are updated
+      form.setValue('imageUrl', data.file.url, { 
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true
+      });
+      
+      // Show toast notification
+      const isVideo = file.type.startsWith('video/');
+      toast({
+        title: isVideo ? "Video uploaded" : "Image uploaded",
+        description: `Your ${isVideo ? 'video' : 'image'} has been uploaded successfully.`,
+      });
+      
+      return data.file.url; // Return the URL so we can use it elsewhere if needed
+      
     } catch (error) {
-      console.error('Error uploading file:', error);
+      console.error('[UPLOAD] Error uploading file:', error);
+      
+      // Show error notification
       const isVideo = file.type.startsWith('video/');
       toast({
         title: `Error uploading ${isVideo ? 'video' : 'image'}`,
@@ -250,29 +241,47 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
         variant: "destructive",
       });
       
-      // Keep the preview even if upload fails, so user can still see what they selected
+      return null;
     } finally {
       setUploadingImage(false);
     }
   };
 
-  // Handle file selection with proper async handling
+  // Completely rewritten handleFileChange to fix upload issues
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       
-      // Create a preview URL immediately for better UX
-      const fileUrl = URL.createObjectURL(file);
-      setImagePreview(fileUrl);
-      setSelectedFile(file);
-      
-      console.log('File selected for upload:', file.name);
-      
-      // Upload the file immediately, no need for setTimeout
-      await uploadImage(file);
-      
-      // Clear the input value to ensure the change event fires again even if the same file is selected
-      e.target.value = '';
+      try {
+        // Create a preview URL immediately for better UX
+        const fileUrl = URL.createObjectURL(file);
+        setImagePreview(fileUrl);  
+        setSelectedFile(file);
+        
+        console.log('[FILE] File selected for upload:', file.name, 'type:', file.type);
+        
+        // Start the upload immediately and get the URL back
+        const uploadedUrl = await uploadImage(file);
+        
+        // If upload was successful, update the preview with the real URL
+        if (uploadedUrl) {
+          console.log('[FILE] Upload successful, updating preview to server URL:', uploadedUrl);
+          setImagePreview(uploadedUrl);
+          
+          // This is the key step: make sure the form knows about the upload
+          form.setValue('imageUrl', uploadedUrl, { 
+            shouldValidate: true, 
+            shouldDirty: true,
+            shouldTouch: true 
+          });
+        }
+      } catch (error) {
+        console.error('[FILE] Error in file selection/upload:', error);
+        // Keep the preview even on error
+      } finally {
+        // Always clear the input value to ensure the same file can be selected again
+        e.target.value = '';
+      }
     }
   };
 

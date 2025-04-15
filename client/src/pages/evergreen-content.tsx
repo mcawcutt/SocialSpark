@@ -167,15 +167,17 @@ export default function EvergreenContent() {
       form.setValue('imageUrl', data.file.url);
       setImagePreview(data.file.url);
       setUploadingImage(false);
+      const isVideo = selectedFile?.type.startsWith('video/');
       toast({
-        title: "Image uploaded",
-        description: "Your image has been uploaded successfully.",
+        title: isVideo ? "Video uploaded" : "Image uploaded",
+        description: `Your ${isVideo ? 'video' : 'image'} has been uploaded successfully.`,
       });
     },
     onError: (error: Error) => {
       setUploadingImage(false);
+      const isVideo = selectedFile?.type.startsWith('video/');
       toast({
-        title: "Error uploading image",
+        title: `Error uploading ${isVideo ? 'video' : 'image'}`,
         description: error.message,
         variant: "destructive",
       });

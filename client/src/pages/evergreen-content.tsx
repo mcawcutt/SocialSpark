@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { AIContentGenerator } from "@/components/content/ai-content-generator";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -207,6 +208,17 @@ export default function EvergreenContent() {
     form.reset();
     setSelectedFile(null);
     setImagePreview(null);
+  };
+  
+  // Handle AI-generated content
+  const handleAIContentGenerated = (title: string, description: string) => {
+    form.setValue('title', title);
+    form.setValue('description', description);
+    
+    toast({
+      title: "Content inserted",
+      description: "AI-generated content has been added to the form.",
+    });
   };
 
   // Form submission handler

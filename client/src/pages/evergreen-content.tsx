@@ -631,6 +631,17 @@ export default function EvergreenContent() {
                     )}
                   />
 
+                  {/* AI Content Generator */}
+                  <Separator className="my-4" />
+                  <div className="mb-4">
+                    <h3 className="text-sm font-medium mb-2">Need content ideas? Generate with AI</h3>
+                    <AIContentGenerator 
+                      onContentGenerated={handleAIContentGenerated}
+                      contentType="evergreen"
+                    />
+                  </div>
+                  <Separator className="my-4" />
+
                   <DialogFooter>
                     <Button 
                       type="button" 

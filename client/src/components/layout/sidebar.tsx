@@ -9,7 +9,8 @@ import {
   Settings, 
   HelpCircle,
   LogOut,
-  Flame
+  Flame,
+  Image
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -105,6 +106,12 @@ export function Sidebar() {
           icon={Store} 
           label="Retail Partners" 
           active={location === '/partners'} 
+        />
+        <NavItem 
+          href="/media" 
+          icon={Image} 
+          label="Media Library" 
+          active={location === '/media'} 
         />
         <NavItem 
           href="/analytics" 

@@ -9,6 +9,7 @@ import Analytics from "@/pages/analytics";
 import Settings from "@/pages/settings";
 import AuthPage from "@/pages/auth-page";
 import EvergreenContent from "@/pages/evergreen-content";
+import MediaLibrary from "@/pages/media-library";
 import TestUpload from "@/pages/test-upload";
 
 function Router() {
@@ -19,6 +20,7 @@ function Router() {
       <ProtectedRoute path="/partners" component={RetailPartners} />
       <ProtectedRoute path="/analytics" component={Analytics} />
       <ProtectedRoute path="/evergreen" component={EvergreenContent} />
+      <ProtectedRoute path="/media" component={MediaLibrary} />
       <ProtectedRoute path="/settings" component={Settings} />
       <ProtectedRoute path="/test-upload" component={TestUpload} />
       <Route path="/auth" component={AuthPage} />

@@ -4,6 +4,7 @@ import path from "path";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { setupContentRoutes } from "./api/content";
+import { setupMediaRoutes } from "./api/media";
 import { setupUploadRoutes, serveUploads } from "./upload";
 import { z } from "zod";
 import {
@@ -22,6 +23,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up content routes
   setupContentRoutes(app);
+  
+  // Set up media library routes
+  setupMediaRoutes(app);
   
   // Set up file upload routes
   setupUploadRoutes(app);

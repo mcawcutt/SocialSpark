@@ -39,8 +39,11 @@ export interface IStorage {
   // Content Post operations
   getContentPost(id: number): Promise<ContentPost | undefined>;
   getContentPostsByBrandId(brandId: number): Promise<ContentPost[]>;
+  getRetailPartnersByIds(ids: number[]): Promise<RetailPartner[]>;
   createContentPost(contentPost: InsertContentPost): Promise<ContentPost>;
   updateContentPost(id: number, data: Partial<ContentPost>): Promise<ContentPost>;
+  updateContentPostMetadata(id: number, metadata: any): Promise<void>;
+  deleteContentPost(id: number): Promise<void>;
   getActivePostCount(brandId: number): Promise<number>;
   getScheduledPostCount(brandId: number): Promise<number>;
   getUpcomingPosts(brandId: number, limit: number): Promise<ContentPost[]>;
@@ -280,6 +283,12 @@ export class MemStorage implements IStorage {
       (post) => post.brandId === brandId,
     );
   }
+  
+  async getRetailPartnersByIds(ids: number[]): Promise<RetailPartner[]> {
+    return Array.from(this.retailPartners.values()).filter(
+      (partner) => ids.includes(partner.id)
+    );
+  }
 
   async createContentPost(insertPost: InsertContentPost): Promise<ContentPost> {
     const id = this.postIdCounter++;
@@ -310,6 +319,39 @@ export class MemStorage implements IStorage {
     
     this.contentPosts.set(id, updatedPost);
     return updatedPost;
+  }
+  
+  async updateContentPostMetadata(id: number, metadata: any): Promise<void> {
+    const post = await this.getContentPost(id);
+    if (!post) {
+      throw new Error("Post not found");
+    }
+    
+    // In a real implementation with a database, we would store metadata in a JSONB column
+    // For our in-memory implementation, we'll add it directly to the post object
+    const updatedPost = { 
+      ...post,
+      metadata: metadata,
+      updatedAt: new Date()
+    };
+    
+    this.contentPosts.set(id, updatedPost);
+  }
+  
+  async deleteContentPost(id: number): Promise<void> {
+    const exists = this.contentPosts.has(id);
+    if (!exists) {
+      throw new Error(`Content post with ID ${id} not found`);
+    }
+    
+    // Delete the content post
+    this.contentPosts.delete(id);
+    
+    // Also delete any associated assignments
+    const assignments = await this.getPostAssignmentsByPostId(id);
+    for (const assignment of assignments) {
+      this.postAssignments.delete(assignment.id);
+    }
   }
   
   async getActivePostCount(brandId: number): Promise<number> {

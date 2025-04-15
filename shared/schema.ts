@@ -81,6 +81,7 @@ export const contentPosts = pgTable("content_posts", {
   publishedDate: timestamp("published_date"),
   status: text("status").notNull().default("draft"), // "draft", "scheduled", "published", "automated"
   isEvergreen: boolean("is_evergreen").default(false),
+  metadata: jsonb("metadata"), // Store additional data like tags, categories, etc.
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -94,6 +95,7 @@ export const insertContentPostSchema = createInsertSchema(contentPosts).pick({
   scheduledDate: true,
   status: true,
   isEvergreen: true,
+  metadata: true,
 });
 
 // Post assignments schema (which posts to which partners)
@@ -106,6 +108,7 @@ export const postAssignments = pgTable("post_assignments", {
   status: text("status").notNull().default("pending"), // "pending", "published", "failed"
   publishedUrl: text("published_url"),
   publishedDate: timestamp("published_date"),
+  metadata: jsonb("metadata"), // Store additional data for evergreen posts
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -114,6 +117,7 @@ export const insertPostAssignmentSchema = createInsertSchema(postAssignments).pi
   partnerId: true,
   customFooter: true,
   customTags: true,
+  metadata: true,
 });
 
 // Analytics schema

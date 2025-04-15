@@ -256,7 +256,7 @@ export default function RetailPartners() {
               </div>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="flex items-center">
+                  <Button className="flex items-center bg-[#e03eb6] hover:bg-[#e03eb6]/90 border-[#e03eb6] text-white">
                     <UserPlus className="mr-2 h-4 w-4" />
                     Invite Partner
                   </Button>
@@ -331,6 +331,7 @@ export default function RetailPartners() {
                         <Button 
                           type="submit" 
                           disabled={createPartnerMutation.isPending}
+                          className="bg-[#e03eb6] hover:bg-[#e03eb6]/90 border-[#e03eb6]"
                         >
                           {createPartnerMutation.isPending ? "Sending Invitation..." : "Send Invitation"}
                         </Button>
@@ -591,6 +592,7 @@ export default function RetailPartners() {
                 <Button 
                   type="submit" 
                   disabled={updatePartnerMutation.isPending}
+                  className="bg-[#e03eb6] hover:bg-[#e03eb6]/90 border-[#e03eb6]"
                 >
                   {updatePartnerMutation.isPending ? "Saving Changes..." : "Save Changes"}
                 </Button>

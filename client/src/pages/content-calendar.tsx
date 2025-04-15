@@ -13,7 +13,8 @@ import {
   Globe,
   Filter,
   Grid3X3,
-  List
+  List,
+  Image as ImageIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -286,7 +287,15 @@ export default function ContentCalendar() {
                           </div>
                         </div>
                         <div className="flex-1 flex items-center">
-                          <div className="w-8 h-8 rounded bg-gray-200 mr-2"></div>
+                          <div className="w-8 h-8 rounded overflow-hidden mr-2">
+                            {post.imageUrl ? (
+                              <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
+                                <ImageIcon className="h-4 w-4" />
+                              </div>
+                            )}
+                          </div>
                           <div>
                             <div className="font-medium text-gray-800">{post.title}</div>
                             <div className="text-xs text-gray-500 truncate max-w-sm">

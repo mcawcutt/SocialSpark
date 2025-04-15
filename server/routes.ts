@@ -1,5 +1,6 @@
-import type { Express } from "express";
+import express, { type Express } from "express";
 import { createServer, type Server } from "http";
+import path from "path";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { setupContentRoutes } from "./api/content";
@@ -12,6 +13,9 @@ import {
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Serve static assets from the attached_assets directory
+  app.use("/assets", express.static(path.join(process.cwd(), "attached_assets")));
+  
   // Set up authentication routes
   setupAuth(app);
   

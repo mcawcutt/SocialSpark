@@ -34,8 +34,9 @@ button:has(svg[data-lucide="plus"]) {
   color: white !important;
 }
 
-/* Month/List toggle buttons in the content calendar */
-div.space-x-2 button.flex.items-center {
+/* Only the active toggle (Month/List) should be pink */
+div.space-x-2 button[variant="default"],
+div.space-x-2 button[data-state="active"] {
   background-color: #e03eb6 !important;
   border-color: #e03eb6 !important;
   color: white !important;

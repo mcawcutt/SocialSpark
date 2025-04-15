@@ -10,6 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { AIContentGenerator } from "@/components/content/ai-content-generator";
+import { CreatePostButton } from "@/components/content/post-form/create-post-button";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -280,9 +281,10 @@ export default function EvergreenContent() {
               <p className="text-gray-500">Create and manage content that can be randomly selected for your retail partners' social media.</p>
             </div>
             <div className="mt-4 md:mt-0">
-              <Button onClick={() => setIsAddContentOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" /> Add New Content
-              </Button>
+              <CreatePostButton 
+                isEvergreen={true}
+                label="Add Evergreen Content"
+              />
             </div>
           </div>
 

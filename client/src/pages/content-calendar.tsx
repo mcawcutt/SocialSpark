@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { CreatePostButton } from "@/components/content/post-form/create-post-button";
 import { 
   Calendar as CalendarIcon, 
   PlusIcon, 
@@ -140,10 +141,10 @@ export default function ContentCalendar() {
                   <SelectItem value="google">Google Business</SelectItem>
                 </SelectContent>
               </Select>
-              <Button className="flex items-center">
-                <PlusIcon className="mr-2 h-4 w-4" />
-                New Post
-              </Button>
+              <CreatePostButton 
+                scheduleDate={currentDate}
+                label="New Post"
+              />
             </div>
           </div>
 

@@ -186,102 +186,64 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
     },
   });
 
-  // Upload image function - completely rewritten for more direct handling
-  const uploadImage = async (file: File) => {
+  // This function is no longer used - the upload is handled directly in handleFileChange
+  // But we'll keep it as a reference or potential future use
+  const uploadImage = async (file: File): Promise<string | null> => {
+    console.log('⚠️ uploadImage should not be called directly anymore');
+    return null;
+  };
+
+  // Completely simple handleFileChange - straightforward and direct
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
+    
+    const file = e.target.files[0];
+    
+    // Show a local preview immediately 
+    const localPreviewUrl = URL.createObjectURL(file);
+    setImagePreview(localPreviewUrl);
+    setSelectedFile(file);
+    
+    // Start upload
     setUploadingImage(true);
     
     try {
-      // Create form data
+      // Create and prepare form data
       const formData = new FormData();
       formData.append('media', file);
       
-      console.log('[UPLOAD] Starting upload for file:', file.name, 'size:', file.size);
-      
-      // Use fetch API with direct handling
+      // Direct fetch with minimal complexity
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
       
-      console.log('[UPLOAD] Response status:', response.status);
+      if (!response.ok) throw new Error(`Upload failed: ${response.status}`);
       
-      if (!response.ok) {
-        throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
-      }
+      const result = await response.json();
       
-      // Parse the response
-      const data = await response.json();
-      console.log('[UPLOAD] Upload successful, got URL:', data.file.url);
+      // Very explicitly set the form value first, then update the preview
+      form.setValue('imageUrl', result.file.url);
       
-      // CRITICAL: Directly set both the form value and state variables
-      // This ensures all ways of accessing the image URL are updated
-      form.setValue('imageUrl', data.file.url, { 
-        shouldValidate: true,
-        shouldDirty: true,
-        shouldTouch: true
-      });
+      // Log success
+      console.log('✅ Upload successful:', result.file.url);
       
-      // Show toast notification
-      const isVideo = file.type.startsWith('video/');
+      // Success toast
       toast({
-        title: isVideo ? "Video uploaded" : "Image uploaded",
-        description: `Your ${isVideo ? 'video' : 'image'} has been uploaded successfully.`,
+        title: "Upload successful",
+        description: "Your media has been uploaded.",
       });
-      
-      return data.file.url; // Return the URL so we can use it elsewhere if needed
-      
     } catch (error) {
-      console.error('[UPLOAD] Error uploading file:', error);
-      
-      // Show error notification
-      const isVideo = file.type.startsWith('video/');
+      console.error('❌ Upload error:', error);
       toast({
-        title: `Error uploading ${isVideo ? 'video' : 'image'}`,
-        description: error instanceof Error ? error.message : 'An error occurred during upload',
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
       });
-      
-      return null;
     } finally {
       setUploadingImage(false);
-    }
-  };
-
-  // Completely rewritten handleFileChange to fix upload issues
-  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      
-      try {
-        // Create a preview URL immediately for better UX
-        const fileUrl = URL.createObjectURL(file);
-        setImagePreview(fileUrl);  
-        setSelectedFile(file);
-        
-        console.log('[FILE] File selected for upload:', file.name, 'type:', file.type);
-        
-        // Start the upload immediately and get the URL back
-        const uploadedUrl = await uploadImage(file);
-        
-        // If upload was successful, update the preview with the real URL
-        if (uploadedUrl) {
-          console.log('[FILE] Upload successful, updating preview to server URL:', uploadedUrl);
-          setImagePreview(uploadedUrl);
-          
-          // This is the key step: make sure the form knows about the upload
-          form.setValue('imageUrl', uploadedUrl, { 
-            shouldValidate: true, 
-            shouldDirty: true,
-            shouldTouch: true 
-          });
-        }
-      } catch (error) {
-        console.error('[FILE] Error in file selection/upload:', error);
-        // Keep the preview even on error
-      } finally {
-        // Always clear the input value to ensure the same file can be selected again
-        e.target.value = '';
-      }
+      // Clear input 
+      e.target.value = '';
     }
   };
 

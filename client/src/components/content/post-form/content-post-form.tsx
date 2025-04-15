@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ImageIcon, Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Badge } from "@/components/ui/badge";
 
 // Define validation schema for new content
 const contentPostSchema = z.object({
@@ -29,7 +30,9 @@ const contentPostSchema = z.object({
   scheduledDate: z.date().optional(),
   tags: z.string().optional(),
   category: z.string().min(1, { message: "Category is required" }),
-  isEvergreen: z.boolean().default(false)
+  isEvergreen: z.boolean().default(false),
+  partnerDistribution: z.enum(["all", "byTag"]).default("all"),
+  partnerTags: z.array(z.string()).optional()
 });
 
 type ContentPostFormValues = z.infer<typeof contentPostSchema>;
@@ -82,7 +85,9 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
       category: initialData?.metadata && typeof initialData.metadata === 'object' && 'category' in initialData.metadata
         ? initialData.metadata.category as string
         : categories[0],
-      isEvergreen: initialData?.isEvergreen || isEvergreen
+      isEvergreen: initialData?.isEvergreen || isEvergreen,
+      partnerDistribution: initialData?.metadata?.partnerDistribution as "all" | "byTag" || "all",
+      partnerTags: initialData?.metadata?.partnerTags as string[] || []
     }
   });
 
@@ -101,12 +106,17 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
         isEvergreen: data.isEvergreen
       };
 
-      // Add additional metadata
+      // Add additional metadata including partner distribution
       const postWithMetadata = {
         ...contentPost,
         metadata: {
           tags: data.tags?.split(",").map(tag => tag.trim()),
-          category: data.category
+          category: data.category,
+          // Add partner distribution data for non-evergreen posts
+          ...((!data.isEvergreen) ? {
+            partnerDistribution: data.partnerDistribution,
+            partnerTags: data.partnerTags
+          } : {})
         }
       };
 
@@ -155,7 +165,12 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
         isEvergreen: data.isEvergreen,
         metadata: {
           tags: data.tags?.split(",").map(tag => tag.trim()),
-          category: data.category
+          category: data.category,
+          // Add partner distribution data for non-evergreen posts
+          ...((!data.isEvergreen) ? {
+            partnerDistribution: data.partnerDistribution,
+            partnerTags: data.partnerTags
+          } : {})
         }
       };
 
@@ -538,20 +553,116 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
             />
 
             {!isEvergreen && (
-              <FormField
-                control={form.control}
-                name="scheduledDate"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Schedule Date (optional)</FormLabel>
-                    <DatePicker
-                      date={field.value}
-                      setDate={field.onChange}
+              <>
+                <FormField
+                  control={form.control}
+                  name="scheduledDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Schedule Date (optional)</FormLabel>
+                      <DatePicker
+                        date={field.value}
+                        setDate={field.onChange}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                {/* Partner Distribution Selection */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Partner Distribution</h3>
+                  <FormField
+                    control={form.control}
+                    name="partnerDistribution"
+                    render={({ field }) => (
+                      <div className="space-y-4">
+                        <FormItem className="flex items-center space-x-2 space-y-0">
+                          <FormControl>
+                            <input
+                              type="radio"
+                              checked={field.value === "all"}
+                              onChange={() => field.onChange("all")}
+                              className="h-4 w-4 text-primary border-muted-foreground" 
+                            />
+                          </FormControl>
+                          <FormLabel className="font-normal">
+                            All Retail Partners
+                          </FormLabel>
+                        </FormItem>
+                        
+                        <FormItem className="flex items-center space-x-2 space-y-0">
+                          <FormControl>
+                            <input
+                              type="radio"
+                              checked={field.value === "byTag"}
+                              onChange={() => field.onChange("byTag")}
+                              className="h-4 w-4 text-primary border-muted-foreground"
+                            />
+                          </FormControl>
+                          <FormLabel className="font-normal">
+                            Target Partners by Tag
+                          </FormLabel>
+                        </FormItem>
+                      </div>
+                    )}
+                  />
+                  
+                  {form.watch("partnerDistribution") === "byTag" && (
+                    <FormField
+                      control={form.control}
+                      name="partnerTags"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Partner Tags</FormLabel>
+                          <Select
+                            onValueChange={(value) => {
+                              const currentTags = field.value || [];
+                              if (!currentTags.includes(value)) {
+                                field.onChange([...currentTags, value]);
+                              }
+                            }}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select partner tags" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="premium">Premium Partners</SelectItem>
+                              <SelectItem value="newYork">New York Region</SelectItem>
+                              <SelectItem value="westCoast">West Coast</SelectItem>
+                              <SelectItem value="highVolume">High Volume</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          
+                          {/* Display selected tags */}
+                          {field.value && field.value.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {field.value.map((tag) => (
+                                <Badge key={tag} className="flex items-center gap-1">
+                                  {tag}
+                                  <button
+                                    type="button" 
+                                    onClick={() => {
+                                      const newTags = field.value ? field.value.filter((t) => t !== tag) : [];
+                                      field.onChange(newTags);
+                                    }}
+                                    className="w-4 h-4 rounded-full inline-flex items-center justify-center text-xs"
+                                  >
+                                    ×
+                                  </button>
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  )}
+                </div>
+              </>
             )}
 
             {!initialData && (

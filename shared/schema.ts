@@ -169,3 +169,27 @@ export type InsertPostAssignment = z.infer<typeof insertPostAssignmentSchema>;
 
 export type Analytics = typeof analytics.$inferSelect;
 export type InsertAnalytics = z.infer<typeof insertAnalyticsSchema>;
+
+// Media Library Schema
+export const mediaLibrary = pgTable("media_library", {
+  id: serial("id").primaryKey(),
+  brandId: integer("brand_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  fileUrl: text("file_url").notNull(),
+  fileType: text("file_type").notNull(),
+  description: text("description"),
+  tags: text("tags").array(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertMediaLibrarySchema = createInsertSchema(mediaLibrary).pick({
+  brandId: true,
+  name: true,
+  fileUrl: true,
+  fileType: true,
+  description: true,
+  tags: true,
+});
+
+export type MediaLibraryItem = typeof mediaLibrary.$inferSelect;
+export type InsertMediaLibraryItem = z.infer<typeof insertMediaLibrarySchema>;

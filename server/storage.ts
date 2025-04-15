@@ -4,7 +4,8 @@ import {
   SocialAccount, InsertSocialAccount,
   ContentPost, InsertContentPost, 
   PostAssignment, InsertPostAssignment,
-  Analytics, InsertAnalytics
+  Analytics, InsertAnalytics,
+  MediaLibraryItem, InsertMediaLibraryItem
 } from "@shared/schema";
 import createMemoryStore from "memorystore";
 import session from "express-session";
@@ -61,6 +62,14 @@ export interface IStorage {
   // Activity operations
   getRecentActivity(brandId: number, limit: number): Promise<any[]>;
   
+  // Media Library operations
+  getMediaItem(id: number): Promise<MediaLibraryItem | undefined>;
+  getMediaByBrandId(brandId: number): Promise<MediaLibraryItem[]>;
+  createMediaItem(mediaItem: InsertMediaLibraryItem): Promise<MediaLibraryItem>;
+  updateMediaItem(id: number, data: Partial<MediaLibraryItem>): Promise<MediaLibraryItem>;
+  deleteMediaItem(id: number): Promise<void>;
+  getMediaByTags(brandId: number, tags: string[]): Promise<MediaLibraryItem[]>;
+  
   // Session store
   sessionStore: ReturnType<typeof createMemoryStore>;
 }
@@ -72,6 +81,7 @@ export class MemStorage implements IStorage {
   private contentPosts: Map<number, ContentPost>;
   private postAssignments: Map<number, PostAssignment>;
   private analytics: Map<number, Analytics>;
+  private mediaLibraryItems: Map<number, MediaLibraryItem>;
   
   private userIdCounter: number;
   private partnerIdCounter: number;
@@ -79,6 +89,7 @@ export class MemStorage implements IStorage {
   private postIdCounter: number;
   private assignmentIdCounter: number;
   private analyticsIdCounter: number;
+  private mediaIdCounter: number;
   
   sessionStore: ReturnType<typeof createMemoryStore>;
 
@@ -89,6 +100,7 @@ export class MemStorage implements IStorage {
     this.contentPosts = new Map();
     this.postAssignments = new Map();
     this.analytics = new Map();
+    this.mediaLibraryItems = new Map();
     
     this.userIdCounter = 1;
     this.partnerIdCounter = 1;
@@ -96,6 +108,7 @@ export class MemStorage implements IStorage {
     this.postIdCounter = 1;
     this.assignmentIdCounter = 1;
     this.analyticsIdCounter = 1;
+    this.mediaIdCounter = 1;
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000, // prune expired entries every 24h
@@ -508,6 +521,67 @@ export class MemStorage implements IStorage {
       .slice(0, limit);
   }
   
+  // Media Library operations
+  async getMediaItem(id: number): Promise<MediaLibraryItem | undefined> {
+    return this.mediaLibraryItems.get(id);
+  }
+
+  async getMediaByBrandId(brandId: number): Promise<MediaLibraryItem[]> {
+    return Array.from(this.mediaLibraryItems.values()).filter(
+      (item) => item.brandId === brandId
+    );
+  }
+
+  async createMediaItem(mediaItem: InsertMediaLibraryItem): Promise<MediaLibraryItem> {
+    const id = this.mediaIdCounter++;
+    const now = new Date();
+    const item: MediaLibraryItem = {
+      ...mediaItem,
+      id,
+      createdAt: now
+    };
+    this.mediaLibraryItems.set(id, item);
+    return item;
+  }
+
+  async updateMediaItem(id: number, data: Partial<MediaLibraryItem>): Promise<MediaLibraryItem> {
+    const item = await this.getMediaItem(id);
+    if (!item) {
+      throw new Error(`Media item with ID ${id} not found`);
+    }
+    
+    const updatedItem = { ...item, ...data };
+    this.mediaLibraryItems.set(id, updatedItem);
+    return updatedItem;
+  }
+
+  async deleteMediaItem(id: number): Promise<void> {
+    const exists = this.mediaLibraryItems.has(id);
+    if (!exists) {
+      throw new Error(`Media item with ID ${id} not found`);
+    }
+    
+    this.mediaLibraryItems.delete(id);
+  }
+
+  async getMediaByTags(brandId: number, tags: string[]): Promise<MediaLibraryItem[]> {
+    if (tags.length === 0) {
+      return this.getMediaByBrandId(brandId);
+    }
+    
+    return Array.from(this.mediaLibraryItems.values()).filter(
+      (item) => {
+        if (item.brandId !== brandId) return false;
+        
+        // If the item has no tags, it doesn't match
+        if (!item.tags || item.tags.length === 0) return false;
+        
+        // Check if any of the requested tags match this item's tags
+        return tags.some(tag => item.tags!.includes(tag));
+      }
+    );
+  }
+
   // Seed demo data for testing
   private seedDemoData() {
     // Create retail partners
@@ -673,6 +747,22 @@ export class MemStorage implements IStorage {
         imageUrl = "/assets/image_1744736520163.png";
       } else if (postData.title === "Industry Trends 2025") {
         imageUrl = "/assets/image_1744736799635.png";
+      }
+      
+      // Also add these images to the media library for reuse
+      if (!this.mediaLibraryItems.has(this.mediaIdCounter) && imageUrl !== "/assets/IGNYT_Icon Web.png") {
+        const mediaTitle = postData.title.length > 30 
+          ? postData.title.substring(0, 30) + "..." 
+          : postData.title;
+        
+        this.createMediaItem({
+          brandId: 1,
+          name: `Image for "${mediaTitle}"`,
+          fileUrl: imageUrl,
+          fileType: "image/jpeg",
+          description: `Media asset for ${postData.title}`,
+          tags: metadata?.tags || []
+        });
       }
       
       const createdPost: ContentPost = { 

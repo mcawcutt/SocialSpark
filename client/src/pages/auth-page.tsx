@@ -134,7 +134,7 @@ export default function AuthPage() {
             <div className="flex flex-col items-center mb-6">
               <div className="mb-2">
                 <img 
-                  src="/attached_assets/IGNYT_Logo Black Web.png" 
+                  src="/attached_assets/IGNYT_Logo_Black_Web.png" 
                   alt="Ignyt Logo" 
                   className="h-12 mx-auto" 
                 />

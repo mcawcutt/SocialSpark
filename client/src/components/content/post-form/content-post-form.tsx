@@ -489,6 +489,14 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                             onChange={handleFileChange}
                           />
                         </Button>
+                        
+                        <MediaSelector 
+                          onSelect={(mediaItem) => {
+                            setImagePreview(mediaItem.fileUrl);
+                            field.onChange(mediaItem.fileUrl);
+                          }}
+                        />
+                        
                         {imagePreview && (
                           <Button
                             type="button"

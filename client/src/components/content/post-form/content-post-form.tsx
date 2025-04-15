@@ -19,7 +19,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ImageIcon, Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { DatePicker } from "@/components/ui/date-picker";
-import { AIContentGenerator } from "@/components/content/ai-content-generator";
 
 // Define validation schema for new content
 const contentPostSchema = z.object({
@@ -107,8 +106,7 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
         ...contentPost,
         metadata: {
           tags: data.tags?.split(",").map(tag => tag.trim()),
-          category: data.category,
-          generatedWith: initialData?.metadata?.generatedWith || null
+          category: data.category
         }
       };
 
@@ -291,16 +289,7 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
     }
   };
 
-  // Handle AI-generated content
-  const handleAIContentGenerated = (title: string, description: string) => {
-    form.setValue('title', title);
-    form.setValue('description', description);
-    
-    toast({
-      title: "Content inserted",
-      description: "AI-generated content has been added to the form.",
-    });
-  };
+  // Removed AI content generation functionality
 
   // Form submission handler
   const onSubmit = (data: ContentPostFormValues) => {
@@ -612,15 +601,6 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
               />
             )}
 
-            {/* AI Content Generator */}
-            <Separator className="my-4" />
-            <div className="mb-4">
-              <h3 className="text-sm font-medium mb-2">Need content ideas? Generate with AI</h3>
-              <AIContentGenerator 
-                onContentGenerated={handleAIContentGenerated}
-                contentType={isEvergreen ? "evergreen" : "regular"}
-              />
-            </div>
             <Separator className="my-4" />
 
             <DialogFooter>

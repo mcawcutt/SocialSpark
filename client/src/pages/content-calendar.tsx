@@ -145,6 +145,7 @@ export default function ContentCalendar() {
               <CreatePostButton 
                 scheduledDate={currentDate}
                 label="New Post"
+                className="bg-[#e03eb6] hover:bg-[#e03eb6]/90 border-[#e03eb6] text-white"
               />
             </div>
           </div>

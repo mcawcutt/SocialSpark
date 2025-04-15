@@ -242,6 +242,9 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
       // Upload the file
       setUploadingImage(true);
       uploadImageMutation.mutate(file);
+      
+      // Clear the input value to ensure the change event fires again even if the same file is selected
+      e.target.value = '';
     }
   };
 

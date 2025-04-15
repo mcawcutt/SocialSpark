@@ -70,18 +70,31 @@ export function setupUploadRoutes(app: Express) {
   
   // Single file upload endpoint
   app.post('/api/upload', (req: Request, res: Response, next: express.NextFunction) => {
+    console.log('Upload endpoint hit. Headers:', req.headers['content-type']);
+    console.log('Request body type:', typeof req.body);
+    
     // First handle the upload
     upload.single('media')(req, res, (err) => {
       if (err) {
+        console.error('Upload error during multer processing:', err);
         return handleMulterError(err, req, res, next);
       }
       
       try {
+        console.log('Multer processed request. File present:', !!req.file);
+        
         if (!req.file) {
+          console.error('No file in request after multer processing');
           return res.status(400).json({ error: 'No file uploaded' });
         }
         
         console.log('File uploaded successfully:', req.file.filename);
+        console.log('File details:', {
+          fieldname: req.file.fieldname,
+          originalname: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size
+        });
         
         // Return the file information including the URL path
         const fileUrl = `/uploads/${req.file.filename}`;

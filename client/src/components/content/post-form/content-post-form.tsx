@@ -189,45 +189,85 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
     },
   });
 
-  // Upload image mutation
-  const uploadImageMutation = useMutation({
-    mutationFn: async (file: File) => {
+  // Upload image function - rewritten with direct fetch for better handling
+  const uploadImage = async (file: File) => {
+    setUploadingImage(true);
+    
+    try {
+      // First, create a preview URL immediately for better UX
+      const fileUrl = URL.createObjectURL(file);
+      setImagePreview(fileUrl);
+      
+      // Create form data
       const formData = new FormData();
       formData.append('media', file);
       
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      console.log('Uploading file:', file.name, 'size:', file.size, 'type:', file.type);
+      console.log('FormData content after append:', formData.get('media'));
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to upload image');
+      // Debug upload by showing form data content
+      for (const [key, value] of formData.entries()) {
+        console.log(`FormData entry - key: ${key}, value type: ${typeof value}, value:`, value);
       }
       
-      return await response.json();
-    },
-    onSuccess: (data) => {
-      // Update the form with the uploaded image URL
-      form.setValue('imageUrl', data.file.url);
-      setImagePreview(data.file.url);
-      setUploadingImage(false);
-      const isVideo = selectedFile?.type.startsWith('video/');
-      toast({
-        title: isVideo ? "Video uploaded" : "Image uploaded",
-        description: `Your ${isVideo ? 'video' : 'image'} has been uploaded successfully.`,
+      // Create a direct XMLHttpRequest for more control
+      return new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        
+        xhr.open('POST', '/api/upload', true);
+        
+        xhr.onload = function() {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            console.log('Upload XHR successful response:', xhr.responseText);
+            try {
+              const data = JSON.parse(xhr.responseText);
+              form.setValue('imageUrl', data.file.url);
+              
+              const isVideo = file.type.startsWith('video/');
+              toast({
+                title: isVideo ? "Video uploaded" : "Image uploaded",
+                description: `Your ${isVideo ? 'video' : 'image'} has been uploaded successfully.`,
+              });
+              resolve();
+            } catch (e) {
+              console.error('Error parsing JSON response:', e);
+              reject(new Error('Invalid response from server'));
+            }
+          } else {
+            console.error('XHR error response:', xhr.status, xhr.statusText, xhr.responseText);
+            reject(new Error(`Upload failed: ${xhr.statusText}`));
+          }
+        };
+        
+        xhr.onerror = function() {
+          console.error('XHR network error');
+          reject(new Error('Network error during upload'));
+        };
+        
+        xhr.upload.onprogress = function(e) {
+          if (e.lengthComputable) {
+            const percentComplete = (e.loaded / e.total) * 100;
+            console.log(`Upload progress: ${percentComplete.toFixed(2)}%`);
+          }
+        };
+        
+        // Send the form data
+        xhr.send(formData);
       });
-    },
-    onError: (error: Error) => {
-      setUploadingImage(false);
-      const isVideo = selectedFile?.type.startsWith('video/');
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      const isVideo = file.type.startsWith('video/');
       toast({
         title: `Error uploading ${isVideo ? 'video' : 'image'}`,
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An error occurred during upload',
         variant: "destructive",
       });
+      
+      // Keep the preview even if upload fails, so user can still see what they selected
+    } finally {
+      setUploadingImage(false);
     }
-  });
+  };
 
   // Handle file selection
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -235,13 +275,8 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
       const file = e.target.files[0];
       setSelectedFile(file);
       
-      // Create a preview URL
-      const fileUrl = URL.createObjectURL(file);
-      setImagePreview(fileUrl);
-      
       // Upload the file
-      setUploadingImage(true);
-      uploadImageMutation.mutate(file);
+      uploadImage(file);
       
       // Clear the input value to ensure the change event fires again even if the same file is selected
       e.target.value = '';

@@ -256,8 +256,8 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
     }
   };
 
-  // Handle file selection with a slight delay to ensure component state is stable
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+  // Handle file selection with proper async handling
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       
@@ -268,11 +268,8 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
       
       console.log('File selected for upload:', file.name);
       
-      // Process the file with a slight delay to ensure component has updated
-      setTimeout(() => {
-        // Upload the file
-        uploadImage(file);
-      }, 100);
+      // Upload the file immediately, no need for setTimeout
+      await uploadImage(file);
       
       // Clear the input value to ensure the change event fires again even if the same file is selected
       e.target.value = '';
@@ -291,7 +288,18 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
   // Removed AI content generation functionality
 
   // Form submission handler
-  const onSubmit = (data: ContentPostFormValues) => {
+  const onSubmit = async (data: ContentPostFormValues) => {
+    // If there's a selected file but no imageUrl, it means the upload might not have completed
+    // We should block submission until upload is complete
+    if (uploadingImage) {
+      toast({
+        title: "Upload in progress",
+        description: "Please wait for the upload to complete before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Make sure we have the most up-to-date imageUrl from the uploaded file
     if (imagePreview && !data.imageUrl) {
       data.imageUrl = imagePreview;

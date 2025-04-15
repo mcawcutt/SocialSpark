@@ -97,7 +97,10 @@ export function setupUploadRoutes(app: Express) {
         });
         
         // Return the file information including the URL path
+        // Make sure the URL path is absolute to avoid any path resolution issues
         const fileUrl = `/uploads/${req.file.filename}`;
+        
+        console.log(`Upload successful. Returning URL: ${fileUrl}`);
         
         return res.status(200).json({
           message: 'File uploaded successfully',

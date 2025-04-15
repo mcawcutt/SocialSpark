@@ -61,7 +61,7 @@ export function Sidebar() {
       <div className="p-6">
         <div>
           <img 
-            src="/attached_assets/IGNYT_Logo Black Web.png" 
+            src="/assets/IGNYT_Logo Black Web.png" 
             alt="Ignyt Logo" 
             className="h-10" 
           />

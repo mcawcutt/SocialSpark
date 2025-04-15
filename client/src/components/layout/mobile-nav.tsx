@@ -71,7 +71,7 @@ export function MobileNav() {
       <header className="bg-white border-b border-gray-200 py-4 px-4 flex justify-between items-center md:hidden sticky top-0 z-10">
         <div>
           <img 
-            src="/attached_assets/IGNYT_Logo Black Web.png" 
+            src="/assets/IGNYT_Logo Black Web.png" 
             alt="Ignyt Logo" 
             className="h-9" 
           />
@@ -97,7 +97,7 @@ export function MobileNav() {
           <div className="px-6 flex justify-between items-center mb-6">
             <div>
               <img 
-                src="/attached_assets/IGNYT_Logo Black Web.png" 
+                src="/assets/IGNYT_Logo Black Web.png" 
                 alt="Ignyt Logo" 
                 className="h-9" 
               />

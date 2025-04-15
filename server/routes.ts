@@ -5,7 +5,6 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { setupContentRoutes } from "./api/content";
 import { setupUploadRoutes, serveUploads } from "./upload";
-import { setupOpenAIRoutes } from "./api/openai";
 import { z } from "zod";
 import {
   insertRetailPartnerSchema,
@@ -29,9 +28,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Serve uploaded files
   serveUploads(app);
-  
-  // Set up OpenAI routes
-  setupOpenAIRoutes(app);
 
   // Debug endpoint to check if server is running correctly
   app.get("/api/debug", (req, res) => {

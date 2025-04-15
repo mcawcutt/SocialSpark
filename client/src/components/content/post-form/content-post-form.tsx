@@ -155,8 +155,7 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
         isEvergreen: data.isEvergreen,
         metadata: {
           tags: data.tags?.split(",").map(tag => tag.trim()),
-          category: data.category,
-          generatedWith: initialData.metadata?.generatedWith || null
+          category: data.category
         }
       };
 

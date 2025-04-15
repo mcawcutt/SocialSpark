@@ -12,26 +12,23 @@
   }
 }
 
-/* Custom button styling */
-.btn-primary,
-button[type="submit"],
-.button,
-.btn,
-button:not([data-variant]),
-[role="button"] {
+/* Only turn blue buttons pink, leave everything else as is */
+.bg-primary,
+.border-primary,
+.bg-blue-600,
+.bg-blue-500,
+.bg-blue-700,
+button[class*="blue"],
+button[class*="primary"],
+[class*="button"]:not([class*="secondary"]):not([class*="destructive"]):not([class*="outline"]):not([class*="ghost"]),
+[class*="primary"]:not([class*="text"]):not(input):not(select):not(textarea),
+button:is(.bg-blue-500, .bg-blue-600, .bg-blue-700, .bg-primary) {
   background-color: #e03eb6 !important;
   border-color: #e03eb6 !important;
 }
 
-/* Keep form elements with their original style */
-input, select, textarea, .form-control {
-  background-color: initial !important;
-  border-color: hsl(var(--input)) !important;
-}
-
-/* Ensure focus styles are maintained */
-input:focus, select:focus, textarea:focus, .form-control:focus {
-  border-color: hsl(var(--input)) !important;
-  outline-color: hsl(var(--input)) !important;
-  ring-color: hsl(var(--input)) !important;
+/* Shadcn specific selectors */
+.inline-flex.items-center.justify-center.whitespace-nowrap.rounded-md.text-sm.font-medium.ring-offset-background.transition-colors:not([data-variant='secondary']):not([data-variant='destructive']):not([data-variant='outline']):not([data-variant='ghost']):not([data-variant='link']) {
+  background-color: #e03eb6 !important;
+  border-color: #e03eb6 !important;
 }

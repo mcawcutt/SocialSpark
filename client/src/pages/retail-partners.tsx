@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
@@ -46,11 +46,24 @@ const newPartnerSchema = z.object({
   status: z.string().default("pending"),
 });
 
+// Form schema for editing a retail partner
+const editPartnerSchema = z.object({
+  name: z.string().min(1, "Partner name is required"),
+  contactEmail: z.string().email("Invalid email address"),
+  contactPhone: z.string().optional(),
+  address: z.string().optional(),
+  status: z.string(),
+  footerTemplate: z.string().optional(),
+});
+
 type NewPartnerFormValues = z.infer<typeof newPartnerSchema>;
+type EditPartnerFormValues = z.infer<typeof editPartnerSchema>;
 
 export default function RetailPartners() {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedPartner, setSelectedPartner] = useState<RetailPartner | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
@@ -104,6 +117,30 @@ export default function RetailPartners() {
       });
     },
   });
+  
+  // Update a retail partner
+  const updatePartnerMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<EditPartnerFormValues> }) => {
+      const res = await apiRequest("PATCH", `/api/retail-partners/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ["/api/retail-partners"]});
+      toast({
+        title: "Partner updated",
+        description: "The retail partner has been updated successfully.",
+      });
+      setIsEditDialogOpen(false);
+      setSelectedPartner(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to update partner",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   // Create form for new partner
   const form = useForm<NewPartnerFormValues>({
@@ -117,9 +154,46 @@ export default function RetailPartners() {
     },
   });
 
-  // Handle form submission
+  // Create form for editing partner
+  const editForm = useForm<EditPartnerFormValues>({
+    resolver: zodResolver(editPartnerSchema),
+    defaultValues: {
+      name: "",
+      contactEmail: "",
+      contactPhone: "",
+      address: "",
+      status: "",
+      footerTemplate: "",
+    },
+  });
+
+  // Reset and initialize edit form when selected partner changes
+  useEffect(() => {
+    if (selectedPartner) {
+      editForm.reset({
+        name: selectedPartner.name,
+        contactEmail: selectedPartner.contactEmail,
+        contactPhone: selectedPartner.contactPhone || "",
+        address: selectedPartner.address || "",
+        status: selectedPartner.status,
+        footerTemplate: selectedPartner.footerTemplate || "",
+      });
+    }
+  }, [selectedPartner, editForm]);
+
+  // Handle new partner form submission
   const onSubmit = (data: NewPartnerFormValues) => {
     createPartnerMutation.mutate(data);
+  };
+  
+  // Handle edit partner form submission
+  const onEditSubmit = (data: EditPartnerFormValues) => {
+    if (selectedPartner) {
+      updatePartnerMutation.mutate({ 
+        id: selectedPartner.id, 
+        data
+      });
+    }
   };
 
   // Filter partners by search term and status
@@ -371,7 +445,12 @@ export default function RetailPartners() {
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
                                     <DropdownMenuItem>View Details</DropdownMenuItem>
-                                    <DropdownMenuItem>Edit Partner</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => {
+                                      setSelectedPartner(partner);
+                                      setIsEditDialogOpen(true);
+                                    }}>
+                                      Edit Partner
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem
                                       onClick={() => updatePartnerStatusMutation.mutate({ 
                                         id: partner.id, 
@@ -396,6 +475,130 @@ export default function RetailPartners() {
           </Tabs>
         </div>
       </main>
+      
+      {/* Edit Partner Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Retail Partner</DialogTitle>
+            <DialogDescription>
+              Update the details for this retail partner.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+              <FormField
+                control={editForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Partner Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter retail partner name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editForm.control}
+                name="contactEmail"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contact Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="Enter contact email" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editForm.control}
+                name="contactPhone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contact Phone (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter contact phone number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editForm.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter address" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editForm.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <FormControl>
+                      <select 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        {...field}
+                      >
+                        <option value="active">Active</option>
+                        <option value="pending">Pending</option>
+                        <option value="needs_attention">Needs Attention</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editForm.control}
+                name="footerTemplate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Footer Template</FormLabel>
+                    <FormControl>
+                      <textarea 
+                        className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        placeholder="Enter custom footer message that will be added to all content posts shared with this partner. Example: Visit us at 123 Main St or call (555) 555-5555."
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                    <p className="text-xs text-gray-500 mt-1">
+                      This template will be automatically appended to all content posts shared with this partner.
+                    </p>
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter>
+                <Button 
+                  type="submit" 
+                  disabled={updatePartnerMutation.isPending}
+                >
+                  {updatePartnerMutation.isPending ? "Saving Changes..." : "Save Changes"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

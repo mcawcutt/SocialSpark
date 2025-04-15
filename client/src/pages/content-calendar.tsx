@@ -46,7 +46,7 @@ export default function ContentCalendar() {
 
   // Query content posts
   const { data: posts, isLoading } = useQuery({
-    queryKey: ["/api/content-posts"],
+    queryKey: ["/api/content-posts", { brandId: 1 }],
   });
 
   // Handle month navigation
@@ -166,7 +166,7 @@ export default function ContentCalendar() {
                     variant={viewMode === 'month' ? 'default' : 'outline'} 
                     size="sm"
                     onClick={() => setViewMode('month')}
-                    className="flex items-center"
+                    className={`flex items-center ${viewMode === 'month' ? 'toggle-active' : ''}`}
                   >
                     <Grid3X3 className="h-4 w-4 mr-1" />
                     Month
@@ -175,7 +175,7 @@ export default function ContentCalendar() {
                     variant={viewMode === 'list' ? 'default' : 'outline'} 
                     size="sm"
                     onClick={() => setViewMode('list')}
-                    className="flex items-center"
+                    className={`flex items-center ${viewMode === 'list' ? 'toggle-active' : ''}`}
                   >
                     <List className="h-4 w-4 mr-1" />
                     List

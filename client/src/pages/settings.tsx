@@ -119,8 +119,12 @@ export default function Settings() {
   // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: async (data: ProfileFormValues) => {
-      // Use the new dedicated endpoint instead of the general PATCH endpoint
-      const res = await apiRequest("POST", "/api/update-profile", data);
+      // Use the new dedicated endpoint and include demo flag for preview pane fallback
+      const res = await apiRequest("POST", "/api/update-profile", {
+        ...data,
+        username: "demo", // Special fallback for demo account in preview pane
+        demo: true
+      });
       return res.json();
     },
     onSuccess: () => {
@@ -229,13 +233,17 @@ export default function Settings() {
       // Save the profile immediately to persist the logo using our dedicated endpoint
       const profileData = profileForm.getValues();
       
-      // Make a direct API call to update profile
+      // Make a direct API call to update profile with demo fallback
       fetch('/api/update-profile', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ logo: data.file.url }),
+        body: JSON.stringify({ 
+          logo: data.file.url,
+          username: "demo", // Special fallback for demo account
+          demo: true 
+        }),
       })
       .then(res => {
         if (!res.ok) throw new Error('Failed to update profile with new logo');

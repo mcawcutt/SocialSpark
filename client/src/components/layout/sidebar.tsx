@@ -107,7 +107,11 @@ export function Sidebar() {
       <div className="border-b border-border p-4">
         <div className="flex items-center gap-3 mb-4">
           <Avatar>
-            <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.name}`} />
+            {user.logo ? (
+              <AvatarImage src={user.logo} alt={`${user.name} logo`} />
+            ) : (
+              <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.name}`} />
+            )}
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
           <div>
@@ -121,9 +125,30 @@ export function Sidebar() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="w-full flex items-center justify-between">
-                <span className="truncate">
-                  {userBrands.find(b => b.id === currentBrandId)?.name || 'Select Brand'}
-                </span>
+                <div className="flex items-center gap-2 truncate">
+                  {(() => {
+                    const currentBrand = userBrands.find(b => b.id === currentBrandId);
+                    return currentBrand?.logo ? (
+                      <>
+                        <div className="w-5 h-5 rounded-full overflow-hidden">
+                          <img 
+                            src={currentBrand.logo} 
+                            alt={`${currentBrand.name} logo`} 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                        <span className="truncate">{currentBrand.name}</span>
+                      </>
+                    ) : (
+                      <span className="truncate">
+                        {currentBrand?.name || 'Select Brand'}
+                      </span>
+                    );
+                  })()}
+                </div>
                 <Building className="ml-2 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -132,7 +157,20 @@ export function Sidebar() {
                 <DropdownMenuItem 
                   key={brand.id}
                   onClick={() => setCurrentBrandId(brand.id)}
+                  className="flex items-center gap-2"
                 >
+                  {brand.logo && (
+                    <div className="w-4 h-4 rounded-full overflow-hidden">
+                      <img 
+                        src={brand.logo} 
+                        alt={`${brand.name} logo`} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
                   {brand.name}
                 </DropdownMenuItem>
               ))}

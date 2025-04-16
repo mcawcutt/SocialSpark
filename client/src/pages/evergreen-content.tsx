@@ -7,7 +7,6 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { AIContentGenerator } from "@/components/content/ai-content-generator";
 import { CreatePostButton } from "@/components/content/post-form/create-post-button";
@@ -269,9 +268,8 @@ export default function EvergreenContent() {
   const postsByCategory = getPostsByCategory();
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row">
+    <div className="min-h-screen flex flex-col">
       <MobileNav />
-      <Sidebar />
       
       <main className="flex-1 overflow-auto">
         <div className="p-4 md:p-6 lg:p-8">

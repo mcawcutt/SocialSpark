@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { useAuth } from "@/hooks/use-auth";
 import { useForm } from "react-hook-form";
@@ -201,9 +200,8 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row">
+    <div className="min-h-screen flex flex-col">
       <MobileNav />
-      <Sidebar />
       
       <main className="flex-1 overflow-auto">
         <div className="p-4 md:p-6 lg:p-8">

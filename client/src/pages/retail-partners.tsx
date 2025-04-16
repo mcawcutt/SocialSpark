@@ -3,7 +3,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { RetailPartner } from "@shared/schema";
-import { PlusIcon, Search, UserPlus, MoreHorizontal, Facebook, Instagram, Globe } from "lucide-react";
+import { PlusIcon, Search, UserPlus, MoreHorizontal, Facebook, Instagram, Globe, Upload, FileUp } from "lucide-react";
+import { BulkUploadDialog } from "@/components/retail-partner/bulk-upload-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,6 +66,7 @@ export default function RetailPartners() {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState<RetailPartner | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");

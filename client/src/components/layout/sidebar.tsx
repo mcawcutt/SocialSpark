@@ -1,44 +1,47 @@
-import { Link, useLocation } from "wouter";
-import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
-import { 
-  LayoutDashboard, 
-  Calendar, 
-  Store, 
-  BarChart2, 
-  Settings, 
-  HelpCircle,
-  LogOut,
+import { cn } from "@/lib/utils";
+import {
+  LayoutDashboard,
+  Calendar,
+  Store,
+  Image,
   Flame,
-  Image
+  BarChart3,
+  Users,
+  Settings,
+  LogOut,
+  Building,
 } from "lucide-react";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useEffect, useState } from "react";
 
-interface NavItemProps {
-  href: string;
-  icon: React.ElementType;
+interface SidebarItemProps {
+  icon: React.ReactNode;
   label: string;
+  href: string;
   active?: boolean;
 }
 
-function NavItem({ href, icon: Icon, label, active }: NavItemProps) {
+function SidebarItem({ icon, label, href, active }: SidebarItemProps) {
   return (
     <Link href={href}>
-      <a 
+      <a
         className={cn(
-          "flex items-center px-2 py-3 rounded-lg group transition-colors",
+          "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
           active 
-            ? "text-gray-900 bg-primary-50" 
-            : "text-gray-600 hover:bg-gray-50"
+            ? "bg-accent text-accent-foreground font-medium" 
+            : "hover:bg-muted text-muted-foreground hover:text-foreground"
         )}
       >
-        <Icon 
-          className={cn(
-            "mr-3 h-5 w-5", 
-            active ? "text-primary-500" : "text-gray-500"
-          )} 
-        />
+        <div className="w-5 h-5 shrink-0">{icon}</div>
         <span>{label}</span>
       </a>
     </Link>
@@ -46,103 +49,178 @@ function NavItem({ href, icon: Icon, label, active }: NavItemProps) {
 }
 
 export function Sidebar() {
+  const { user, isAdmin, isBrand, isPartner, logoutMutation } = useAuth();
   const [location] = useLocation();
-  const { user, logoutMutation } = useAuth();
+  const [currentBrandId, setCurrentBrandId] = useState<number | null>(null);
+  const [userBrands, setUserBrands] = useState<any[]>([]);
   
-  if (!user) return null;
+  // Fetch brands for brand users with multiple brands
+  useEffect(() => {
+    if (user && isBrand) {
+      // Fetch user's brands
+      fetch('/api/brands')
+        .then(res => res.json())
+        .then(brands => {
+          setUserBrands(brands);
+          // Set current brand to the first one if not already set
+          if (brands.length > 0 && !currentBrandId) {
+            setCurrentBrandId(brands[0].id);
+          }
+        })
+        .catch(err => console.error('Failed to fetch brands:', err));
+    }
+  }, [user, isBrand, currentBrandId]);
   
-  const initials = user.name
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .substring(0, 2);
-
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
+  
+  if (!user) {
+    return null;
+  }
+  
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+  
+  // Generate avatar fallback from user's name
+  const initials = user.name ? getInitials(user.name) : '??';
+  
   return (
-    <aside className="hidden md:flex md:flex-col w-64 bg-white border-r border-gray-200 h-screen sticky top-0">
-      <div className="p-6">
-        <div>
-          <img 
-            src="/assets/IGNYT_Logo Black Web.png" 
-            alt="Ignyt Logo" 
-            className="h-10" 
-          />
-        </div>
+    <div className="h-screen flex flex-col bg-background border-r">
+      <div className="p-4 flex justify-center">
+        <img 
+          src="/logo.png" 
+          alt="Ignyt Logo" 
+          className="h-10"
+        />
       </div>
       
-      {/* User Info */}
-      <div className="px-6 mb-6 flex items-center">
-        <div className="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center text-white font-semibold">
-          {initials}
+      {/* User info and brand selector */}
+      <div className="border-b border-border p-4">
+        <div className="flex items-center gap-3 mb-4">
+          <Avatar>
+            <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.name}`} />
+            <AvatarFallback>{initials}</AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="text-sm font-medium">{user.name}</p>
+            <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
+          </div>
         </div>
-        <div className="ml-3">
-          <p className="font-semibold text-gray-800">{user.name}</p>
-          <p className="text-xs text-gray-500 capitalize">{user.planType} Plan</p>
-        </div>
+        
+        {/* Brand selector for brand users with multiple brands */}
+        {isBrand && userBrands.length > 1 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="w-full flex items-center justify-between">
+                <span className="truncate">
+                  {userBrands.find(b => b.id === currentBrandId)?.name || 'Select Brand'}
+                </span>
+                <Building className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              {userBrands.map(brand => (
+                <DropdownMenuItem 
+                  key={brand.id}
+                  onClick={() => setCurrentBrandId(brand.id)}
+                >
+                  {brand.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
-
-      {/* Navigation Links */}
-      <nav className="flex-1 px-4 space-y-1">
-        <NavItem 
-          href="/" 
-          icon={LayoutDashboard} 
-          label="Dashboard" 
-          active={location === '/'} 
-        />
-        <NavItem 
-          href="/calendar" 
-          icon={Calendar} 
-          label="Content Calendar" 
-          active={location === '/calendar'} 
-        />
-        <NavItem 
-          href="/evergreen" 
-          icon={Flame} 
-          label="Evergreen Content" 
-          active={location === '/evergreen'} 
-        />
-        <NavItem 
-          href="/partners" 
-          icon={Store} 
-          label="Retail Partners" 
-          active={location === '/partners'} 
-        />
-        <NavItem 
-          href="/media" 
-          icon={Image} 
-          label="Media Library" 
-          active={location === '/media'} 
-        />
-        <NavItem 
-          href="/analytics" 
-          icon={BarChart2} 
-          label="Analytics" 
-          active={location === '/analytics'} 
-        />
-        <NavItem 
-          href="/settings" 
-          icon={Settings} 
-          label="Settings" 
-          active={location === '/settings'} 
-        />
-      </nav>
-
-      {/* Help & Logout */}
-      <div className="px-6 py-4 border-t border-gray-200 space-y-4">
-        <a href="#" className="flex items-center text-gray-600 hover:text-primary-500">
-          <HelpCircle className="h-4 w-4 mr-2" />
-          <span>Help & Support</span>
-        </a>
+      
+      {/* Navigation items */}
+      <div className="flex-1 overflow-auto py-2">
+        <nav className="grid gap-1 px-2">
+          <SidebarItem 
+            icon={<LayoutDashboard />} 
+            label="Dashboard" 
+            href="/" 
+            active={location === '/'}
+          />
+          
+          <SidebarItem 
+            icon={<Calendar />} 
+            label="Content Calendar" 
+            href="/content-calendar" 
+            active={location === '/content-calendar'}
+          />
+          
+          {/* Brand and Admin only sections */}
+          {(isBrand || isAdmin) && (
+            <>
+              <SidebarItem 
+                icon={<Store />} 
+                label="Retail Partners" 
+                href="/retail-partners" 
+                active={location === '/retail-partners'}
+              />
+              
+              <SidebarItem 
+                icon={<Flame />} 
+                label="Evergreen Content" 
+                href="/evergreen-content" 
+                active={location === '/evergreen-content'}
+              />
+            </>
+          )}
+          
+          {/* Accessible to all users */}
+          <SidebarItem 
+            icon={<Image />} 
+            label="Media Library" 
+            href="/media-library" 
+            active={location === '/media-library'}
+          />
+          
+          <SidebarItem 
+            icon={<BarChart3 />} 
+            label="Analytics" 
+            href="/analytics" 
+            active={location === '/analytics'}
+          />
+          
+          {/* Admin only sections */}
+          {isAdmin && (
+            <SidebarItem 
+              icon={<Users />} 
+              label="User Management" 
+              href="/admin/users" 
+              active={location === '/admin/users'}
+            />
+          )}
+          
+          <SidebarItem 
+            icon={<Settings />} 
+            label="Settings" 
+            href="/settings" 
+            active={location === '/settings'}
+          />
+        </nav>
+      </div>
+      
+      {/* Logout button */}
+      <div className="p-4 border-t border-border">
         <Button 
-          variant="ghost" 
-          className="flex w-full items-center justify-start p-0 text-gray-600 hover:text-red-500 hover:bg-transparent"
-          onClick={() => logoutMutation.mutate()}
+          variant="outline" 
+          className="w-full flex items-center justify-start gap-2"
+          onClick={handleLogout}
           disabled={logoutMutation.isPending}
         >
-          <LogOut className="h-4 w-4 mr-2" />
+          <LogOut className="h-4 w-4" />
           <span>Logout</span>
         </Button>
       </div>
-    </aside>
+    </div>
   );
 }

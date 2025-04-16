@@ -46,12 +46,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Check authentication middleware
   const requireAuth = (req: any, res: any, next: any) => {
-    console.log("Auth check:", req.isAuthenticated ? req.isAuthenticated() : "isAuthenticated not available");
-    console.log("Session:", req.session);
-    console.log("User:", req.user);
+    console.log(`[Auth] ${req.method} ${req.path} - Auth check:`, req.isAuthenticated ? req.isAuthenticated() : "isAuthenticated not available");
+    console.log(`[Auth] ${req.method} ${req.path} - Session ID:`, req.sessionID);
+    console.log(`[Auth] ${req.method} ${req.path} - User:`, req.user ? req.user.username : "Not logged in");
     
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Unauthorized" });
+      console.log(`[Auth] ${req.method} ${req.path} - Authentication failed, redirecting to login`);
+      return res.status(401).json({ 
+        message: "Unauthorized", 
+        detail: "Your session has expired or you are not logged in. Please log in again." 
+      });
     }
     next();
   };

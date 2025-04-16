@@ -7,6 +7,7 @@ import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ImageCropper } from "@/components/ui/image-cropper";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -80,6 +81,7 @@ type NotificationFormValues = z.infer<typeof notificationSchema>;
 export default function Settings() {
   const { toast } = useToast();
   const { user, logoutMutation } = useAuth();
+  const [imageCropperOpen, setImageCropperOpen] = useState(false);
   
   // Profile form
   const profileForm = useForm<ProfileFormValues>({
@@ -321,15 +323,8 @@ export default function Settings() {
                           <FormItem>
                             <FormLabel>Brand Logo</FormLabel>
                             <div className="flex flex-col space-y-3">
-                              <FormControl>
-                                <Input 
-                                  {...field} 
-                                  placeholder="Enter URL to your brand logo" 
-                                />
-                              </FormControl>
-                              {field.value && (
-                                <div className="mt-2">
-                                  <p className="text-sm text-gray-500 mb-2">Logo Preview:</p>
+                              <div className="flex gap-2 items-start">
+                                {field.value && (
                                   <div className="w-16 h-16 rounded-full overflow-hidden border border-gray-200">
                                     <img 
                                       src={field.value} 
@@ -341,11 +336,36 @@ export default function Settings() {
                                       }}
                                     />
                                   </div>
+                                )}
+                                <div className="flex flex-col gap-2">
+                                  <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    onClick={() => setImageCropperOpen(true)}
+                                  >
+                                    {field.value ? 'Change Logo' : 'Upload Logo'}
+                                  </Button>
+                                  {field.value && (
+                                    <Button 
+                                      type="button" 
+                                      variant="ghost" 
+                                      className="text-destructive hover:text-destructive"
+                                      onClick={() => field.onChange('')}
+                                    >
+                                      Remove Logo
+                                    </Button>
+                                  )}
                                 </div>
-                              )}
+                              </div>
                               <FormDescription>
-                                Enter the URL to your brand logo. It will appear next to your brand name.
+                                Upload a square logo image. It will appear next to your brand name in the sidebar.
                               </FormDescription>
+                              <FormControl>
+                                <Input 
+                                  type="hidden"
+                                  {...field} 
+                                />
+                              </FormControl>
                             </div>
                             <FormMessage />
                           </FormItem>

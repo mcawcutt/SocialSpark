@@ -2,7 +2,6 @@ import { ReactNode } from "react";
 import { Sidebar } from "./sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
-import { DatabaseNotice } from "@/components/ui/database-notice";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -22,7 +21,6 @@ export function MainLayout({ children }: MainLayoutProps) {
       <Sidebar />
       <main className="flex-1 overflow-auto">
         <div className="container mx-auto py-6">
-          <DatabaseNotice />
           {children}
         </div>
       </main>

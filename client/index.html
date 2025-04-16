@@ -1,73 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ignyt - Social Content Distribution Platform</title>
-  <script>
-    // Check if we're on a Replit deployment
-    if (window.location.hostname.includes('.replit.app')) {
-      // Display a nice error page if we're on a deployment without DB config
-      document.addEventListener('DOMContentLoaded', function() {
-        // Give the app some time to load, then check for errors
-        setTimeout(function() {
-          const mainContent = document.getElementById('root');
-          const mainContentEmpty = mainContent && mainContent.children.length === 0;
-          
-          // Check if there's an error (blank page or server error)
-          if (mainContentEmpty || document.title.includes('Error')) {
-            if (mainContent) {
-              mainContent.innerHTML = `
-                <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: system-ui, -apple-system, sans-serif; background-color: #f9f9f9;">
-                  <div style="max-width: 600px; padding: 2rem; background: white; border-radius: 8px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);">
-                    <div style="text-align: center; margin-bottom: 1.5rem;">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e03eb6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                        <line x1="12" y1="9" x2="12" y2="13"></line>
-                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                      </svg>
-                    </div>
-                    <h1 style="color: #333; font-size: 1.75rem; font-weight: 600; margin-bottom: 1rem; text-align: center;">
-                      Database Configuration Required
-                    </h1>
-                    <p style="color: #555; line-height: 1.6; margin-bottom: 1.5rem;">
-                      Your Ignyt application is deployed, but it requires a connection to a PostgreSQL database to function properly.
-                    </p>
-                    <div style="background-color: #f5f5f5; border-radius: 6px; padding: 1rem; margin-bottom: 1.5rem;">
-                      <p style="font-weight: 500; margin-bottom: 0.75rem; color: #333;">Please complete these steps:</p>
-                      <ol style="margin-left: 1.5rem; color: #555;">
-                        <li style="margin-bottom: 0.5rem;">Go to your Replit Dashboard</li>
-                        <li style="margin-bottom: 0.5rem;">Access the Deployment settings for this app</li>
-                        <li style="margin-bottom: 0.5rem;">Add <code style="background: #eee; padding: 0.1rem 0.3rem; border-radius: 3px;">DATABASE_URL</code> to the Secrets section</li>
-                        <li style="margin-bottom: 0.5rem;">Use the same PostgreSQL connection string from your development environment</li>
-                        <li>Redeploy the application</li>
-                      </ol>
-                    </div>
-                    <p style="color: #666; font-size: 0.875rem; text-align: center; margin-top: 2rem;">
-                      Ignyt - Social Content Distribution Platform
-                    </p>
-                  </div>
-                </div>
-              `;
-            }
-          }
-        }, 3000); // Check after 3 seconds to let React load
-      });
-    }
-  </script>
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-    }
-    #root {
-      height: 100%;
-    }
-  </style>
-</head>
-<body>
-  <div id="root"></div>
-  <script type="module" src="/src/main.tsx"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
+    <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
+  </body>
 </html>

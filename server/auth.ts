@@ -52,12 +52,11 @@ export function setupAuth(app: Express) {
     saveUninitialized: true,
     store: storage.sessionStore,
     cookie: {
-      secure: true, // Required for .replit.dev domain
+      secure: process.env.NODE_ENV === 'production', // Set to true only in production with HTTPS
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       httpOnly: true,
-      sameSite: 'none', // Required for cross-site cookies
-      path: '/',
-      domain: '.replit.dev' // Match the deployment domain
+      sameSite: 'lax',
+      path: '/'
     }
   };
 

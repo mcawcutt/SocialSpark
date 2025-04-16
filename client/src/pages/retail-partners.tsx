@@ -3,8 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { RetailPartner } from "@shared/schema";
-import { PlusIcon, Search, UserPlus, MoreHorizontal, Facebook, Instagram, Globe, Upload, FileUp } from "lucide-react";
-import { BulkUploadDialog } from "@/components/retail-partner/bulk-upload-dialog";
+import { PlusIcon, Search, UserPlus, MoreHorizontal, Facebook, Instagram, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,7 +65,6 @@ export default function RetailPartners() {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState<RetailPartner | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -260,13 +258,6 @@ export default function RetailPartners() {
     <div className="min-h-screen flex flex-col">
       <MobileNav />
       
-      {/* Bulk Upload Dialog */}
-      <BulkUploadDialog 
-        open={isBulkUploadOpen}
-        onClose={() => setIsBulkUploadOpen(false)}
-        brandId={1} // In a real app, this would be dynamically set to the current brand's ID
-      />
-      
       <main className="flex-1 overflow-auto">
         <div className="p-4 md:p-6 lg:p-8">
           {/* Page Header */}
@@ -285,17 +276,6 @@ export default function RetailPartners() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              
-              {/* Bulk Upload Button */}
-              <Button 
-                variant="outline"
-                className="flex items-center gap-2"
-                onClick={() => setIsBulkUploadOpen(true)}
-              >
-                <FileUp className="h-4 w-4" />
-                Bulk Upload
-              </Button>
-              
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="flex items-center bg-[#e03eb6] hover:bg-[#e03eb6]/90 border-[#e03eb6] text-white">

@@ -43,18 +43,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Debug endpoint to check if server is running correctly
   app.get("/api/debug", (req, res) => {
-    // Check if we're using the fallback database mode
-    const databaseStatus = process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL 
-      ? 'fallback' 
-      : 'connected';
-      
     res.json({ 
       message: "Debug endpoint reached", 
       sessionExists: !!req.session,
       isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : false,
       user: req.user || null,
-      timestamp: new Date().toISOString(),
-      databaseStatus
+      timestamp: new Date().toISOString()
     });
   });
 

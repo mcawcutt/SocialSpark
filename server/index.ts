@@ -40,33 +40,11 @@ app.use((req, res, next) => {
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    // Check if this is a database connection error
-    const isDatabaseError = err.message && (
-      err.message.includes('database') || 
-      err.message.includes('DATABASE_URL') ||
-      err.message.includes('pg:') ||
-      err.message.includes('connection')
-    );
-    
-    // Set appropriate status and message
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-    
-    // Add specific info for database errors
-    const response: Record<string, any> = { message };
-    
-    if (isDatabaseError) {
-      response.type = 'database_error';
-      response.detail = 'The application cannot connect to the database. Please check your DATABASE_URL configuration.';
-    }
 
-    console.error(`Error: ${err.message || 'Unknown error'}`);
-    res.status(status).json(response);
-    
-    // In production, don't rethrow the error to prevent server crashes
-    if (process.env.NODE_ENV !== 'production') {
-      throw err;
-    }
+    res.status(status).json({ message });
+    throw err;
   });
 
   // importantly only setup vite in development and after

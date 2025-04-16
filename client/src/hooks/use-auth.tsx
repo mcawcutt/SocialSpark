@@ -45,7 +45,7 @@ function useUserQuery() {
     if (!logoutTime) return false;
     
     const timeSinceLogout = Date.now() - parseInt(logoutTime);
-    return timeSinceLogout < 5000; // Consider "recently" as within 5 seconds
+    return timeSinceLogout < 10000; // Consider "recently" as within 10 seconds
   })();
   
   // Fallback query for demo user (useful for preview pane) 
@@ -56,6 +56,33 @@ function useUserQuery() {
     refetchOnWindowFocus: false, // Don't automatically refetch
     refetchOnMount: false,
     staleTime: Infinity, // Keep the data forever until explicitly invalidated
+    retry: false, // Don't retry if it fails
+    
+    // Use a special query function that includes the logout header
+    queryFn: async () => {
+      // Only attempt to get the demo user if not recently logged out
+      if (recentlyLoggedOut) {
+        console.log("Blocking demo user fetch - recently logged out");
+        return null;
+      }
+      
+      const response = await fetch("/api/demo-user", {
+        headers: {
+          "X-Recently-Logged-Out": recentlyLoggedOut ? "true" : "false"
+        }
+      });
+      
+      if (response.status === 401) {
+        return null;
+      }
+      
+      if (!response.ok) {
+        console.error("Failed to fetch demo user:", response.statusText);
+        return null;
+      }
+      
+      return await response.json();
+    }
   });
   
   // Use the demo user data if the main query fails and we're in the preview pane

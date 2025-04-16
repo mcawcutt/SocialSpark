@@ -332,6 +332,13 @@ export function setupAuth(app: Express) {
   // Special endpoint to get the demo user data directly (bypassing authentication)
   app.get("/api/demo-user", async (req, res) => {
     try {
+      // Check if the request has a special header indicating a recent logout
+      const recentlyLoggedOut = req.headers['x-recently-logged-out'];
+      if (recentlyLoggedOut === 'true') {
+        console.log("Blocking demo user fetch due to recent logout");
+        return res.status(401).json({ message: "Recently logged out" });
+      }
+      
       const demoUser = await storage.getUserByUsername("demo");
       if (!demoUser) {
         return res.status(404).json({ message: "Demo user not found" });

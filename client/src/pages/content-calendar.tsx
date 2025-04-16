@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { CreatePostButton } from "@/components/content/post-form/create-post-button";
 import { ContentPostForm } from "@/components/content/post-form/content-post-form";
+import { useAuth } from "@/hooks/use-auth";
 import { 
   Calendar as CalendarIcon, 
   PlusIcon, 
@@ -44,10 +45,18 @@ export default function ContentCalendar() {
   // State for current date in calendar
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'list'>('month');
+  const { user } = useAuth();
 
-  // Query content posts
+  // Query content posts with correct brandId
   const { data: posts, isLoading } = useQuery({
-    queryKey: ["/api/content-posts?brandId=1"],
+    queryKey: ["/api/content-posts", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const res = await fetch(`/api/content-posts?brandId=${user.id}`);
+      if (!res.ok) throw new Error("Failed to fetch posts");
+      return res.json();
+    },
+    enabled: !!user,
   });
 
   // Handle month navigation

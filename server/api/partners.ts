@@ -17,6 +17,22 @@ async function hashPassword(password: string) {
   return `${buf.toString("hex")}.${salt}`;
 }
 
+// Bulk upload interface definition
+interface BulkUploadRetailPartner {
+  name: string;
+  status: string;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+  tags: string;
+  notes: string;
+}
+
 export function setupPartnerRoutes(app: Express) {
   // Get all retail partners for the brand
   app.get('/api/retail-partners', requireBrandOrAdmin, async (req: Request, res: Response) => {
@@ -217,6 +233,93 @@ export function setupPartnerRoutes(app: Express) {
     } catch (error) {
       console.error("Error updating retail partner:", error);
       return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Bulk upload retail partners
+  app.post('/api/retail-partners/bulk', requireBrandOrAdmin, async (req: Request, res: Response) => {
+    try {
+      const { partners, brandId } = req.body;
+
+      if (!Array.isArray(partners) || partners.length === 0) {
+        return res.status(400).json({ message: "No valid partners data provided" });
+      }
+
+      if (!brandId) {
+        return res.status(400).json({ message: "Brand ID is required" });
+      }
+
+      // Get the brand to verify brand ownership
+      const brand = await db.query.brands.findFirst({
+        where: eq(brands.id, brandId)
+      });
+      
+      if (!brand) {
+        return res.status(404).json({ message: "Brand not found" });
+      }
+      
+      // Verify this user owns the brand (admins bypass this check)
+      if (req.user?.role === 'brand' && brand.ownerId !== req.user.id) {
+        return res.status(403).json({ message: "You don't have access to this brand" });
+      }
+
+      // Process each partner
+      const results = {
+        success: 0,
+        failed: 0,
+        errors: [] as { name: string; error: string }[]
+      };
+
+      for (const partner of partners) {
+        try {
+          // Convert tags from string to array
+          const tags = partner.tags ? partner.tags.split(',').map(tag => tag.trim()) : [];
+          
+          // Prepare data for storage
+          const partnerData = {
+            name: partner.name,
+            status: partner.status || 'pending',
+            contactName: partner.contactName || '',
+            contactEmail: partner.contactEmail || '',
+            contactPhone: partner.contactPhone || '',
+            address: partner.address || '',
+            city: partner.city || '',
+            state: partner.state || '',
+            zip: partner.zip || '',
+            country: partner.country || '',
+            tags,
+            notes: partner.notes || '',
+            brandId: brandId,
+          };
+
+          // Validate partner data
+          const validation = insertRetailPartnerSchema.safeParse(partnerData);
+          
+          if (!validation.success) {
+            results.failed++;
+            results.errors.push({ 
+              name: partner.name, 
+              error: "Invalid data: " + JSON.stringify(validation.error.format()) 
+            });
+            continue;
+          }
+          
+          // Create the partner
+          await storage.createRetailPartner(validation.data);
+          results.success++;
+        } catch (error) {
+          results.failed++;
+          results.errors.push({ 
+            name: partner.name, 
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
+
+      return res.status(200).json(results);
+    } catch (error) {
+      console.error("Error in bulk upload:", error);
+      return res.status(500).json({ message: "Server error during bulk upload" });
     }
   });
 

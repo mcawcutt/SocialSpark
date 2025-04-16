@@ -94,11 +94,13 @@ export function Sidebar() {
   return (
     <div className="h-screen flex flex-col bg-background border-r">
       <div className="p-4 flex justify-center">
-        <img 
-          src="/logo.png" 
-          alt="Ignyt Logo" 
-          className="h-10"
-        />
+        <Link href="/">
+          <img 
+            src="/assets/IGNYT_Logo Black Web.png" 
+            alt="Ignyt Logo" 
+            className="h-10 cursor-pointer"
+          />
+        </Link>
       </div>
       
       {/* User info and brand selector */}

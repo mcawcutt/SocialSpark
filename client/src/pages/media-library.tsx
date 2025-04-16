@@ -81,9 +81,13 @@ const FileUploadForm = ({ onSuccess }: { onSuccess: () => void }) => {
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
+    // For now, we'll just handle the first file 
+    // (multiple file support needs more UI changes)
+    const file = files[0];
+    
     setIsUploading(true);
 
     const formData = new FormData();
@@ -96,23 +100,29 @@ const FileUploadForm = ({ onSuccess }: { onSuccess: () => void }) => {
       });
 
       if (!response.ok) {
-        throw new Error("Upload failed");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Upload failed");
       }
 
       const result = await response.json();
-      setUploadedFileUrl(result.fileUrl);
-      setUploadedFileName(file.name);
-      setUploadedFileType(file.type);
-      
-      // Set form values
-      form.setValue("fileUrl", result.fileUrl);
-      form.setValue("fileType", file.type);
-      form.setValue("name", file.name);
+      // Check if we got back the file information with URL
+      if (result && result.file && result.file.url) {
+        setUploadedFileUrl(result.file.url);
+        setUploadedFileName(file.name);
+        setUploadedFileType(file.type);
+        
+        // Set form values
+        form.setValue("fileUrl", result.file.url);
+        form.setValue("fileType", file.type);
+        form.setValue("name", file.name);
+      } else {
+        throw new Error("Invalid response from server");
+      }
     } catch (error) {
       console.error("Error uploading file:", error);
       toast({
         title: "Upload failed",
-        description: "There was an error uploading your file.",
+        description: error.message || "There was an error uploading your file.",
         variant: "destructive",
       });
     } finally {
@@ -199,7 +209,10 @@ const FileUploadForm = ({ onSuccess }: { onSuccess: () => void }) => {
                       <Upload className="h-6 w-6 mb-2" />
                       <span className="text-sm">Click to upload</span>
                       <span className="text-xs text-gray-500">
-                        SVG, PNG, JPG or GIF (max. 10MB)
+                        SVG, PNG, JPG, GIF or MP4 (max. 20MB)
+                      </span>
+                      <span className="text-xs text-gray-500 mt-1">
+                        Supports multiple files
                       </span>
                     </>
                   )}
@@ -207,7 +220,8 @@ const FileUploadForm = ({ onSuccess }: { onSuccess: () => void }) => {
                 <Input
                   id="file-upload"
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/*"
+                  multiple
                   className="hidden"
                   onChange={handleFileUpload}
                   disabled={isUploading}

@@ -39,7 +39,7 @@ export const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 50 * 1024 * 1024 // 50MB file size limit to accommodate videos
+    fileSize: 20 * 1024 * 1024 // 20MB file size limit as per requirements
   }
 });
 
@@ -52,7 +52,7 @@ export function setupUploadRoutes(app: Express) {
       // A multer error occurred when uploading
       if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(413).json({ 
-          error: 'File is too large. Maximum size is 50MB.' 
+          error: 'File is too large. Maximum size is 20MB.' 
         });
       }
       return res.status(400).json({ 

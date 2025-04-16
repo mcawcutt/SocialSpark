@@ -52,10 +52,11 @@ export function setupAuth(app: Express) {
     saveUninitialized: true,
     store: storage.sessionStore,
     cookie: {
-      secure: false, // Set to true only in production with HTTPS
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      secure: process.env.NODE_ENV === 'production', // Set to true only in production with HTTPS
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       httpOnly: true,
-      sameSite: 'lax'
+      sameSite: 'lax',
+      path: '/'
     }
   };
 
@@ -211,8 +212,13 @@ export function setupAuth(app: Express) {
   
   // Update user profile
   app.patch("/api/user", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (!req.isAuthenticated()) {
+      console.log("User not authenticated for profile update");
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
     try {
+      console.log("Processing profile update for user ID:", req.user.id);
       const userId = req.user.id;
       const updateData = {
         name: req.body.name,
@@ -225,16 +231,70 @@ export function setupAuth(app: Express) {
         Object.entries(updateData).filter(([_, v]) => v !== undefined)
       );
       
+      console.log("Update data:", filteredUpdateData);
+      
       const updatedUser = await storage.updateUser(userId, filteredUpdateData);
+      console.log("User updated successfully, refreshing session");
       
       // Update the user in the session
       req.login(updatedUser, (err) => {
-        if (err) return res.status(500).json({ message: "Failed to update session" });
+        if (err) {
+          console.error("Failed to update session:", err);
+          return res.status(500).json({ message: "Failed to update session" });
+        }
+        console.log("Session updated with new user data");
         return res.json(updatedUser);
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating user:", error);
-      return res.status(400).json({ message: "Failed to update profile", error: error.message });
+      return res.status(500).json({ 
+        message: "Failed to update profile", 
+        error: error.message || "Unknown error" 
+      });
+    }
+  });
+  
+  // Dedicated update profile endpoint with detailed error handling
+  app.post("/api/update-profile", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      console.log("User not authenticated for profile update");
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      console.log("Processing profile update via dedicated endpoint for user ID:", req.user.id);
+      const userId = req.user.id;
+      const updateData = {
+        name: req.body.name,
+        email: req.body.email,
+        logo: req.body.logo
+      };
+      
+      // Only include properties that were actually provided
+      const filteredUpdateData = Object.fromEntries(
+        Object.entries(updateData).filter(([_, v]) => v !== undefined)
+      );
+      
+      console.log("Update data:", filteredUpdateData);
+      
+      const updatedUser = await storage.updateUser(userId, filteredUpdateData);
+      console.log("User updated successfully, refreshing session");
+      
+      // Update the user in the session
+      req.login(updatedUser, (err) => {
+        if (err) {
+          console.error("Failed to update session:", err);
+          return res.status(500).json({ message: "Failed to update session" });
+        }
+        console.log("Session updated with new user data");
+        return res.json(updatedUser);
+      });
+    } catch (error: any) {
+      console.error("Error updating user profile:", error);
+      return res.status(500).json({ 
+        message: "Failed to update profile", 
+        error: error.message || "Unknown error" 
+      });
     }
   });
   

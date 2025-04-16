@@ -329,6 +329,25 @@ export function setupAuth(app: Express) {
     }
   });
   
+  // Special endpoint to get the demo user data directly (bypassing authentication)
+  app.get("/api/demo-user", async (req, res) => {
+    try {
+      const demoUser = await storage.getUserByUsername("demo");
+      if (!demoUser) {
+        return res.status(404).json({ message: "Demo user not found" });
+      }
+      
+      console.log("Returning demo user data directly:", demoUser.name);
+      return res.json(demoUser);
+    } catch (error: any) {
+      console.error("Error fetching demo user:", error);
+      return res.status(500).json({ 
+        message: "Failed to fetch demo user", 
+        error: error.message || "Unknown error" 
+      });
+    }
+  });
+  
   // Debug endpoint to check session status
   app.get("/api/debug", (req, res) => {
     return res.json({

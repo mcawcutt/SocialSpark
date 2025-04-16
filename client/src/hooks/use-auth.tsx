@@ -26,7 +26,8 @@ type LoginData = {
 
 // Define hooks separate from the provider to prevent recreation on each render
 function useUserQuery() {
-  return useQuery<User>({
+  // Primary query to get the authenticated user
+  const userQuery = useQuery<User>({
     queryKey: ["/api/user"],
     retry: false,
     // Don't show "unauthorized" errors when not logged in
@@ -34,6 +35,19 @@ function useUserQuery() {
     // Return undefined instead of erroring, which we'll convert to null
     refetchOnWindowFocus: true,
   });
+  
+  // Fallback query for demo user (useful for preview pane)
+  const demoUserQuery = useQuery<User>({
+    queryKey: ["/api/demo-user"],
+    enabled: !userQuery.data && (window.location.host.includes('replit.dev') || window.location.search.includes('demo=true')),
+    refetchOnWindowFocus: true,
+  });
+  
+  // Use the demo user data if the main query fails and we're in the preview pane
+  return {
+    ...userQuery,
+    data: userQuery.data || demoUserQuery.data,
+  };
 }
 
 function useLoginMutation() {
@@ -58,6 +72,7 @@ function useLoginMutation() {
     },
     onSuccess: (user: User) => {
       queryClient.setQueryData(["/api/user"], user);
+      queryClient.invalidateQueries({ queryKey: ["/api/demo-user"] });
       toast({
         title: "Login successful",
         description: `Welcome back, ${user.name}!`,

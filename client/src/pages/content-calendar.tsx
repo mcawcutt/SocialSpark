@@ -87,11 +87,16 @@ export default function ContentCalendar() {
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   // Filter posts for current month
+  console.log("All posts:", posts);
+  
   const currentMonthPosts = posts?.filter((post: any) => {
     if (!post.scheduledDate) return false;
     const postDate = new Date(post.scheduledDate);
+    console.log(`Post date: ${postDate}, Month: ${postDate.getMonth()}, Current Month: ${currentMonth}`);
     return postDate.getMonth() === currentMonth && postDate.getFullYear() === currentYear;
   }) || [];
+  
+  console.log("Current month posts:", currentMonthPosts);
 
   // Find posts for a specific day
   const getPostsForDay = (day: number) => {

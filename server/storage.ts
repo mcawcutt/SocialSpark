@@ -606,7 +606,18 @@ export class MemStorage implements IStorage {
       { name: "Lakeside Outfitters", status: "pending", contactEmail: "team@lakesideoutfitters.com" },
       { name: "Adventure World", status: "needs_attention", contactEmail: "contact@adventureworld.com" },
       { name: "Trail Blazers", status: "needs_attention", contactEmail: "help@trailblazers.com" },
-      { name: "Vintage Cycles", status: "inactive", contactEmail: "info@vintagecycles.com" }
+      { name: "Vintage Cycles", status: "inactive", contactEmail: "info@vintagecycles.com" },
+      // New partners
+      { name: "Mountain Peak Gear", status: "active", contactEmail: "info@mountainpeakgear.com", connectionDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) },
+      { name: "City Cycles", status: "active", contactEmail: "support@citycycles.com", connectionDate: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000) },
+      { name: "Outdoor Adventures", status: "active", contactEmail: "contact@outdooradventures.com", connectionDate: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000) },
+      { name: "Trail Supply Co.", status: "active", contactEmail: "hello@trailsupply.com", connectionDate: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000) },
+      { name: "River Run Outfitters", status: "active", contactEmail: "sales@riverrun.com", connectionDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) },
+      { name: "Summit Gear", status: "pending", contactEmail: "info@summitgear.com" },
+      { name: "Valley Bikes", status: "pending", contactEmail: "help@valleybikes.com" },
+      { name: "Forest Trail Shop", status: "needs_attention", contactEmail: "service@foresttrail.com" },
+      { name: "Lake City Sports", status: "inactive", contactEmail: "support@lakecitysports.com" },
+      { name: "Downtown Cycles", status: "inactive", contactEmail: "info@downtowncycles.com" }
     ];
     
     partners.forEach(partner => {
@@ -618,21 +629,28 @@ export class MemStorage implements IStorage {
       });
     });
     
-    // Create social accounts for active partners
+    // Create social accounts for all active partners
     const platforms = ["facebook", "instagram", "google"];
-    for (let i = 1; i <= 3; i++) {
+    
+    // Get all active partner IDs - we know the first 9 are the original partners
+    // and the active ones are indices 0, 1, 2, 9, 10, 11, 12, 13
+    const activePartnerIndices = [0, 1, 2, 9, 10, 11, 12, 13];
+    
+    // Loop through and create social accounts
+    activePartnerIndices.forEach(index => {
+      const partnerId = index + 1; // Partner IDs are 1-based
       platforms.forEach(platform => {
         this.createSocialAccount({
-          partnerId: i,
+          partnerId,
           platform,
-          accountId: `account_${platform}_${i}`,
-          accountName: `${partners[i-1].name} ${platform.charAt(0).toUpperCase() + platform.slice(1)}`,
+          accountId: `account_${platform}_${partnerId}`,
+          accountName: `${partners[index].name} ${platform.charAt(0).toUpperCase() + platform.slice(1)}`,
           accessToken: "mock_access_token",
           refreshToken: "mock_refresh_token",
           tokenExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
         });
       });
-    }
+    });
     
     // Create content posts
     const posts = [
@@ -795,31 +813,45 @@ export class MemStorage implements IStorage {
       this.contentPosts.set(id, createdPost);
     }
     
-    // Create post assignments
-    for (let postId = 1; postId <= 4; postId++) {
-      for (let partnerId = 1; partnerId <= 3; partnerId++) {
+    // Create post assignments for all active partners
+    // Active partner indices are [0, 1, 2, 9, 10, 11, 12, 13]
+    const activePartnerIds = activePartnerIndices.map(idx => idx + 1);
+    
+    // Assign posts to all active partners
+    for (let postId = 1; postId <= 6; postId++) {
+      for (const partnerId of activePartnerIds) {
+        // Customize footer text based on the partner
+        const partnerName = partners[partnerId - 1].name;
         this.createPostAssignment({
           postId,
           partnerId,
-          customFooter: "Visit us at our store! Call 555-123-4567 #localbusiness",
-          customTags: "#sale #discount #localdeals"
+          customFooter: `Visit ${partnerName} today! Call 555-123-4567 #localbusiness #${partnerName.toLowerCase().replace(/\s+/g, '')}`,
+          customTags: "#outdoor #deals #quality"
         });
       }
     }
     
-    // Create analytics data
-    for (let postId = 1; postId <= 4; postId++) {
-      for (let partnerId = 1; partnerId <= 3; partnerId++) {
+    // Create analytics data for all active partners
+    for (let postId = 1; postId <= 6; postId++) {
+      // For each active partner
+      for (const partnerId of activePartnerIds) {
         const platforms = ["facebook", "instagram", "google"];
         
         platforms.forEach(platform => {
+          // Generate varied engagement metrics based on partner
+          // More established partners (earlier in the list) get higher engagement
+          const partnerMultiplier = partnerId <= 3 ? 1.2 : 0.9; // Older partners have better metrics
+          
           const analyticsId = this.analyticsIdCounter++;
-          const impressions = Math.floor(Math.random() * 1000) + 500;
-          const engagements = Math.floor(impressions * (Math.random() * 0.1 + 0.05));
+          const impressions = Math.floor((Math.random() * 1000 + 500) * partnerMultiplier);
+          const engagements = Math.floor(impressions * (Math.random() * 0.1 + 0.05) * partnerMultiplier);
           const clicks = Math.floor(engagements * (Math.random() * 0.3 + 0.2));
           const likes = Math.floor(engagements * (Math.random() * 0.5 + 0.2));
           const shares = Math.floor(engagements * (Math.random() * 0.1 + 0.05));
           const comments = Math.floor(engagements * (Math.random() * 0.1 + 0.02));
+          
+          // Create more recent analytics for better timeline representation
+          const daysAgo = Math.floor(Math.random() * 10);
           
           const analytics: Analytics = {
             id: analyticsId,
@@ -832,7 +864,7 @@ export class MemStorage implements IStorage {
             shares,
             likes,
             comments,
-            date: new Date(Date.now() - Math.floor(Math.random() * 10) * 24 * 60 * 60 * 1000)
+            date: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000)
           };
           
           this.analytics.set(analyticsId, analytics);

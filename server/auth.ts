@@ -348,6 +348,23 @@ export function setupAuth(app: Express) {
     }
   });
   
+  // Special endpoint to clear the demo user's identity for preview pane
+  app.post("/api/clear-demo-user", (req, res) => {
+    try {
+      // We don't actually need to do anything on the backend
+      // This is just a convenience endpoint for the frontend to call
+      // when it wants to forget the demo user
+      console.log("Demo user state cleared from frontend");
+      res.status(200).json({ message: "Demo user cleared" });
+    } catch (error: any) {
+      console.error("Error clearing demo user:", error);
+      res.status(500).json({ 
+        message: "Failed to clear demo user", 
+        error: error.message || "Unknown error" 
+      });
+    }
+  });
+  
   // Debug endpoint to check session status
   app.get("/api/debug", (req, res) => {
     return res.json({

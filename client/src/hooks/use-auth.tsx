@@ -130,6 +130,7 @@ function useLogoutMutation() {
   
   return useMutation({
     mutationFn: async () => {
+      // First attempt regular logout
       const response = await fetch("/api/logout", {
         method: "POST",
       });
@@ -137,10 +138,34 @@ function useLogoutMutation() {
       if (!response.ok) {
         throw new Error("Logout failed");
       }
+      
+      // In preview mode, also clear the demo user state
+      if (window.location.host.includes('replit.dev') || window.location.search.includes('demo=true')) {
+        try {
+          await fetch("/api/clear-demo-user", {
+            method: "POST",
+          });
+          console.log("Demo user state cleared");
+        } catch (error) {
+          console.error("Failed to clear demo user state:", error);
+          // Continue anyway, this is just a cleanup step
+        }
+      }
     },
     onSuccess: () => {
+      // Clear both the regular user and demo user data
       queryClient.setQueryData(["/api/user"], null);
+      queryClient.setQueryData(["/api/demo-user"], null);
+      
+      // Invalidate both queries to trigger a complete refresh
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/demo-user"] });
+      
+      // Force a page refresh to clear any cached components
+      if (window.location.host.includes('replit.dev') || window.location.search.includes('demo=true')) {
+        setTimeout(() => window.location.reload(), 500);
+      }
+      
       toast({
         title: "Logout successful",
         description: "You have been logged out.",

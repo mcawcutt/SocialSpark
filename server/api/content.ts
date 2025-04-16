@@ -358,4 +358,35 @@ export function setupContentRoutes(app: Express) {
       res.status(500).json({ error: 'Failed to fetch calendar posts' });
     }
   });
+  
+  // Reschedule a post (used for drag and drop)
+  app.post('/api/content-posts/:id/reschedule', async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: 'Invalid ID' });
+      }
+      
+      const { newDate } = req.body;
+      if (!newDate) {
+        return res.status(400).json({ error: 'New date is required' });
+      }
+      
+      const post = await storage.getContentPost(id);
+      if (!post) {
+        return res.status(404).json({ error: 'Content post not found' });
+      }
+      
+      // Update the post with the new scheduled date
+      const updatedPost = await storage.updateContentPost(id, {
+        scheduledDate: new Date(newDate),
+        status: 'scheduled'
+      });
+      
+      res.json(updatedPost);
+    } catch (error) {
+      console.error('Error rescheduling post:', error);
+      res.status(500).json({ error: 'Failed to reschedule post' });
+    }
+  });
 }

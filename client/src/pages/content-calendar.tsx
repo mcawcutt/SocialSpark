@@ -1,9 +1,11 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { DragDropContext, DropResult, resetServerContext } from "react-beautiful-dnd";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { CreatePostButton } from "@/components/content/post-form/create-post-button";
 import { ContentPostForm } from "@/components/content/post-form/content-post-form";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Calendar as CalendarIcon, 
   PlusIcon, 
@@ -29,6 +31,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { ContentPost } from "@shared/schema";
+import { CalendarDayCell } from "@/components/content/calendar/calendar-day-cell";
+
+// Reset server context for drag and drop
+resetServerContext();
 
 // Utility function to get days in a month
 const getDaysInMonth = (year: number, month: number) => {
@@ -45,6 +52,11 @@ export default function ContentCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'list'>('month');
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // State for edit post dialog
+  const [editingPost, setEditingPost] = useState<ContentPost | null>(null);
 
   // Query content posts with correct brandId
   const { data: posts, isLoading } = useQuery({
@@ -86,26 +98,21 @@ export default function ContentCalendar() {
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   // Filter posts for current month
-  console.log("All posts:", posts);
-  
-  const currentMonthPosts = posts?.filter((post: any) => {
+  const currentMonthPosts = posts?.filter((post: ContentPost) => {
     if (!post.scheduledDate) return false;
     const postDate = new Date(post.scheduledDate);
-    console.log(`Post date: ${postDate}, Month: ${postDate.getMonth()}, Current Month: ${currentMonth}`);
     return postDate.getMonth() === currentMonth && postDate.getFullYear() === currentYear;
   }) || [];
-  
-  console.log("Current month posts:", currentMonthPosts);
 
   // Find posts for a specific day
   const getPostsForDay = (day: number) => {
-    return currentMonthPosts.filter((post: any) => {
+    return currentMonthPosts.filter((post: ContentPost) => {
       const postDate = new Date(post.scheduledDate);
       return postDate.getDate() === day;
     });
   };
 
-  // Render platform icons
+  // Render platform icons (used in list view)
   const renderPlatformIcons = (platforms: string[]) => {
     return (
       <div className="flex space-x-1">
@@ -141,7 +148,80 @@ export default function ContentCalendar() {
   // Close the new post dialog
   const handleCloseNewPostDialog = () => {
     setIsNewPostDialogOpen(false);
+    setSelectedDate(null);
   };
+  
+  // Close the edit post dialog
+  const handleCloseEditDialog = () => {
+    setEditingPost(null);
+  };
+  
+  // Reschedule post mutation
+  const reschedulePostMutation = useMutation({
+    mutationFn: async ({ postId, newDate }: { postId: number, newDate: Date }) => {
+      const response = await fetch(`/api/content-posts/${postId}/reschedule`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ newDate }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to reschedule post');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Post rescheduled",
+        description: "The post has been rescheduled successfully.",
+      });
+      
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ["/api/content-posts"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error rescheduling post",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Handle drag end event
+  const handleDragEnd = useCallback((result: DropResult) => {
+    const { draggableId, destination, source } = result;
+    
+    // If dropped outside a droppable area, or dropped in the same spot, do nothing
+    if (!destination || 
+        (destination.droppableId === source.droppableId && destination.index === source.index)) {
+      return;
+    }
+    
+    // Extract post ID from draggable ID
+    const postId = parseInt(draggableId);
+    if (isNaN(postId)) return;
+    
+    // Extract date from destination droppable ID
+    // Format: day-YYYY-MM-DD
+    const destParts = destination.droppableId.split('-');
+    if (destParts.length !== 4) return;
+    
+    const destYear = parseInt(destParts[1]);
+    const destMonth = parseInt(destParts[2]);
+    const destDay = parseInt(destParts[3]);
+    
+    if (isNaN(destYear) || isNaN(destMonth) || isNaN(destDay)) return;
+    
+    // Create new date for the post
+    const newDate = new Date(destYear, destMonth, destDay);
+    
+    // Reschedule the post
+    reschedulePostMutation.mutate({ postId, newDate });
+  }, [reschedulePostMutation]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -192,6 +272,15 @@ export default function ContentCalendar() {
               }}
             />
           )}
+          
+          {/* Edit Post Dialog */}
+          {editingPost && (
+            <ContentPostForm
+              isOpen={!!editingPost}
+              onClose={handleCloseEditDialog}
+              initialData={editingPost}
+            />
+          )}
 
           <Card>
             <CardHeader className="border-b border-gray-200">
@@ -229,7 +318,7 @@ export default function ContentCalendar() {
             </CardHeader>
             <CardContent className="p-4">
               {viewMode === 'month' ? (
-                <>
+                <DragDropContext onDragEnd={handleDragEnd}>
                   {/* Day names (header) */}
                   <div className="grid grid-cols-7 gap-1 mb-2">
                     {dayNames.map((day, index) => (
@@ -247,60 +336,20 @@ export default function ContentCalendar() {
                       }
                       
                       const dayPosts = getPostsForDay(day);
-                      const isToday = new Date().getDate() === day && 
-                                      new Date().getMonth() === currentMonth && 
-                                      new Date().getFullYear() === currentYear;
                       
                       return (
-                        <div 
-                          key={`day-${day}`} 
-                          className={cn(
-                            "h-24 lg:h-32 border border-gray-200 p-1 overflow-hidden cursor-pointer",
-                            isToday ? "bg-primary-50 border-primary-200" : "bg-white"
-                          )}
-                          onClick={() => handleDayClick(day)}
-                        >
-                          <div className="flex justify-between items-start">
-                            <span className={cn(
-                              "text-sm font-medium p-1",
-                              isToday ? "bg-primary-500 text-white rounded-full w-6 h-6 flex items-center justify-center" : ""
-                            )}>
-                              {day}
-                            </span>
-                            {dayPosts.length > 0 && (
-                              <span className="text-xs text-gray-500">{dayPosts.length} post{dayPosts.length > 1 ? 's' : ''}</span>
-                            )}
-                          </div>
-                          
-                          <div className="mt-1 space-y-1 max-h-[80%] overflow-hidden">
-                            {dayPosts.slice(0, 3).map((post: any, i: number) => (
-                              <div 
-                                key={`post-${i}`} 
-                                className={cn(
-                                  "text-xs p-1 rounded truncate border-l-2",
-                                  post.status === 'scheduled' && "border-l-green-500 bg-green-50",
-                                  post.status === 'draft' && "border-l-yellow-500 bg-yellow-50",
-                                  post.status === 'automated' && "border-l-blue-500 bg-blue-50",
-                                  post.status === 'published' && "border-l-gray-500 bg-gray-50"
-                                )}
-                              >
-                                <div className="flex justify-between">
-                                  <span className="truncate">{post.title}</span>
-                                  {renderPlatformIcons(post.platforms)}
-                                </div>
-                              </div>
-                            ))}
-                            {dayPosts.length > 3 && (
-                              <div className="text-xs text-center text-gray-500">
-                                +{dayPosts.length - 3} more
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                        <CalendarDayCell
+                          key={`day-${day}`}
+                          day={day}
+                          currentMonth={currentMonth}
+                          currentYear={currentYear}
+                          posts={dayPosts}
+                          onDayClick={handleDayClick}
+                        />
                       );
                     })}
                   </div>
-                </>
+                </DragDropContext>
               ) : (
                 // List view
                 <div className="space-y-4">

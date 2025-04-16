@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, ReactNode, useContext, useState } from "react";
 import {
   useQuery,
   useMutation,
@@ -39,11 +39,21 @@ function useUserQuery() {
   // Check if we're in the preview environment
   const isPreviewMode = window.location.host.includes('replit.dev') || window.location.search.includes('demo=true');
   
-  // Fallback query for demo user (useful for preview pane) - only enable when in preview mode AND user not logged in
+  // Check if there was a recent logout to prevent immediate demo user login
+  const recentlyLoggedOut = (() => {
+    const logoutTime = sessionStorage.getItem('last_logout_time');
+    if (!logoutTime) return false;
+    
+    const timeSinceLogout = Date.now() - parseInt(logoutTime);
+    return timeSinceLogout < 5000; // Consider "recently" as within 5 seconds
+  })();
+  
+  // Fallback query for demo user (useful for preview pane) 
+  // Only enable when in preview mode AND user not logged in AND not recently logged out
   const demoUserQuery = useQuery<User>({
     queryKey: ["/api/demo-user"],
-    enabled: isPreviewMode && !userQuery.data && !userQuery.isSuccess,
-    refetchOnWindowFocus: false, // Don't automatically refetch to avoid frequent flips between logged in/out
+    enabled: isPreviewMode && !userQuery.data && !userQuery.isSuccess && !recentlyLoggedOut,
+    refetchOnWindowFocus: false, // Don't automatically refetch
     refetchOnMount: false,
     staleTime: Infinity, // Keep the data forever until explicitly invalidated
   });
@@ -165,6 +175,9 @@ function useLogoutMutation() {
       // Invalidate both queries to trigger a complete refresh
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/demo-user"] });
+      
+      // Store a timestamp to prevent immediate re-login with demo user
+      sessionStorage.setItem('last_logout_time', Date.now().toString());
       
       // Don't force page refresh as it's confusing for users
       // Just log that we've cleared the cache

@@ -260,6 +260,13 @@ export default function RetailPartners() {
     <div className="min-h-screen flex flex-col">
       <MobileNav />
       
+      {/* Bulk Upload Dialog */}
+      <BulkUploadDialog 
+        open={isBulkUploadOpen}
+        onClose={() => setIsBulkUploadOpen(false)}
+        brandId={1} // In a real app, this would be dynamically set to the current brand's ID
+      />
+      
       <main className="flex-1 overflow-auto">
         <div className="p-4 md:p-6 lg:p-8">
           {/* Page Header */}
@@ -278,6 +285,17 @@ export default function RetailPartners() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
+              
+              {/* Bulk Upload Button */}
+              <Button 
+                variant="outline"
+                className="flex items-center gap-2"
+                onClick={() => setIsBulkUploadOpen(true)}
+              >
+                <FileUp className="h-4 w-4" />
+                Bulk Upload
+              </Button>
+              
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="flex items-center bg-[#e03eb6] hover:bg-[#e03eb6]/90 border-[#e03eb6] text-white">

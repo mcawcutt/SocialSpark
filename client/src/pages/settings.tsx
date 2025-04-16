@@ -127,8 +127,23 @@ export default function Settings() {
       });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (updatedUser) => {
+      // Update the query cache directly with the updated user data
+      queryClient.setQueryData(["/api/user"], updatedUser);
+      queryClient.setQueryData(["/api/demo-user"], updatedUser);
+      
+      // Also invalidate to ensure fresh data
       queryClient.invalidateQueries({queryKey: ["/api/user"]});
+      queryClient.invalidateQueries({queryKey: ["/api/demo-user"]});
+      
+      // Update form values with the latest data
+      profileForm.reset({
+        name: updatedUser.name,
+        email: updatedUser.email,
+        planType: updatedUser.planType || "standard",
+        logo: updatedUser.logo || "",
+      });
+      
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully.",
@@ -249,8 +264,14 @@ export default function Settings() {
         if (!res.ok) throw new Error('Failed to update profile with new logo');
         return res.json();
       })
-      .then(() => {
+      .then((updatedUser) => {
+        // Update both cache entries directly for immediate UI updates
+        queryClient.setQueryData(["/api/user"], updatedUser);
+        queryClient.setQueryData(["/api/demo-user"], updatedUser);
+        
+        // Also invalidate the queries to ensure fresh data
         queryClient.invalidateQueries({queryKey: ["/api/user"]});
+        queryClient.invalidateQueries({queryKey: ["/api/demo-user"]});
       })
       .catch(err => {
         console.error('Error updating profile with logo:', err);

@@ -209,6 +209,35 @@ export function setupAuth(app: Express) {
     res.json(req.user);
   });
   
+  // Update user profile
+  app.patch("/api/user", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const userId = req.user.id;
+      const updateData = {
+        name: req.body.name,
+        email: req.body.email,
+        logo: req.body.logo
+      };
+      
+      // Only include properties that were actually provided
+      const filteredUpdateData = Object.fromEntries(
+        Object.entries(updateData).filter(([_, v]) => v !== undefined)
+      );
+      
+      const updatedUser = await storage.updateUser(userId, filteredUpdateData);
+      
+      // Update the user in the session
+      req.login(updatedUser, (err) => {
+        if (err) return res.status(500).json({ message: "Failed to update session" });
+        return res.json(updatedUser);
+      });
+    } catch (error) {
+      console.error("Error updating user:", error);
+      return res.status(400).json({ message: "Failed to update profile", error: error.message });
+    }
+  });
+  
   // Debug endpoint to check session status
   app.get("/api/debug", (req, res) => {
     return res.json({

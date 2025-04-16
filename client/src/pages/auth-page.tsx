@@ -203,8 +203,9 @@ export default function AuthPage() {
                     For demo purposes, use username: <strong className="text-primary-600">demo</strong> and password: <strong className="text-primary-600">password</strong>
                   </p>
                   <button 
+                    className="text-primary-600 font-medium hover:underline mt-2"
                     onClick={() => {
-                      console.log('Attempting direct login...');
+                      console.log('Attempting quick login...');
                       fetch('/api/login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -213,27 +214,18 @@ export default function AuthPage() {
                       })
                       .then(async res => {
                         console.log('Login response status:', res.status);
-                        console.log('Login response headers:', Array.from(res.headers.entries()));
-                        const data = await res.json();
-                        console.log('Login response data:', data);
-                        
-                        // Now check if we can access the user data
-                        return fetch('/api/user', { credentials: 'include' });
-                      })
-                      .then(async res => {
-                        console.log('User check response status:', res.status);
                         if (res.ok) {
-                          const userData = await res.json();
-                          console.log('User data after login:', userData);
+                          const user = await res.json();
+                          console.log('Login successful:', user);
+                          window.location.href = '/';
                         } else {
-                          console.log('Failed to get user data after login');
+                          console.error('Login failed:', await res.text());
                         }
                       })
                       .catch(error => console.error('Login error:', error));
                     }}
-                    className="text-blue-600 font-medium hover:underline mt-2"
                   >
-                    Test Direct Login
+                    Quick Login
                   </button>
                 </div>
               </TabsContent>

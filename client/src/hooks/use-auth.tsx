@@ -33,17 +33,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
+      console.log("Logging in with:", credentials.username);
       const res = await apiRequest("POST", "/api/login", credentials);
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {
+      console.log("Login successful, updating query cache with user:", user);
       queryClient.setQueryData(["/api/user"], user);
+      // Also invalidate any queries that depend on authentication
+      queryClient.invalidateQueries({ queryKey: ["/api/retail-partners"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/content-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/media"] });
       toast({
         title: "Login successful",
         description: `Welcome back, ${user.name}!`,
       });
     },
     onError: (error: Error) => {
+      console.error("Login failed:", error);
       toast({
         title: "Login failed",
         description: error.message,

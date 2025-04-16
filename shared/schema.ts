@@ -103,6 +103,7 @@ export const retailPartnersRelations = relations(retailPartners, ({ one, many })
 export const insertRetailPartnerSchema = createInsertSchema(retailPartners).pick({
   name: true,
   brandId: true,
+  userId: true,
   status: true,
   contactEmail: true,
   contactPhone: true,

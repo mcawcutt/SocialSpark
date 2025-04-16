@@ -129,8 +129,37 @@ export function setupAuth(app: Express) {
       return res.status(400).send("Email already exists");
     }
 
+    // Validate and set role - only admins can create admin accounts
+    let role = req.body.role || "brand";
+    
+    // If trying to create an admin account, check if user is an admin
+    if (role === "admin" && (!req.isAuthenticated() || req.user?.role !== "admin")) {
+      // Silently set to brand, don't expose that admin role exists
+      role = "brand";
+    }
+    
+    // If trying to create a partner account, validate parent brand
+    if (role === "partner" && req.body.brandId) {
+      // A partner should be linked to a brand via retailPartners.brandId and retailPartners.userId
+      // We'll handle this linking in a separate API endpoint for brand-to-partner connections
+    }
+    
+    // For brand users with a parent, validate the parent exists and is a brand
+    if (req.body.parentId) {
+      const parentUser = await storage.getUser(req.body.parentId);
+      if (!parentUser || parentUser.role !== "brand") {
+        return res.status(400).json({ message: "Invalid parent user" });
+      }
+      
+      // Only existing brand accounts or admins can add child brand accounts
+      if (!req.isAuthenticated() || (req.user.role !== "admin" && req.user.id !== parentUser.id)) {
+        return res.status(403).json({ message: "Not authorized to create a child account" });
+      }
+    }
+
     const user = await storage.createUser({
       ...req.body,
+      role,
       password: await hashPassword(req.body.password),
     });
 

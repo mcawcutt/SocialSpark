@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { StatsCard } from "@/components/dashboard/stats-card";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
@@ -42,9 +41,8 @@ export default function Dashboard() {
   ] : [];
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row">
+    <div className="min-h-screen flex flex-col">
       <MobileNav />
-      <Sidebar />
       
       <main className="flex-1 overflow-auto">
         <div className="p-4 md:p-6 lg:p-8">

@@ -7,6 +7,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { SocialMediaPreview } from "./social-media-preview";
 
 // UI Components
 import { Button } from "@/components/ui/button";

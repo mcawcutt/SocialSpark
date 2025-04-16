@@ -1195,8 +1195,18 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-// Initialize storage with database implementation
-export const storage = new DatabaseStorage();
+// Check if we're in production without DATABASE_URL
+const useMemoryForProduction = process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL;
+
+// Initialize storage with the appropriate implementation
+let storage: IStorage;
+
+if (useMemoryForProduction) {
+  console.warn("DATABASE_URL not available in production, using memory storage as fallback");
+  storage = new MemStorage();
+} else {
+  storage = new DatabaseStorage();
+}
 
 // Seed a demo user to ensure we have at least one user to login with
 (async () => {
@@ -1219,3 +1229,5 @@ export const storage = new DatabaseStorage();
     console.error("Error creating demo user:", error);
   }
 })();
+
+export { storage };

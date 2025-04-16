@@ -342,7 +342,12 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
 
   const isPending = createPostMutation.isPending || updatePostMutation.isPending;
   
-  // Calculate which partners will receive this post based on selected tags
+  // Watch form fields for preview and partner targeting
+  const watchedTitle = form.watch("title");
+  const watchedDescription = form.watch("description");
+  const watchedImageUrl = form.watch("imageUrl");
+  const watchedPlatforms = form.watch("platforms") || ["facebook"];
+  const watchedScheduledDate = form.watch("scheduledDate");
   const selectedPartnerTags = form.watch("partnerTags") || [];
   const selectedDistributionMethod = form.watch("partnerDistribution");
   
@@ -801,6 +806,17 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
             )}
 
             <Separator className="my-4" />
+            
+            {/* Social Media Preview Section */}
+            <div className="mb-6">
+              <SocialMediaPreview
+                imageUrl={imagePreview || watchedImageUrl}
+                title={watchedTitle}
+                description={watchedDescription}
+                scheduledDate={watchedScheduledDate}
+                platforms={watchedPlatforms}
+              />
+            </div>
 
             <DialogFooter>
               <Button 

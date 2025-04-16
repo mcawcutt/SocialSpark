@@ -51,6 +51,7 @@ const profileSchema = z.object({
   name: z.string().min(1, "Company name is required"),
   email: z.string().email("Invalid email address"),
   planType: z.string(),
+  logo: z.string().optional(),
 });
 
 // Password schema
@@ -87,6 +88,7 @@ export default function Settings() {
       name: user?.name || "",
       email: user?.email || "",
       planType: user?.planType || "standard",
+      logo: user?.logo || "",
     },
   });
   
@@ -307,6 +309,44 @@ export default function Settings() {
                             <FormDescription>
                               Your current subscription plan. To upgrade, visit the Billing tab.
                             </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={profileForm.control}
+                        name="logo"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Brand Logo</FormLabel>
+                            <div className="flex flex-col space-y-3">
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  placeholder="Enter URL to your brand logo" 
+                                />
+                              </FormControl>
+                              {field.value && (
+                                <div className="mt-2">
+                                  <p className="text-sm text-gray-500 mb-2">Logo Preview:</p>
+                                  <div className="w-16 h-16 rounded-full overflow-hidden border border-gray-200">
+                                    <img 
+                                      src={field.value} 
+                                      alt="Brand Logo" 
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        // Replace with default if image fails to load
+                                        e.currentTarget.src = "/assets/IGNYT_Icon Web.png";
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                              <FormDescription>
+                                Enter the URL to your brand logo. It will appear next to your brand name.
+                              </FormDescription>
+                            </div>
                             <FormMessage />
                           </FormItem>
                         )}

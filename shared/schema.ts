@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   role: text("role").notNull().default("brand"), // "admin", "brand", or "partner"
   planType: text("plan_type").default("standard"), // "standard" or "premium"
+  logo: text("logo"), // Brand logo URL
   parentId: integer("parent_id"), // For multi-brand management (child brands under a parent)
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -57,6 +58,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
   role: true,
   planType: true,
+  logo: true,
   parentId: true,
 });
 

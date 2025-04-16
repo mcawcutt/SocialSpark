@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { CreatePostButton } from "@/components/content/post-form/create-post-button";
 import { ContentPostForm } from "@/components/content/post-form/content-post-form";
@@ -145,9 +144,8 @@ export default function ContentCalendar() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row">
+    <div className="min-h-screen flex flex-col">
       <MobileNav />
-      <Sidebar />
       
       <main className="flex-1 overflow-auto">
         <div className="p-4 md:p-6 lg:p-8">

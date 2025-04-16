@@ -1,18 +1,54 @@
 import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
+import { relations } from "drizzle-orm";
 import { z } from "zod";
 
-// Users schema (brands and retailers)
+// Users schema with expanded role system
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
-  role: text("role").notNull().default("brand"), // "brand" or "retailer"
+  role: text("role").notNull().default("brand"), // "admin", "brand", or "partner"
   planType: text("plan_type").default("standard"), // "standard" or "premium"
+  parentId: integer("parent_id"), // For multi-brand management (child brands under a parent)
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Define relations for the users table
+export const usersRelations = relations(users, ({ one, many }) => ({
+  parentUser: one(users, {
+    fields: [users.parentId],
+    references: [users.id],
+    relationName: "parentChild",
+  }),
+  childUsers: many(users, { relationName: "parentChild" }),
+  retailPartners: many(retailPartners, { relationName: "userPartners" }),
+  brands: many(brands, { relationName: "userBrands" }),
+}));
+
+// Brands table for multiple brands per user
+export const brands = pgTable("brands", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  ownerId: integer("owner_id").notNull(), // References users.id
+  logo: text("logo"),
+  primaryColor: text("primary_color"),
+  metadata: jsonb("metadata"), // Store additional brand data
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Define relations for the brands table
+export const brandsRelations = relations(brands, ({ one, many }) => ({
+  owner: one(users, {
+    fields: [brands.ownerId],
+    references: [users.id],
+    relationName: "userBrands",
+  }),
+  retailPartners: many(retailPartners, { relationName: "brandPartners" }),
+  contentPosts: many(contentPosts, { relationName: "brandPosts" }),
+}));
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -21,13 +57,23 @@ export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
   role: true,
   planType: true,
+  parentId: true,
+});
+
+export const insertBrandSchema = createInsertSchema(brands).pick({
+  name: true,
+  ownerId: true,
+  logo: true,
+  primaryColor: true,
+  metadata: true,
 });
 
 // Retail partners schema
 export const retailPartners = pgTable("retail_partners", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  brandId: integer("brand_id").notNull(),
+  brandId: integer("brand_id").notNull(), // References brands.id
+  userId: integer("user_id"), // For partner login, references users.id
   status: text("status").notNull().default("pending"), // "active", "pending", "inactive", "needs_attention"
   contactEmail: text("contact_email").notNull(),
   contactPhone: text("contact_phone"),
@@ -37,6 +83,22 @@ export const retailPartners = pgTable("retail_partners", {
   createdAt: timestamp("created_at").defaultNow(),
   connectionDate: timestamp("connection_date"),
 });
+
+// Define relations for retail partners
+export const retailPartnersRelations = relations(retailPartners, ({ one, many }) => ({
+  brand: one(brands, {
+    fields: [retailPartners.brandId],
+    references: [brands.id],
+    relationName: "brandPartners",
+  }),
+  user: one(users, {
+    fields: [retailPartners.userId],
+    references: [users.id],
+    relationName: "userPartners",
+  }),
+  socialAccounts: many(socialAccounts, { relationName: "partnerAccounts" }),
+  postAssignments: many(postAssignments, { relationName: "partnerPosts" }),
+}));
 
 export const insertRetailPartnerSchema = createInsertSchema(retailPartners).pick({
   name: true,
@@ -63,6 +125,15 @@ export const socialAccounts = pgTable("social_accounts", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Define relations for social accounts
+export const socialAccountsRelations = relations(socialAccounts, ({ one }) => ({
+  retailPartner: one(retailPartners, {
+    fields: [socialAccounts.partnerId],
+    references: [retailPartners.id],
+    relationName: "partnerAccounts",
+  }),
+}));
+
 export const insertSocialAccountSchema = createInsertSchema(socialAccounts).pick({
   partnerId: true,
   platform: true,
@@ -76,7 +147,8 @@ export const insertSocialAccountSchema = createInsertSchema(socialAccounts).pick
 // Content posts schema
 export const contentPosts = pgTable("content_posts", {
   id: serial("id").primaryKey(),
-  brandId: integer("brand_id").notNull(),
+  brandId: integer("brand_id").notNull(), // References brands.id
+  creatorId: integer("creator_id").notNull(), // References users.id (who created the post)
   title: text("title").notNull(),
   description: text("description").notNull(),
   imageUrl: text("image_url"),
@@ -90,8 +162,23 @@ export const contentPosts = pgTable("content_posts", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Define relations for content posts
+export const contentPostsRelations = relations(contentPosts, ({ one, many }) => ({
+  brand: one(brands, {
+    fields: [contentPosts.brandId],
+    references: [brands.id],
+    relationName: "brandPosts",
+  }),
+  creator: one(users, {
+    fields: [contentPosts.creatorId],
+    references: [users.id],
+  }),
+  assignments: many(postAssignments, { relationName: "postAssignments" }),
+}));
+
 export const insertContentPostSchema = createInsertSchema(contentPosts).pick({
   brandId: true,
+  creatorId: true,
   title: true,
   description: true,
   imageUrl: true,
@@ -115,6 +202,20 @@ export const postAssignments = pgTable("post_assignments", {
   metadata: jsonb("metadata"), // Store additional data for evergreen posts
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Define relations for post assignments
+export const postAssignmentsRelations = relations(postAssignments, ({ one }) => ({
+  post: one(contentPosts, {
+    fields: [postAssignments.postId],
+    references: [contentPosts.id],
+    relationName: "postAssignments",
+  }),
+  partner: one(retailPartners, {
+    fields: [postAssignments.partnerId],
+    references: [retailPartners.id],
+    relationName: "partnerPosts",
+  }),
+}));
 
 export const insertPostAssignmentSchema = createInsertSchema(postAssignments).pick({
   postId: true,

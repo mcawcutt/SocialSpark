@@ -202,10 +202,62 @@ export default function Settings() {
   const onNotificationSubmit = (data: NotificationFormValues) => {
     updateNotificationsMutation.mutate(data);
   };
+  
+  // Handle logo upload
+  const uploadLogoMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('media', file);
+      
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to upload logo');
+      }
+      
+      return res.json();
+    },
+    onSuccess: (data) => {
+      // Update the form with the new logo URL
+      profileForm.setValue('logo', data.file.url);
+      
+      // Save the profile immediately to persist the logo
+      updateProfileMutation.mutate(profileForm.getValues());
+      
+      toast({
+        title: "Logo uploaded",
+        description: "Your brand logo has been uploaded successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to upload logo",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Handle crop complete
+  const handleCropComplete = (croppedImageUrl: string, file: File) => {
+    uploadLogoMutation.mutate(file);
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
       <MobileNav />
+      
+      {/* Image Cropper */}
+      <ImageCropper
+        open={imageCropperOpen}
+        onClose={() => setImageCropperOpen(false)}
+        onCropComplete={handleCropComplete}
+        aspectRatio={1}
+      />
       
       <main className="flex-1 overflow-auto">
         <div className="p-4 md:p-6 lg:p-8">

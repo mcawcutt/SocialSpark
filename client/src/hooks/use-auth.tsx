@@ -36,11 +36,16 @@ function useUserQuery() {
     refetchOnWindowFocus: true,
   });
   
-  // Fallback query for demo user (useful for preview pane)
+  // Check if we're in the preview environment
+  const isPreviewMode = window.location.host.includes('replit.dev') || window.location.search.includes('demo=true');
+  
+  // Fallback query for demo user (useful for preview pane) - only enable when in preview mode AND user not logged in
   const demoUserQuery = useQuery<User>({
     queryKey: ["/api/demo-user"],
-    enabled: !userQuery.data && (window.location.host.includes('replit.dev') || window.location.search.includes('demo=true')),
-    refetchOnWindowFocus: true,
+    enabled: isPreviewMode && !userQuery.data && !userQuery.isSuccess,
+    refetchOnWindowFocus: false, // Don't automatically refetch to avoid frequent flips between logged in/out
+    refetchOnMount: false,
+    staleTime: Infinity, // Keep the data forever until explicitly invalidated
   });
   
   // Use the demo user data if the main query fails and we're in the preview pane
@@ -161,9 +166,10 @@ function useLogoutMutation() {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/demo-user"] });
       
-      // Force a page refresh to clear any cached components
+      // Don't force page refresh as it's confusing for users
+      // Just log that we've cleared the cache
       if (window.location.host.includes('replit.dev') || window.location.search.includes('demo=true')) {
-        setTimeout(() => window.location.reload(), 500);
+        console.log("Demo user state cleared");
       }
       
       toast({

@@ -5,12 +5,17 @@ import {
   ContentPost, InsertContentPost, 
   PostAssignment, InsertPostAssignment,
   Analytics, InsertAnalytics,
-  MediaLibraryItem, InsertMediaLibraryItem
+  MediaLibraryItem, InsertMediaLibraryItem,
+  users, retailPartners, socialAccounts, contentPosts, postAssignments, analytics, mediaLibrary
 } from "@shared/schema";
 import createMemoryStore from "memorystore";
 import session from "express-session";
+import { db, pool } from "./db";
+import { eq, and, desc, sql } from "drizzle-orm";
+import connectPg from "connect-pg-simple";
 
 const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   // User operations
@@ -72,7 +77,7 @@ export interface IStorage {
   getMediaByTags(brandId: number, tags: string[]): Promise<MediaLibraryItem[]>;
   
   // Session store
-  sessionStore: ReturnType<typeof createMemoryStore>;
+  sessionStore: session.Store;
 }
 
 export class MemStorage implements IStorage {
@@ -92,7 +97,7 @@ export class MemStorage implements IStorage {
   private analyticsIdCounter: number;
   private mediaIdCounter: number;
   
-  sessionStore: ReturnType<typeof createMemoryStore>;
+  sessionStore: session.Store;
 
   constructor() {
     this.users = new Map();
@@ -842,4 +847,375 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  sessionStore: session.Store;
+
+  constructor() {
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true
+    });
+  }
+
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const [createdUser] = await db.insert(users).values(user).returning();
+    return createdUser;
+  }
+
+  async updateUser(id: number, data: Partial<User>): Promise<User> {
+    const [updatedUser] = await db.update(users)
+      .set(data)
+      .where(eq(users.id, id))
+      .returning();
+    
+    if (!updatedUser) {
+      throw new Error(`User with ID ${id} not found`);
+    }
+    
+    return updatedUser;
+  }
+
+  async getRetailPartner(id: number): Promise<RetailPartner | undefined> {
+    const [partner] = await db.select().from(retailPartners).where(eq(retailPartners.id, id));
+    return partner;
+  }
+
+  async getRetailPartnersByBrandId(brandId: number): Promise<RetailPartner[]> {
+    return db.select().from(retailPartners).where(eq(retailPartners.brandId, brandId));
+  }
+
+  async createRetailPartner(insertPartner: InsertRetailPartner): Promise<RetailPartner> {
+    const [partner] = await db.insert(retailPartners).values(insertPartner).returning();
+    return partner;
+  }
+
+  async updateRetailPartner(id: number, data: Partial<RetailPartner>): Promise<RetailPartner> {
+    // If status is changing to active, set connection date
+    if (data.status === 'active') {
+      const [partner] = await db.select().from(retailPartners).where(eq(retailPartners.id, id));
+      if (partner && partner.status !== 'active') {
+        data.connectionDate = new Date();
+      }
+    }
+
+    const [updatedPartner] = await db.update(retailPartners)
+      .set(data)
+      .where(eq(retailPartners.id, id))
+      .returning();
+    
+    if (!updatedPartner) {
+      throw new Error(`Retail partner with ID ${id} not found`);
+    }
+    
+    return updatedPartner;
+  }
+
+  async getRetailPartnerCount(brandId: number): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(retailPartners)
+      .where(eq(retailPartners.brandId, brandId));
+    
+    return result[0]?.count || 0;
+  }
+
+  async getRecentPartners(brandId: number, limit: number): Promise<RetailPartner[]> {
+    return db.select()
+      .from(retailPartners)
+      .where(eq(retailPartners.brandId, brandId))
+      .orderBy(desc(retailPartners.connectionDate))
+      .limit(limit);
+  }
+
+  async getPartnerStatsByStatus(brandId: number): Promise<Record<string, number>> {
+    const partners = await this.getRetailPartnersByBrandId(brandId);
+    const stats: Record<string, number> = {
+      active: 0,
+      pending: 0,
+      inactive: 0,
+      needs_attention: 0
+    };
+    
+    partners.forEach(partner => {
+      stats[partner.status] = (stats[partner.status] || 0) + 1;
+    });
+    
+    return stats;
+  }
+
+  async getSocialAccount(id: number): Promise<SocialAccount | undefined> {
+    const [account] = await db.select().from(socialAccounts).where(eq(socialAccounts.id, id));
+    return account;
+  }
+
+  async getSocialAccountsByPartnerIds(partnerIds: number[]): Promise<SocialAccount[]> {
+    if (partnerIds.length === 0) return [];
+    
+    return db.select()
+      .from(socialAccounts)
+      .where(sql`${socialAccounts.partnerId} IN (${partnerIds.join(',')})`);
+  }
+
+  async getSocialAccountsByPartnerId(partnerId: number): Promise<SocialAccount[]> {
+    return db.select()
+      .from(socialAccounts)
+      .where(eq(socialAccounts.partnerId, partnerId));
+  }
+
+  async getSocialAccountByPlatformId(platform: string, platformId: string): Promise<SocialAccount | undefined> {
+    const [account] = await db.select()
+      .from(socialAccounts)
+      .where(and(
+        eq(socialAccounts.platform, platform),
+        eq(socialAccounts.accountId, platformId)
+      ));
+    
+    return account;
+  }
+
+  async createSocialAccount(socialAccount: InsertSocialAccount): Promise<SocialAccount> {
+    const [account] = await db.insert(socialAccounts).values(socialAccount).returning();
+    return account;
+  }
+
+  async updateSocialAccount(id: number, data: Partial<SocialAccount>): Promise<SocialAccount> {
+    const [updatedAccount] = await db.update(socialAccounts)
+      .set(data)
+      .where(eq(socialAccounts.id, id))
+      .returning();
+    
+    if (!updatedAccount) {
+      throw new Error(`Social account with ID ${id} not found`);
+    }
+    
+    return updatedAccount;
+  }
+
+  async deleteSocialAccount(id: number): Promise<void> {
+    await db.delete(socialAccounts).where(eq(socialAccounts.id, id));
+  }
+
+  async getContentPost(id: number): Promise<ContentPost | undefined> {
+    const [post] = await db.select().from(contentPosts).where(eq(contentPosts.id, id));
+    return post;
+  }
+
+  async getContentPostsByBrandId(brandId: number): Promise<ContentPost[]> {
+    return db.select().from(contentPosts).where(eq(contentPosts.brandId, brandId));
+  }
+
+  async getRetailPartnersByIds(ids: number[]): Promise<RetailPartner[]> {
+    if (ids.length === 0) return [];
+    
+    return db.select()
+      .from(retailPartners)
+      .where(sql`${retailPartners.id} IN (${ids.join(',')})`);
+  }
+
+  async createContentPost(contentPost: InsertContentPost): Promise<ContentPost> {
+    const [post] = await db.insert(contentPosts).values(contentPost).returning();
+    return post;
+  }
+
+  async updateContentPost(id: number, data: Partial<ContentPost>): Promise<ContentPost> {
+    const now = new Date();
+    const [updatedPost] = await db.update(contentPosts)
+      .set({ ...data, updatedAt: now })
+      .where(eq(contentPosts.id, id))
+      .returning();
+    
+    if (!updatedPost) {
+      throw new Error(`Content post with ID ${id} not found`);
+    }
+    
+    return updatedPost;
+  }
+
+  async updateContentPostMetadata(id: number, metadata: any): Promise<void> {
+    await db.update(contentPosts)
+      .set({ metadata, updatedAt: new Date() })
+      .where(eq(contentPosts.id, id));
+  }
+
+  async deleteContentPost(id: number): Promise<void> {
+    // Delete associated assignments first
+    await db.delete(postAssignments).where(eq(postAssignments.postId, id));
+    
+    // Then delete the post
+    await db.delete(contentPosts).where(eq(contentPosts.id, id));
+  }
+
+  async getActivePostCount(brandId: number): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(contentPosts)
+      .where(and(
+        eq(contentPosts.brandId, brandId),
+        sql`${contentPosts.status} IN ('published', 'scheduled')`
+      ));
+    
+    return result[0]?.count || 0;
+  }
+
+  async getScheduledPostCount(brandId: number): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(contentPosts)
+      .where(and(
+        eq(contentPosts.brandId, brandId),
+        eq(contentPosts.status, 'scheduled')
+      ));
+    
+    return result[0]?.count || 0;
+  }
+
+  async getUpcomingPosts(brandId: number, limit: number): Promise<ContentPost[]> {
+    const now = new Date();
+    
+    return db.select()
+      .from(contentPosts)
+      .where(and(
+        eq(contentPosts.brandId, brandId),
+        eq(contentPosts.status, 'scheduled'),
+        sql`${contentPosts.scheduledDate} > ${now.toISOString()}`
+      ))
+      .orderBy(contentPosts.scheduledDate)
+      .limit(limit);
+  }
+
+  async getPostAssignment(id: number): Promise<PostAssignment | undefined> {
+    const [assignment] = await db.select().from(postAssignments).where(eq(postAssignments.id, id));
+    return assignment;
+  }
+
+  async getPostAssignmentsByPostId(postId: number): Promise<PostAssignment[]> {
+    return db.select().from(postAssignments).where(eq(postAssignments.postId, postId));
+  }
+
+  async createPostAssignment(postAssignment: InsertPostAssignment): Promise<PostAssignment> {
+    const [assignment] = await db.insert(postAssignments).values(postAssignment).returning();
+    return assignment;
+  }
+
+  async getAnalyticsByPostAndPartnerIds(postIds: number[], partnerIds: number[]): Promise<Analytics[]> {
+    if (postIds.length === 0 || partnerIds.length === 0) return [];
+    
+    return db.select()
+      .from(analytics)
+      .where(and(
+        sql`${analytics.postId} IN (${postIds.join(',')})`,
+        sql`${analytics.partnerId} IN (${partnerIds.join(',')})`
+      ));
+  }
+
+  async getTotalEngagements(brandId: number): Promise<number> {
+    // This will need to join tables to get all analytics for a brand's posts
+    const result = await db.select({ 
+      total: sql<number>`SUM(COALESCE(${analytics.engagements}, 0))` 
+    })
+    .from(analytics)
+    .innerJoin(contentPosts, eq(analytics.postId, contentPosts.id))
+    .where(eq(contentPosts.brandId, brandId));
+    
+    return result[0]?.total || 0;
+  }
+
+  async getPerformanceMetrics(brandId: number): Promise<any> {
+    // For simplicity, we'll return placeholder metrics
+    // In a real implementation, this would involve complex queries
+    return {
+      impressions: { total: 0, change: 0 },
+      engagement: { total: 0, change: 0 },
+      clicks: { total: 0, change: 0 },
+      reach: { total: 0, change: 0 }
+    };
+  }
+
+  async getRecentActivity(brandId: number, limit: number): Promise<any[]> {
+    // For simplicity, return empty array
+    // In a real implementation, this would query an activity log table
+    return [];
+  }
+
+  async getMediaItem(id: number): Promise<MediaLibraryItem | undefined> {
+    const [item] = await db.select().from(mediaLibrary).where(eq(mediaLibrary.id, id));
+    return item;
+  }
+
+  async getMediaByBrandId(brandId: number): Promise<MediaLibraryItem[]> {
+    return db.select().from(mediaLibrary).where(eq(mediaLibrary.brandId, brandId));
+  }
+
+  async createMediaItem(mediaItem: InsertMediaLibraryItem): Promise<MediaLibraryItem> {
+    const [item] = await db.insert(mediaLibrary).values(mediaItem).returning();
+    return item;
+  }
+
+  async updateMediaItem(id: number, data: Partial<MediaLibraryItem>): Promise<MediaLibraryItem> {
+    const [updatedItem] = await db.update(mediaLibrary)
+      .set(data)
+      .where(eq(mediaLibrary.id, id))
+      .returning();
+    
+    if (!updatedItem) {
+      throw new Error(`Media item with ID ${id} not found`);
+    }
+    
+    return updatedItem;
+  }
+
+  async deleteMediaItem(id: number): Promise<void> {
+    await db.delete(mediaLibrary).where(eq(mediaLibrary.id, id));
+  }
+
+  async getMediaByTags(brandId: number, tags: string[]): Promise<MediaLibraryItem[]> {
+    if (tags.length === 0) {
+      return this.getMediaByBrandId(brandId);
+    }
+    
+    // This is a simplistic implementation
+    // In a real app with a real DB, you'd use a more efficient query
+    const allMedia = await this.getMediaByBrandId(brandId);
+    return allMedia.filter(item => {
+      if (!item.tags) return false;
+      return tags.some(tag => item.tags?.includes(tag));
+    });
+  }
+}
+
+// Initialize storage with database implementation
+export const storage = new DatabaseStorage();
+
+// Seed a demo user to ensure we have at least one user to login with
+(async () => {
+  try {
+    // Check if demo user exists
+    const demoUser = await storage.getUserByUsername("demo");
+    if (!demoUser) {
+      // Create demo user
+      await storage.createUser({
+        username: "demo",
+        password: "password", // Will be hashed by auth.ts
+        name: "Acme Brands",
+        email: "demo@example.com",
+        role: "brand",
+        planType: "premium"
+      });
+      console.log("Demo user created successfully");
+    }
+  } catch (error) {
+    console.error("Error creating demo user:", error);
+  }
+})();

@@ -6,6 +6,8 @@ import { setupAuth } from "./auth";
 import { setupContentRoutes } from "./api/content";
 import { setupMediaRoutes } from "./api/media";
 import { setupUploadRoutes, serveUploads } from "./upload";
+import { setupPartnerRoutes } from "./api/partners";
+import { setupBrandRoutes } from "./api/brands";
 import { z } from "zod";
 import {
   insertRetailPartnerSchema,
@@ -26,6 +28,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up media library routes
   setupMediaRoutes(app);
+  
+  // Set up partner routes
+  setupPartnerRoutes(app);
+  
+  // Set up brand routes
+  setupBrandRoutes(app);
   
   // Set up file upload routes
   setupUploadRoutes(app);

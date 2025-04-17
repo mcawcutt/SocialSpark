@@ -70,8 +70,18 @@ export function setupUploadRoutes(app: Express) {
   
   // Single file upload endpoint
   app.post('/api/upload', (req: Request, res: Response, next: express.NextFunction) => {
+    // Check authentication first
+    if (!req.isAuthenticated || !req.isAuthenticated()) {
+      console.log('Upload attempted without authentication');
+      return res.status(401).json({ 
+        error: 'Unauthorized', 
+        message: 'You must be logged in to upload files' 
+      });
+    }
+    
     console.log('Upload endpoint hit. Headers:', req.headers['content-type']);
     console.log('Request body type:', typeof req.body);
+    console.log('Authenticated user:', req.user?.id);
     
     // First handle the upload
     upload.single('media')(req, res, (err) => {

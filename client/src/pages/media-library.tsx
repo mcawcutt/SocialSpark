@@ -97,11 +97,19 @@ const FileUploadForm = ({ onSuccess }: { onSuccess: () => void }) => {
       const response = await fetch("/api/upload", {
         method: "POST",
         body: formData,
+        credentials: "include" // Add credentials to include cookies for authentication
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Upload failed");
+        let errorMessage = "Upload failed";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || "Upload failed";
+        } catch (e) {
+          // If response is not JSON, use status text
+          errorMessage = `Upload failed: ${response.status} ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();

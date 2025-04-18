@@ -1,160 +1,158 @@
-import { MailService } from '@sendgrid/mail';
+import sgMail from '@sendgrid/mail';
 
-// Initialize SendGrid mail service with API key
-const mailService = new MailService();
-mailService.setApiKey(process.env.SENDGRID_API_KEY as string);
-
-// Default sender email - you can replace this with your actual sender email
-const DEFAULT_FROM_EMAIL = 'noreply@ignyt.app';
-
-export interface EmailOptions {
-  to: string;
-  subject: string;
-  text?: string;
-  html?: string;
-  from?: string;
+// Check if SendGrid API key is provided
+if (!process.env.SENDGRID_API_KEY) {
+  console.warn('SENDGRID_API_KEY is not set. Email functionality will not work correctly.');
+} else {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 }
 
-/**
- * Send an email using SendGrid
- */
-export async function sendEmail(options: EmailOptions): Promise<boolean> {
+// Common email configurations
+const FROM_EMAIL = 'noreply@ignyt.com';
+const APP_NAME = 'Ignyt';
+const APP_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://app.ignyt.com' 
+  : 'http://localhost:5000';
+
+// Basic function to send emails
+export async function sendEmail(options: {
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+}) {
+  if (!process.env.SENDGRID_API_KEY) {
+    console.log('SendGrid API key not set. Would have sent email:', options);
+    return { success: true, mock: true };
+  }
+
   try {
-    const { to, subject, text, html, from = DEFAULT_FROM_EMAIL } = options;
-    
-    // Log email attempt
-    console.log(`Attempting to send email to ${to} with subject: ${subject}`);
-    
-    // Send the email
-    await mailService.send({
-      to,
-      from,
-      subject,
-      text,
-      html,
+    await sgMail.send({
+      from: FROM_EMAIL,
+      to: options.to,
+      subject: options.subject,
+      text: options.text,
+      html: options.html as string,
     });
-    
-    console.log(`Email successfully sent to ${to}`);
-    return true;
-  } catch (error) {
-    console.error('Error sending email via SendGrid:', error);
-    return false;
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error sending email:', error);
+    if (error.response) {
+      console.error('SendGrid API error:', error.response.body);
+    }
+    throw error;
   }
 }
 
-/**
- * Send a partner invitation email
- */
-export async function sendPartnerInvitation(
-  email: string, 
-  brandName: string,
-  inviteLink: string,
-  fromEmail?: string
-): Promise<boolean> {
-  const subject = `You've been invited to join ${brandName} on Ignyt`;
-  
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <div style="background-color: #e03eb6; padding: 20px; text-align: center;">
-        <h1 style="color: white; margin: 0;">Ignyt</h1>
-      </div>
-      
-      <div style="padding: 20px; border: 1px solid #eee; background-color: #fff;">
-        <h2>You've been invited!</h2>
-        <p>${brandName} has invited you to join their retailer network on Ignyt.</p>
-        <p>Ignyt is a platform that helps brands distribute content to their retail partners for social media posting.</p>
-        
-        <div style="margin: 30px 0; text-align: center;">
-          <a href="${inviteLink}" style="display: inline-block; background-color: #e03eb6; color: white; text-decoration: none; padding: 12px 24px; border-radius: 4px; font-weight: bold;">
-            Accept Invitation
-          </a>
-        </div>
-        
-        <p>If you're having trouble with the button above, copy and paste this URL into your browser:</p>
-        <p style="word-break: break-all; color: #666;">${inviteLink}</p>
-      </div>
-      
-      <div style="padding: 15px; text-align: center; color: #666; font-size: 12px;">
-        <p>This is an automated message from Ignyt. Please do not reply to this email.</p>
-      </div>
-    </div>
-  `;
-  
-  const text = `
-    You've been invited to join ${brandName} on Ignyt
-    
-    ${brandName} has invited you to join their retailer network on Ignyt.
-    Ignyt is a platform that helps brands distribute content to their retail partners for social media posting.
-    
-    To accept the invitation, visit: ${inviteLink}
-    
-    This is an automated message from Ignyt. Please do not reply to this email.
-  `;
-  
-  return sendEmail({
-    to: email,
-    subject,
-    html,
-    text,
-    from: fromEmail || DEFAULT_FROM_EMAIL
-  });
-}
+// Send partner invitation email
+export async function sendInviteEmail(options: {
+  email: string;
+  name: string;
+  token: string;
+  brandName: string;
+  customMessage?: string;
+}) {
+  const inviteUrl = `${APP_URL}/accept-invite?token=${encodeURIComponent(options.token)}`;
+  const expiryDays = 7;
 
-/**
- * Send a notification that content has been shared for posting
- */
-export async function sendContentNotification(
-  email: string,
-  brandName: string,
-  contentTitle: string,
-  contentLink: string,
-  fromEmail?: string
-): Promise<boolean> {
-  const subject = `New content ready for posting from ${brandName}`;
-  
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <div style="background-color: #e03eb6; padding: 20px; text-align: center;">
-        <h1 style="color: white; margin: 0;">Ignyt</h1>
-      </div>
-      
-      <div style="padding: 20px; border: 1px solid #eee; background-color: #fff;">
-        <h2>New Content Available!</h2>
-        <p>${brandName} has shared new content for you to post: <strong>${contentTitle}</strong></p>
-        <p>You can view and schedule this content on your Ignyt dashboard.</p>
-        
-        <div style="margin: 30px 0; text-align: center;">
-          <a href="${contentLink}" style="display: inline-block; background-color: #e03eb6; color: white; text-decoration: none; padding: 12px 24px; border-radius: 4px; font-weight: bold;">
-            View Content
-          </a>
-        </div>
-        
-        <p>If you're having trouble with the button above, copy and paste this URL into your browser:</p>
-        <p style="word-break: break-all; color: #666;">${contentLink}</p>
-      </div>
-      
-      <div style="padding: 15px; text-align: center; color: #666; font-size: 12px;">
-        <p>This is an automated message from Ignyt. Please do not reply to this email.</p>
-      </div>
+  const textContent = `
+Hello ${options.name},
+
+${options.brandName} has invited you to join their network on ${APP_NAME} to collaborate on social media content.
+
+${options.customMessage ? options.customMessage + '\n\n' : ''}
+
+To accept this invitation, please click on the link below:
+${inviteUrl}
+
+This invitation will expire in ${expiryDays} days.
+
+If you have any questions, please contact ${options.brandName} directly.
+
+Best regards,
+The ${APP_NAME} Team
+  `;
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    .container {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      color: #333;
+    }
+    .header {
+      background-color: #e03eb6;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      border-radius: 5px 5px 0 0;
+    }
+    .content {
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-top: none;
+      border-radius: 0 0 5px 5px;
+    }
+    .button {
+      display: inline-block;
+      background-color: #e03eb6;
+      color: white;
+      text-decoration: none;
+      padding: 12px 24px;
+      border-radius: 5px;
+      font-weight: bold;
+      margin: 15px 0;
+    }
+    .footer {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #777;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>${APP_NAME} - Partner Invitation</h1>
     </div>
+    <div class="content">
+      <p>Hello ${options.name},</p>
+      
+      <p>${options.brandName} has invited you to join their network on ${APP_NAME} to collaborate on social media content.</p>
+      
+      ${options.customMessage ? `<p>${options.customMessage}</p>` : ''}
+      
+      <div style="text-align: center;">
+        <a href="${inviteUrl}" class="button">Accept Invitation</a>
+      </div>
+      
+      <p>This invitation will expire in ${expiryDays} days.</p>
+      
+      <p>If you have any questions, please contact ${options.brandName} directly.</p>
+      
+      <p>Best regards,<br>The ${APP_NAME} Team</p>
+    </div>
+    <div class="footer">
+      <p>If you did not expect this invitation, you can ignore this email.</p>
+      <p>&copy; ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>
   `;
-  
-  const text = `
-    New content ready for posting from ${brandName}
-    
-    ${brandName} has shared new content for you to post: ${contentTitle}
-    You can view and schedule this content on your Ignyt dashboard.
-    
-    To view the content, visit: ${contentLink}
-    
-    This is an automated message from Ignyt. Please do not reply to this email.
-  `;
-  
+
   return sendEmail({
-    to: email,
-    subject,
-    html,
-    text,
-    from: fromEmail || DEFAULT_FROM_EMAIL
+    to: options.email,
+    subject: `${options.brandName} has invited you to join ${APP_NAME}`,
+    text: textContent,
+    html: htmlContent,
   });
 }

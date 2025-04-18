@@ -1,195 +1,166 @@
 import { Express, Request, Response } from 'express';
-import { z } from 'zod';
+import { v4 as uuidv4 } from 'uuid';
 import { storage } from '../storage';
-import { sendPartnerInvitation } from '../services/email';
-import crypto from 'crypto';
+import { z } from 'zod';
+import { requireAuth, requireBrandOrAdmin } from '../middleware/auth';
+import { sendInviteEmail } from '../services/email';
 
-// Schema for validating invite request
+// Add 7 days to current date for invitation expiry
+const getExpiryDate = () => {
+  const date = new Date();
+  date.setDate(date.getDate() + 7);
+  return date;
+};
+
+// Validation schema for invite creation
 const inviteSchema = z.object({
+  name: z.string().min(2),
   email: z.string().email(),
-  name: z.string().min(1),
   message: z.string().optional(),
-  role: z.enum(['partner']).default('partner')
 });
 
-// Track invitations to prevent duplicate emails
-const pendingInvites = new Map<string, {
+// Interface for invites
+interface Invite {
   token: string;
-  brandId: number;
   email: string;
   name: string;
-  role: string;
+  brandId: number;
   expiresAt: Date;
-}>();
+}
+
+// In-memory store for invites (replace with database storage later)
+const invites = new Map<string, Invite>();
 
 export function setupInviteRoutes(app: Express) {
-  // Generate a shareable invite link with a token
-  const generateInviteLink = (token: string, baseUrl: string): string => {
-    return `${baseUrl}/invite?token=${token}`;
-  };
-
-  // Endpoint to send an invitation to a retail partner
-  app.post('/api/invites', async (req: Request, res: Response) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-
+  // Create a new invitation
+  app.post('/api/invites', requireBrandOrAdmin, async (req: Request, res: Response) => {
     try {
       // Validate request body
-      const inviteData = inviteSchema.parse(req.body);
+      const validatedData = inviteSchema.parse(req.body);
       
-      // Get the brand name for the current user
-      let brandName = req.user.name;
-      if (req.user.role === 'admin') {
-        brandName = 'Ignyt Admin';
-      }
+      // Generate a unique token
+      const token = uuidv4();
       
-      // Generate a unique token for this invitation
-      const token = crypto.randomBytes(32).toString('hex');
-      
-      // Set expiration to 7 days from now
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
-      
-      // Store the invitation details
-      pendingInvites.set(token, {
+      // Create invite object
+      const invite: Invite = {
         token,
-        brandId: req.user.id,
-        email: inviteData.email,
-        name: inviteData.name,
-        role: inviteData.role,
-        expiresAt
-      });
+        email: validatedData.email,
+        name: validatedData.name,
+        brandId: req.user?.brandId || 0,
+        expiresAt: getExpiryDate(),
+      };
       
-      // Generate the base URL based on the request
-      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-      const host = req.headers.host;
-      const baseUrl = `${protocol}://${host}`;
+      // Store the invitation
+      invites.set(token, invite);
       
-      // Generate the invite link
-      const inviteLink = generateInviteLink(token, baseUrl);
-      
-      // Send the invitation email
-      const success = await sendPartnerInvitation(
-        inviteData.email,
-        brandName,
-        inviteLink
-      );
-      
-      if (success) {
-        return res.status(200).json({
-          message: 'Invitation sent successfully',
-          email: inviteData.email,
-          expires: expiresAt,
-          token
+      // Send invitation email
+      try {
+        await sendInviteEmail({
+          email: validatedData.email,
+          name: validatedData.name,
+          token,
+          brandName: req.user?.name || 'Ignyt Brand',
+          customMessage: validatedData.message,
         });
-      } else {
-        return res.status(500).json({
-          message: 'Failed to send invitation email'
+        
+        res.status(201).json({ success: true, token });
+      } catch (emailError: any) {
+        console.error('Failed to send invitation email:', emailError);
+        res.status(500).json({
+          message: 'Invitation created but failed to send email',
+          token,
+          error: emailError.message
         });
       }
-    } catch (error) {
-      console.error('Error sending invitation:', error);
-      
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({
-          message: 'Invalid invitation data',
-          errors: error.errors
-        });
-      }
-      
-      return res.status(500).json({
-        message: 'Failed to process invitation request'
-      });
+    } catch (error: any) {
+      console.error('Error creating invitation:', error);
+      res.status(400).json({ message: 'Invalid invitation data', error: error.message });
     }
   });
   
-  // Endpoint to verify and accept an invitation
+  // Verify an invitation token
   app.get('/api/invites/verify', async (req: Request, res: Response) => {
     const { token } = req.query;
     
     if (!token || typeof token !== 'string') {
-      return res.status(400).json({
-        message: 'Invalid invitation token'
-      });
+      return res.status(400).json({ valid: false, message: 'Invalid token' });
     }
     
-    const invitation = pendingInvites.get(token);
+    const invite = invites.get(token);
     
-    if (!invitation) {
-      return res.status(404).json({
-        message: 'Invitation not found'
-      });
+    if (!invite) {
+      return res.status(404).json({ valid: false, message: 'Invitation not found' });
     }
     
-    // Check if the invitation has expired
-    if (invitation.expiresAt < new Date()) {
-      pendingInvites.delete(token);
-      return res.status(410).json({
-        message: 'Invitation has expired'
-      });
+    // Check if invitation has expired
+    if (new Date() > invite.expiresAt) {
+      return res.status(410).json({ valid: false, message: 'Invitation has expired' });
     }
     
-    // Return invitation details to be used during registration
-    return res.status(200).json({
-      email: invitation.email,
-      name: invitation.name,
-      role: invitation.role,
-      brandId: invitation.brandId,
-      token
-    });
-  });
-  
-  // Endpoint to list all active invitations for the current brand
-  app.get('/api/invites', async (req: Request, res: Response) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-    
-    const brandId = req.user.id;
-    
-    // Filter invitations by the current brand ID and remove expired ones
-    const now = new Date();
-    const invites = Array.from(pendingInvites.values())
-      .filter(invite => invite.brandId === brandId && invite.expiresAt > now)
-      .map(invite => ({
+    res.status(200).json({
+      valid: true,
+      invitation: {
+        brandId: invite.brandId,
         email: invite.email,
         name: invite.name,
-        role: invite.role,
-        expiresAt: invite.expiresAt,
-        token: invite.token
-      }));
-    
-    return res.status(200).json(invites);
+      }
+    });
   });
   
-  // Endpoint to cancel an invitation
-  app.delete('/api/invites/:token', async (req: Request, res: Response) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Unauthorized' });
+  // Get all pending invitations for the current brand
+  app.get('/api/invites', requireBrandOrAdmin, async (req: Request, res: Response) => {
+    try {
+      const brandId = req.user?.brandId;
+      
+      if (!brandId) {
+        return res.status(400).json({ message: 'Brand ID is required' });
+      }
+      
+      // Filter invitations by brandId
+      const brandInvites = Array.from(invites.values())
+        .filter(invite => invite.brandId === brandId)
+        .map(invite => ({
+          token: invite.token,
+          email: invite.email,
+          name: invite.name,
+          expiresAt: invite.expiresAt.toISOString()
+        }));
+      
+      res.status(200).json(brandInvites);
+    } catch (error: any) {
+      console.error('Error fetching invitations:', error);
+      res.status(500).json({ message: 'Failed to fetch invitations', error: error.message });
     }
-    
-    const { token } = req.params;
-    const invitation = pendingInvites.get(token);
-    
-    if (!invitation) {
-      return res.status(404).json({
-        message: 'Invitation not found'
-      });
+  });
+  
+  // Cancel an invitation
+  app.delete('/api/invites/:token', requireBrandOrAdmin, async (req: Request, res: Response) => {
+    try {
+      const { token } = req.params;
+      const brandId = req.user?.brandId;
+      
+      if (!brandId) {
+        return res.status(400).json({ message: 'Brand ID is required' });
+      }
+      
+      const invite = invites.get(token);
+      
+      if (!invite) {
+        return res.status(404).json({ message: 'Invitation not found' });
+      }
+      
+      // Ensure the invite belongs to the current brand
+      if (invite.brandId !== brandId) {
+        return res.status(403).json({ message: 'You do not have permission to cancel this invitation' });
+      }
+      
+      // Remove the invitation
+      invites.delete(token);
+      
+      res.status(200).json({ success: true });
+    } catch (error: any) {
+      console.error('Error cancelling invitation:', error);
+      res.status(500).json({ message: 'Failed to cancel invitation', error: error.message });
     }
-    
-    // Check if the current user has permission to cancel this invitation
-    if (invitation.brandId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({
-        message: 'You do not have permission to cancel this invitation'
-      });
-    }
-    
-    // Remove the invitation
-    pendingInvites.delete(token);
-    
-    return res.status(200).json({
-      message: 'Invitation cancelled successfully'
-    });
   });
 }

@@ -23,29 +23,39 @@ import { MainLayout } from "@/components/layout/main-layout";
 
 function Router() {
   return (
-    <MainLayout>
-      <Switch>
-        {/* Common routes accessible to all authenticated users */}
-        <ProtectedRoute path="/" component={Dashboard} />
-        <ProtectedRoute path="/content-calendar" component={ContentCalendar} />
-        <ProtectedRoute path="/analytics" component={Analytics} />
-        <ProtectedRoute path="/media-library" component={MediaLibrary} />
-        <ProtectedRoute path="/settings" component={Settings} />
-        
-        {/* Brand & Admin only routes */}
-        <BrandRoute path="/retail-partners" component={RetailPartners} />
-        <BrandRoute path="/partner-invites" component={PartnerInvites} />
-        <BrandRoute path="/evergreen-content" component={EvergreenContent} />
-        
-        {/* Admin only routes */}
-        <AdminRoute path="/admin/users" component={Settings} /> {/* Replace with UserManagement when created */}
-        
-        {/* Unauthenticated routes */}
-        <Route path="/auth" component={AuthPage} />
-        <Route path="/test-upload" component={TestUpload} />
-        <Route component={NotFound} />
-      </Switch>
-    </MainLayout>
+    <Switch>
+      {/* Routes outside of MainLayout */}
+      <Route path="/auth" component={AuthPage} />
+      <Route path="/accept-invite" component={AcceptInvite} />
+
+      {/* Routes with MainLayout */}
+      <Route>
+        <MainLayout>
+          <Switch>
+            {/* Common routes accessible to all authenticated users */}
+            <ProtectedRoute path="/" component={Dashboard} />
+            <ProtectedRoute path="/content-calendar" component={ContentCalendar} />
+            <ProtectedRoute path="/analytics" component={Analytics} />
+            <ProtectedRoute path="/media-library" component={MediaLibrary} />
+            <ProtectedRoute path="/settings" component={Settings} />
+            
+            {/* Brand & Admin only routes */}
+            <BrandRoute path="/retail-partners" component={RetailPartners} />
+            <BrandRoute path="/partner-invites" component={PartnerInvites} />
+            <BrandRoute path="/evergreen-content" component={EvergreenContent} />
+            
+            {/* Admin only routes */}
+            <AdminRoute path="/admin/users" component={Settings} /> {/* Replace with UserManagement when created */}
+            
+            {/* Test routes */}
+            <Route path="/test-upload" component={TestUpload} />
+            
+            {/* Not found route */}
+            <Route component={NotFound} />
+          </Switch>
+        </MainLayout>
+      </Route>
+    </Switch>
   );
 }
 

@@ -9,6 +9,7 @@ import { setupUploadRoutes, serveUploads } from "./upload";
 import { setupPartnerRoutes } from "./api/partners";
 import { setupBrandRoutes } from "./api/brands";
 import { setupInviteRoutes } from "./api/invites";
+import { setupTestInviteRoutes } from "./api/test-invites";
 import { z } from "zod";
 import {
   insertRetailPartnerSchema,
@@ -38,6 +39,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up invite routes
   setupInviteRoutes(app);
+  
+  // Set up test invite routes for development
+  setupTestInviteRoutes(app);
   
   // Set up file upload routes
   setupUploadRoutes(app);

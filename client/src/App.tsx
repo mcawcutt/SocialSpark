@@ -11,6 +11,7 @@ import Dashboard from "@/pages/dashboard";
 import ContentCalendar from "@/pages/content-calendar";
 import RetailPartners from "@/pages/retail-partners";
 import PartnerInvites from "@/pages/partner-invites";
+import AcceptInvite from "@/pages/accept-invite";
 import Analytics from "@/pages/analytics";
 import Settings from "@/pages/settings";
 import AuthPage from "@/pages/auth-page";

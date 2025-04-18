@@ -32,6 +32,53 @@ interface Invite {
 const invites = new Map<string, Invite>();
 
 export function setupInviteRoutes(app: Express) {
+  // Accept an invitation
+  app.post('/api/invites/accept', async (req: Request, res: Response) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: 'You must be logged in to accept an invitation' });
+      }
+      
+      const { token } = req.body;
+      
+      if (!token) {
+        return res.status(400).json({ message: 'Invitation token is required' });
+      }
+      
+      const invite = invites.get(token);
+      
+      if (!invite) {
+        return res.status(404).json({ message: 'Invitation not found' });
+      }
+      
+      // Check if invitation has expired
+      if (new Date() > invite.expiresAt) {
+        return res.status(410).json({ message: 'Invitation has expired' });
+      }
+      
+      // Create or update the relationship between brand and partner
+      // For in-memory storage, we'll just verify that the connection is valid
+      // and remove the invitation
+      
+      // In a production system, you would create a relationship in the database
+      // between the brand and the retail partner
+      
+      // Remove the invitation after it's been accepted
+      invites.delete(token);
+      
+      res.status(200).json({ 
+        success: true,
+        message: 'Invitation accepted successfully',
+        brandId: invite.brandId
+      });
+    } catch (error: any) {
+      console.error('Error accepting invitation:', error);
+      res.status(500).json({ 
+        message: 'Failed to accept invitation', 
+        error: error.message 
+      });
+    }
+  });
   // Create a new invitation
   app.post('/api/invites', requireBrandOrAdmin, async (req: Request, res: Response) => {
     try {

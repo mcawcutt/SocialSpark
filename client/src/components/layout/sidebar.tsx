@@ -34,9 +34,9 @@ interface SidebarItemProps {
 function SidebarItem({ icon, label, href, active }: SidebarItemProps) {
   return (
     <Link href={href}>
-      <a
+      <div
         className={cn(
-          "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+          "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors cursor-pointer",
           active 
             ? "bg-accent text-accent-foreground font-medium" 
             : "hover:bg-muted text-muted-foreground hover:text-foreground"
@@ -44,7 +44,7 @@ function SidebarItem({ icon, label, href, active }: SidebarItemProps) {
       >
         <div className="w-5 h-5 shrink-0">{icon}</div>
         <span>{label}</span>
-      </a>
+      </div>
     </Link>
   );
 }

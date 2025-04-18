@@ -96,7 +96,7 @@ export async function sendPartnerInvitation(
     subject,
     html,
     text,
-    from: fromEmail
+    from: fromEmail || DEFAULT_FROM_EMAIL
   });
 }
 
@@ -155,6 +155,6 @@ export async function sendContentNotification(
     subject,
     html,
     text,
-    from: fromEmail
+    from: fromEmail || DEFAULT_FROM_EMAIL
   });
 }

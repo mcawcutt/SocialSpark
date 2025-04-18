@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
   Building,
+  UserPlus,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -204,6 +205,13 @@ export function Sidebar() {
                 label="Retail Partners" 
                 href="/retail-partners" 
                 active={location === '/retail-partners'}
+              />
+              
+              <SidebarItem 
+                icon={<UserPlus />} 
+                label="Partner Invites" 
+                href="/partner-invites" 
+                active={location === '/partner-invites'}
               />
               
               <SidebarItem 

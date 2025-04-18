@@ -10,6 +10,7 @@ import {
 import Dashboard from "@/pages/dashboard";
 import ContentCalendar from "@/pages/content-calendar";
 import RetailPartners from "@/pages/retail-partners";
+import PartnerInvites from "@/pages/partner-invites";
 import Analytics from "@/pages/analytics";
 import Settings from "@/pages/settings";
 import AuthPage from "@/pages/auth-page";
@@ -32,6 +33,7 @@ function Router() {
         
         {/* Brand & Admin only routes */}
         <BrandRoute path="/retail-partners" component={RetailPartners} />
+        <BrandRoute path="/partner-invites" component={PartnerInvites} />
         <BrandRoute path="/evergreen-content" component={EvergreenContent} />
         
         {/* Admin only routes */}

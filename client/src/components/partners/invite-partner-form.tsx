@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
+import * as z from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useMutation } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -15,15 +16,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { DialogFooter } from "@/components/ui/dialog";
-import { Mail, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
-// Validation schema for partner invitation
+// Form validation schema
 const inviteFormSchema = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
-  name: z.string().min(1, { message: "Name is required" }),
   message: z.string().optional(),
 });
 
@@ -35,19 +33,19 @@ interface InvitePartnerFormProps {
 
 export function InvitePartnerForm({ onSuccess }: InvitePartnerFormProps) {
   const { toast } = useToast();
-  const [isSending, setIsSending] = useState(false);
-
-  // Define the form with validation
+  const [customMessage, setCustomMessage] = useState(false);
+  
+  // Form definition
   const form = useForm<InviteFormValues>({
     resolver: zodResolver(inviteFormSchema),
     defaultValues: {
-      email: "",
       name: "",
+      email: "",
       message: "",
     },
   });
-
-  // Create a mutation for sending invitations
+  
+  // Mutation to send invitation
   const inviteMutation = useMutation({
     mutationFn: async (data: InviteFormValues) => {
       const response = await apiRequest("POST", "/api/invites", data);
@@ -56,17 +54,10 @@ export function InvitePartnerForm({ onSuccess }: InvitePartnerFormProps) {
     onSuccess: () => {
       toast({
         title: "Invitation sent",
-        description: "The partner invitation has been sent successfully.",
+        description: "The partner has been invited successfully."
       });
-      
-      // Reset the form
-      form.reset();
-      
-      // Invalidate any related queries
       queryClient.invalidateQueries({ queryKey: ["/api/invites"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/retail-partners"] });
-      
-      // Call the onSuccess callback if provided
+      form.reset();
       if (onSuccess) {
         onSuccess();
       }
@@ -74,94 +65,100 @@ export function InvitePartnerForm({ onSuccess }: InvitePartnerFormProps) {
     onError: (error: Error) => {
       toast({
         title: "Error sending invitation",
-        description: error.message || "There was an error sending the invitation. Please try again.",
+        description: error.message || "There was an error sending the invitation.",
         variant: "destructive",
       });
     },
-    onSettled: () => {
-      setIsSending(false);
-    },
   });
-
-  // Handle form submission
+  
   const onSubmit = async (data: InviteFormValues) => {
-    setIsSending(true);
+    if (!customMessage) {
+      // If user didn't expand the custom message section, don't send an empty message
+      data.message = undefined;
+    }
+    
     inviteMutation.mutate(data);
   };
-
+  
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email address</FormLabel>
-              <FormControl>
-                <Input placeholder="partner@retailstore.com" {...field} />
-              </FormControl>
-              <FormDescription>
-                The email address the invitation will be sent to.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Partner name</FormLabel>
+              <FormLabel>Partner Name</FormLabel>
               <FormControl>
-                <Input placeholder="Retail Store Name" {...field} />
+                <Input placeholder="ABC Retail" {...field} />
               </FormControl>
               <FormDescription>
-                The name of the retail store or partner.
+                Enter the name of the retail partner
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-
+        
         <FormField
           control={form.control}
-          name="message"
+          name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Personal message (optional)</FormLabel>
+              <FormLabel>Email Address</FormLabel>
               <FormControl>
-                <Textarea
-                  placeholder="Add a personal message to the invitation email..."
-                  className="resize-none"
-                  {...field}
-                />
+                <Input placeholder="partner@example.com" type="email" {...field} />
               </FormControl>
               <FormDescription>
-                Add a personal note to the invitation email.
+                The invitation will be sent to this email address
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-
-        <DialogFooter>
-          <Button type="submit" disabled={isSending}>
-            {isSending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Sending...
-              </>
-            ) : (
-              <>
-                <Mail className="mr-2 h-4 w-4" />
-                Send Invitation
-              </>
-            )}
+        
+        {!customMessage && (
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => setCustomMessage(true)}
+            className="w-full mt-2"
+          >
+            Add Custom Message (Optional)
           </Button>
-        </DialogFooter>
+        )}
+        
+        {customMessage && (
+          <FormField
+            control={form.control}
+            name="message"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Custom Message (Optional)</FormLabel>
+                <FormControl>
+                  <textarea 
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="We'd like to invite you to join our branded content network..."
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  Add a personalized message to the invitation email
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+        
+        <div className="flex justify-end pt-4">
+          <Button type="submit" disabled={inviteMutation.isPending}>
+            {inviteMutation.isPending && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            )}
+            Send Invitation
+          </Button>
+        </div>
       </form>
     </Form>
   );

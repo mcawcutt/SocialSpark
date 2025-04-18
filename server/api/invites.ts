@@ -29,7 +29,9 @@ interface Invite {
 }
 
 // In-memory store for invites (replace with database storage later)
-const invites = new Map<string, Invite>();
+// Make it globally accessible for test routes
+global.invites = global.invites || new Map<string, Invite>();
+const invites = global.invites;
 
 export function setupInviteRoutes(app: Express) {
   // Accept an invitation

@@ -9,8 +9,8 @@ if (!process.env.SENDGRID_API_KEY) {
 
 // Common email configurations
 // Using a sender that's verified in your SendGrid account
-// This should be changed to match your verified sender in SendGrid
-const FROM_EMAIL = process.env.SENDGRID_VERIFIED_SENDER || 'test@example.com';
+// Hard-coding the verified sender email for now
+const FROM_EMAIL = 'matt@bluerocket.co.za';
 
 // Log the actual email being used
 console.log('Using sender email address:', FROM_EMAIL);
@@ -31,24 +31,14 @@ export async function sendEmail(options: {
     return { success: true, mock: true, message: 'No API key - email not actually sent' };
   }
   
-  const fromEmail = (process.env.SENDGRID_VERIFIED_SENDER || '').trim();
-  
-  if (!fromEmail || fromEmail === 'test@example.com') {
-    console.log('No valid sender email provided. Would have sent email from:', fromEmail);
-    return { 
-      success: false, 
-      mock: true, 
-      message: 'Invalid or missing sender email. Please provide a valid SENDGRID_VERIFIED_SENDER.'
-    };
-  }
-  
-  console.log('Sending email from:', fromEmail);
+  // Using the hard-coded sender email
+  console.log('Sending email from:', FROM_EMAIL);
   console.log('Sending email to:', options.to);
 
   try {
     const msg = {
       from: {
-        email: fromEmail,
+        email: FROM_EMAIL,
         name: 'Ignyt Platform'
       },
       to: options.to,

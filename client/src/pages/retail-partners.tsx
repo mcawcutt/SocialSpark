@@ -3,7 +3,18 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { RetailPartner } from "@shared/schema";
-import { PlusIcon, Search, UserPlus, MoreHorizontal, Facebook, Instagram, Globe } from "lucide-react";
+import { 
+  PlusIcon, 
+  Search, 
+  UserPlus, 
+  MoreHorizontal, 
+  Facebook, 
+  Instagram, 
+  Globe,
+  Upload,
+  FileText,
+  Loader2
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -264,6 +275,133 @@ export default function RetailPartners() {
       month: 'short',
       day: 'numeric'
     });
+  };
+  
+  // Parse CSV file and create preview data
+  const handleCsvPreview = async (file: File) => {
+    const text = await file.text();
+    const rows = text.split('\n');
+    
+    // Skip header row
+    if (rows.length < 2) {
+      toast({
+        title: "Invalid CSV format",
+        description: "The CSV file must contain a header row and at least one data row",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const header = rows[0].split(',').map(h => h.trim().toLowerCase());
+    const nameIndex = header.indexOf('name');
+    const emailIndex = header.indexOf('email');
+    const phoneIndex = header.indexOf('phone');
+    const addressIndex = header.indexOf('address');
+    const tagsIndex = header.indexOf('tags');
+    
+    if (nameIndex === -1 || emailIndex === -1) {
+      toast({
+        title: "Invalid CSV format",
+        description: "The CSV file must contain 'Name' and 'Email' columns",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const partners = [];
+    
+    // Start from index 1 to skip header
+    for (let i = 1; i < rows.length; i++) {
+      if (!rows[i].trim()) continue; // Skip empty rows
+      
+      // Handle quoted values with commas inside
+      const processRow = (row: string) => {
+        const result = [];
+        let insideQuote = false;
+        let currentValue = '';
+        
+        for (let j = 0; j < row.length; j++) {
+          const char = row[j];
+          
+          if (char === '"') {
+            insideQuote = !insideQuote;
+          } else if (char === ',' && !insideQuote) {
+            result.push(currentValue);
+            currentValue = '';
+          } else {
+            currentValue += char;
+          }
+        }
+        
+        // Add the last value
+        result.push(currentValue);
+        return result;
+      };
+      
+      const values = processRow(rows[i]);
+      
+      // Extract tags if they exist
+      let tags: string[] = [];
+      if (tagsIndex !== -1 && values[tagsIndex]) {
+        const tagString = values[tagsIndex].replace(/"/g, '').trim();
+        tags = tagString.split(',').map(tag => tag.trim()).filter(Boolean);
+      }
+      
+      const partner = {
+        name: values[nameIndex].replace(/"/g, '').trim(),
+        contactEmail: values[emailIndex].replace(/"/g, '').trim(),
+        contactPhone: phoneIndex !== -1 ? values[phoneIndex].replace(/"/g, '').trim() : '',
+        address: addressIndex !== -1 ? values[addressIndex].replace(/"/g, '').trim() : '',
+        status: 'pending',
+        metadata: { tags }
+      };
+      
+      // Validate partner data
+      if (partner.name && partner.contactEmail.includes('@')) {
+        partners.push(partner);
+      }
+    }
+    
+    setPreviewData(partners);
+  };
+  
+  // Create bulk import mutation
+  const bulkImportMutation = useMutation({
+    mutationFn: async (partners: any[]) => {
+      const res = await apiRequest("POST", "/api/retail-partners/bulk", { partners });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ["/api/retail-partners"]});
+      toast({
+        title: "Partners imported",
+        description: `${previewData.length} retail partners have been imported successfully.`,
+      });
+      setIsBulkDialogOpen(false);
+      setCsvFile(null);
+      setPreviewData([]);
+    },
+    onError: (error) => {
+      toast({
+        title: "Import failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Handle bulk import button click
+  const handleBulkImport = async () => {
+    if (previewData.length === 0) return;
+    
+    setIsUploading(true);
+    try {
+      await bulkImportMutation.mutateAsync(previewData);
+    } catch (error) {
+      console.error("Error importing partners:", error);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (

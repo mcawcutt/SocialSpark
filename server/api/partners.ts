@@ -257,4 +257,90 @@ export function setupPartnerRoutes(app: Express) {
       return res.status(500).json({ message: "Server error" });
     }
   });
+  
+  // Bulk import retail partners
+  app.post('/api/retail-partners/bulk', requireBrandOrAdmin, async (req: Request, res: Response) => {
+    try {
+      const { partners } = req.body;
+      
+      if (!Array.isArray(partners) || partners.length === 0) {
+        return res.status(400).json({ message: "Invalid request: partners must be a non-empty array" });
+      }
+      
+      // Get brand ID for brand users (use the first partner's brandId for admin users)
+      let brandId = partners[0].brandId;
+      
+      if (req.user?.role === 'brand') {
+        // Get all brands owned by this user
+        const userBrands = await db.query.brands.findMany({
+          where: eq(brands.ownerId, req.user.id)
+        });
+        
+        if (userBrands.length === 0) {
+          return res.status(403).json({ message: "You don't have any brands" });
+        }
+        
+        // Verify this user owns the brand
+        const userBrandIds = userBrands.map(brand => brand.id);
+        if (!userBrandIds.includes(brandId)) {
+          // If the user provided a brand they don't own, use their first brand
+          brandId = userBrands[0].id;
+        }
+      } else {
+        // For admin users, verify that the brand exists
+        const brand = await db.query.brands.findFirst({
+          where: eq(brands.id, brandId)
+        });
+        
+        if (!brand) {
+          return res.status(404).json({ message: "Brand not found" });
+        }
+      }
+      
+      // Process each partner in the array
+      const createdPartners = [];
+      const errors = [];
+      
+      for (let i = 0; i < partners.length; i++) {
+        const partner = partners[i];
+        
+        // Simple validation for the required fields
+        if (!partner.name || !partner.contactEmail) {
+          errors.push({
+            index: i,
+            partner: partner.name || `Partner at index ${i}`,
+            error: "Missing required fields (name and contactEmail)"
+          });
+          continue;
+        }
+        
+        try {
+          // Create the partner with the correct brand ID
+          const createdPartner = await storage.createRetailPartner({
+            ...partner,
+            brandId: brandId,
+            status: partner.status || 'pending'
+          });
+          
+          createdPartners.push(createdPartner);
+        } catch (error) {
+          errors.push({
+            index: i,
+            partner: partner.name,
+            error: error.message || "Unknown error"
+          });
+        }
+      }
+      
+      return res.status(201).json({
+        success: true,
+        created: createdPartners.length,
+        partners: createdPartners,
+        errors: errors.length > 0 ? errors : undefined
+      });
+    } catch (error) {
+      console.error("Error bulk importing retail partners:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
 }

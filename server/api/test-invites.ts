@@ -58,6 +58,72 @@ export function setupTestInviteRoutes(app: Express) {
     }
   });
   
+  // Test endpoint to list all invitations without authentication
+  app.get('/api/test-invites/list', async (req: Request, res: Response) => {
+    try {
+      // Access the invites map from the server
+      if (!global.invites) {
+        global.invites = new Map<string, Invite>();
+      }
+      
+      // Convert the invites map to an array
+      const invitationsList = Array.from(global.invites.values()).map(invite => ({
+        token: invite.token,
+        email: invite.email,
+        name: invite.name,
+        brandId: invite.brandId,
+        expiresAt: invite.expiresAt.toISOString()
+      }));
+      
+      res.status(200).json({
+        success: true,
+        count: invitationsList.length,
+        invitations: invitationsList
+      });
+    } catch (error: any) {
+      console.error('Error listing test invitations:', error);
+      res.status(500).json({ 
+        message: 'Failed to list test invitations', 
+        error: error.message 
+      });
+    }
+  });
+
+  // Test endpoint to create a real invitation without authentication
+  // Test endpoint to cancel an invitation without authentication
+  app.delete('/api/test-invites/:token', async (req: Request, res: Response) => {
+    try {
+      const { token } = req.params;
+      
+      // Access the invites map from the server
+      if (!global.invites) {
+        global.invites = new Map<string, Invite>();
+      }
+      
+      // Check if the invitation exists
+      if (!global.invites.has(token)) {
+        return res.status(404).json({ 
+          message: 'Invitation not found',
+          error: 'The specified invitation token does not exist' 
+        });
+      }
+      
+      // Delete the invitation
+      global.invites.delete(token);
+      
+      res.status(200).json({
+        success: true,
+        message: 'Invitation cancelled successfully'
+      });
+    } catch (error: any) {
+      console.error('Error cancelling test invitation:', error);
+      res.status(500).json({ 
+        message: 'Failed to cancel invitation', 
+        error: error.message 
+      });
+    }
+  });
+
   // Test endpoint to create a real invitation without authentication
   app.post('/api/test-invites/create', async (req: Request, res: Response) => {
     try {

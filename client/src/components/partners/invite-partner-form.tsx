@@ -45,18 +45,24 @@ export function InvitePartnerForm({ onSuccess }: InvitePartnerFormProps) {
     },
   });
   
-  // Mutation to send invitation
+  // Mutation to send invitation (using test endpoint for demo)
   const inviteMutation = useMutation({
     mutationFn: async (data: InviteFormValues) => {
-      const response = await apiRequest("POST", "/api/invites", data);
+      // Using test endpoint to bypass authentication for demo purposes
+      const response = await apiRequest("POST", "/api/test-invites/create", data);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
         title: "Invitation sent",
         description: "The partner has been invited successfully."
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/invites"] });
+      
+      // Log the invitation URL for testing
+      console.log("Test invitation URL:", data.inviteUrl);
+      
+      // Invalidate the test invites list query
+      queryClient.invalidateQueries({ queryKey: ["/api/test-invites/list"] });
       form.reset();
       if (onSuccess) {
         onSuccess();

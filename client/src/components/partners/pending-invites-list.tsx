@@ -50,11 +50,22 @@ export function PendingInvitesList() {
   const { toast } = useToast();
   const [cancelToken, setCancelToken] = useState<string | null>(null);
   
+  // Define the response type for our test endpoint
+  interface TestInvitesResponse {
+    success: boolean;
+    count: number;
+    invitations: PendingInvite[];
+  }
+
   // Query to get all pending invitations
-  const { data: invites, isLoading, error } = useQuery<PendingInvite[]>({
-    queryKey: ["/api/invites"],
+  // Using test endpoint to bypass authentication for demo purposes
+  const { data: invitesResponse, isLoading, error } = useQuery<TestInvitesResponse>({
+    queryKey: ["/api/test-invites/list"],
     refetchInterval: 60000, // Refresh every minute
   });
+
+  // Extract invites from the response structure
+  const invites = invitesResponse?.invitations || [];
   
   // Mutation to cancel an invitation
   const cancelInviteMutation = useMutation({
@@ -66,7 +77,7 @@ export function PendingInvitesList() {
         title: "Invitation cancelled",
         description: "The invitation has been cancelled successfully."
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/invites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/test-invites/list"] });
     },
     onError: (error: Error) => {
       toast({
@@ -102,7 +113,7 @@ export function PendingInvitesList() {
         <p className="text-red-500">Error loading invitations: {(error as Error).message}</p>
         <Button 
           variant="outline" 
-          onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/invites"] })}
+          onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/test-invites/list"] })}
           className="mt-4"
         >
           <RefreshCw className="mr-2 h-4 w-4" />

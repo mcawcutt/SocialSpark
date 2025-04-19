@@ -21,6 +21,8 @@ export function setupPartnerRoutes(app: Express) {
   // Get all retail partners for the brand
   app.get('/api/retail-partners', requireBrandOrAdmin, async (req: Request, res: Response) => {
     try {
+      console.log("Getting retail partners for user:", req.user?.id, "Role:", req.user?.role);
+      
       // For brand users, only show their own partners
       if (req.user?.role === 'brand') {
         // Get all brands owned by this user
@@ -31,12 +33,17 @@ export function setupPartnerRoutes(app: Express) {
         const brandIds = userBrands.map(brand => brand.id);
         
         if (brandIds.length === 0) {
-          return res.json([]);
+          console.log("No brands found for user. Using demo brandId: 1");
+          // Special case for demo mode - just use brand ID 1
+          const partners = await storage.getRetailPartnersByBrandId(1);
+          console.log(`Found ${partners.length} partners for demo brand 1`);
+          return res.json(partners);
         }
         
         // Get all partners for all brands owned by this user
         // This is simplified - in production you would use an "in" clause
         const partners = await storage.getRetailPartnersByBrandId(brandIds[0]);
+        console.log(`Found ${partners.length} partners for brand ${brandIds[0]}`);
         return res.json(partners);
       }
       
@@ -45,14 +52,24 @@ export function setupPartnerRoutes(app: Express) {
       
       if (brandId) {
         const partners = await storage.getRetailPartnersByBrandId(brandId);
+        console.log(`Found ${partners.length} partners for brand ${brandId}`);
         return res.json(partners);
       } else {
         // For admins without a filter, return all partners (potentially paginated in a real app)
         // This is simplified - you would implement pagination in production
-        const allPartners = await db.query.retailPartners.findMany({
-          limit: 100
-        });
-        return res.json(allPartners);
+        try {
+          const allPartners = await db.query.retailPartners.findMany({
+            limit: 100
+          });
+          console.log(`Found ${allPartners.length} partners in database`);
+          return res.json(allPartners);
+        } catch (dbError) {
+          console.error("Error querying database for partners:", dbError);
+          // Fallback to in-memory partners
+          const memPartners = await storage.getRetailPartnersByBrandId(1);
+          console.log(`Falling back to in-memory partners. Found ${memPartners.length} partners.`);
+          return res.json(memPartners);
+        }
       }
     } catch (error) {
       console.error("Error fetching retail partners:", error);

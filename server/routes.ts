@@ -59,6 +59,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       timestamp: new Date().toISOString()
     });
   });
+  
+  // Special demo login endpoint for testing purposes
+  app.post("/api/demo-login", (req, res) => {
+    // This is only for development and testing
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(403).json({ message: "Demo login not available in production" });
+    }
+    
+    console.log("Processing demo login request");
+    
+    // In demo mode, log in as the demo user
+    req.login({
+      id: 1,
+      username: "demo",
+      password: "password", // This is just for the session object, not security sensitive
+      name: req.body.name || "Acme Brands",
+      email: "demo@example.com",
+      role: "brand",
+      brandId: 1,
+      planType: "premium",
+      logo: req.body.logo || null,
+      parentId: null,
+      createdAt: new Date()
+    }, (err) => {
+      if (err) {
+        console.error("Demo login failed:", err);
+        return res.status(500).json({ message: "Demo login failed", error: err.message });
+      }
+      
+      console.log(`Demo login successful for: ${req.user?.name}`);
+      return res.json({ success: true, user: req.user });
+    });
+  });
 
   // Check authentication middleware
   const requireAuth = (req: any, res: any, next: any) => {

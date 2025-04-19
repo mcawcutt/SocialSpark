@@ -117,8 +117,27 @@ export function setupAuth(app: Express) {
 
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
-    const user = await storage.getUser(id);
-    done(null, user);
+    try {
+      const user = await storage.getUser(id);
+      if (!user) {
+        return done(null, false);
+      }
+      
+      // For brand users, set the brandId as their own id for convenience
+      if (user.role === 'brand') {
+        const userWithBrandId = {
+          ...user,
+          brandId: user.id // Set brandId to their own id for brand users
+        };
+        return done(null, userWithBrandId);
+      }
+      
+      // Return the user as-is for other roles
+      done(null, user);
+    } catch (error) {
+      console.error("Error deserializing user:", error);
+      done(error, null);
+    }
   });
 
   app.post("/api/register", async (req, res, next) => {

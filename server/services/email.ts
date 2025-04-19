@@ -11,6 +11,9 @@ if (!process.env.SENDGRID_API_KEY) {
 // Using a sender that's verified in your SendGrid account
 // This should be changed to match your verified sender in SendGrid
 const FROM_EMAIL = process.env.SENDGRID_VERIFIED_SENDER || 'test@example.com';
+
+// Log the actual email being used
+console.log('Using sender email address:', FROM_EMAIL);
 const APP_NAME = 'Ignyt';
 const APP_URL = process.env.NODE_ENV === 'production' 
   ? 'https://app.ignyt.com' 
@@ -25,24 +28,53 @@ export async function sendEmail(options: {
 }) {
   if (!process.env.SENDGRID_API_KEY) {
     console.log('SendGrid API key not set. Would have sent email:', options);
-    return { success: true, mock: true };
+    return { success: true, mock: true, message: 'No API key - email not actually sent' };
   }
+  
+  const fromEmail = (process.env.SENDGRID_VERIFIED_SENDER || '').trim();
+  
+  if (!fromEmail || fromEmail === 'test@example.com') {
+    console.log('No valid sender email provided. Would have sent email from:', fromEmail);
+    return { 
+      success: false, 
+      mock: true, 
+      message: 'Invalid or missing sender email. Please provide a valid SENDGRID_VERIFIED_SENDER.'
+    };
+  }
+  
+  console.log('Sending email from:', fromEmail);
+  console.log('Sending email to:', options.to);
 
   try {
-    await sgMail.send({
-      from: FROM_EMAIL,
+    const msg = {
+      from: {
+        email: fromEmail,
+        name: 'Ignyt Platform'
+      },
       to: options.to,
       subject: options.subject,
       text: options.text,
       html: options.html as string,
-    });
-    return { success: true };
+    };
+    
+    console.log('Email message prepared:', msg);
+    
+    await sgMail.send(msg);
+    console.log('Email sent successfully');
+    return { success: true, message: 'Email sent successfully' };
   } catch (error: any) {
     console.error('Error sending email:', error);
     if (error.response) {
       console.error('SendGrid API error:', error.response.body);
     }
-    throw error;
+    
+    // Return error information instead of throwing
+    return { 
+      success: false, 
+      error: error.message,
+      details: error.response?.body || {},
+      message: 'Failed to send email'
+    };
   }
 }
 

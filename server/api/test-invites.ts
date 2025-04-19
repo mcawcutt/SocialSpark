@@ -171,6 +171,7 @@ export function setupTestInviteRoutes(app: Express) {
       
       // Send the invitation email using SendGrid
       try {
+        // Send the invitation email
         const emailResult = await sendInviteEmail({
           email,
           name,
@@ -181,13 +182,27 @@ export function setupTestInviteRoutes(app: Express) {
         
         console.log('Email sending result:', emailResult);
         
-        res.status(201).json({ 
-          success: true, 
-          token,
-          inviteUrl,
-          emailSent: emailResult.success,
-          message: "Test invitation created successfully. An email has been sent to the recipient."
-        });
+        if (emailResult.success) {
+          // Email was sent successfully
+          res.status(201).json({ 
+            success: true, 
+            token,
+            inviteUrl,
+            emailSent: true,
+            message: "Test invitation created successfully. An email has been sent to the recipient."
+          });
+        } else {
+          // Email sending failed but we still created the invitation
+          res.status(201).json({ 
+            success: true, 
+            token,
+            inviteUrl,
+            emailSent: false,
+            emailError: emailResult.message || 'Unknown error sending email',
+            message: "Test invitation created successfully, but failed to send the email. You can still use the invitation URL below to test the flow.",
+            details: emailResult.details || {}
+          });
+        }
       } catch (emailError: any) {
         console.error('Failed to send invitation email:', emailError);
         
@@ -197,8 +212,8 @@ export function setupTestInviteRoutes(app: Express) {
           token,
           inviteUrl,
           emailSent: false,
-          emailError: emailError.message,
-          message: "Test invitation created successfully, but failed to send the email. Use this URL to test the invitation flow."
+          emailError: emailError.message || 'Unknown error sending email',
+          message: "Test invitation created successfully, but failed to send the email. You can still use the invitation URL below to test the flow."
         });
       }
     } catch (error: any) {

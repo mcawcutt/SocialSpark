@@ -53,10 +53,43 @@ export function InvitePartnerForm({ onSuccess }: InvitePartnerFormProps) {
       return response.json();
     },
     onSuccess: (data) => {
-      toast({
-        title: "Invitation sent",
-        description: "The partner has been invited successfully."
-      });
+      if (data.emailSent) {
+        // If email was sent successfully
+        toast({
+          title: "Invitation sent",
+          description: "The partner has been invited successfully and an email has been sent."
+        });
+      } else {
+        // If there was an error sending the email
+        toast({
+          title: "Invitation created",
+          description: "The invitation was created, but the email could not be sent. You can use the URL below for testing.",
+          variant: "destructive",
+          duration: 10000 // Show the toast longer
+        });
+        
+        // Display the invitation URL in a toast for easy access
+        toast({
+          title: "Invitation URL (Copy this)",
+          description: data.inviteUrl,
+          duration: 15000,
+          action: (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                navigator.clipboard.writeText(data.inviteUrl);
+                toast({
+                  title: "URL copied",
+                  description: "The invitation URL has been copied to your clipboard."
+                });
+              }}
+            >
+              Copy URL
+            </Button>
+          ),
+        });
+      }
       
       // Log the invitation URL for testing
       console.log("Test invitation URL:", data.inviteUrl);

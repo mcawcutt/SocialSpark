@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload Test Page</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      color: #e03eb6;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .test-section {
+      margin-bottom: 30px;
+    }
+    button {
+      background-color: #e03eb6;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background-color: #c03399;
+    }
+    .result {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 4px;
+      min-height: 100px;
+      background-color: #f5f5f5;
+      white-space: pre-wrap;
+    }
+    input[type="file"] {
+      margin: 10px 0;
+    }
+    .status-success {
+      color: green;
+      font-weight: bold;
+    }
+    .status-error {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>IGNYT Upload Testing Tool</h1>
+  
+  <div class="card test-section">
+    <h2>1. Authentication Test</h2>
+    <button id="checkAuth">Check Authentication</button>
+    <button id="demoLogin">Demo Login</button>
+    <div id="authResult" class="result"></div>
+  </div>
+  
+  <div class="card test-section">
+    <h2>2. File Upload</h2>
+    <p>Select a file to upload:</p>
+    <input type="file" id="fileInput">
+    <div>
+      <button id="uploadNormal">Upload (Normal)</button>
+      <button id="uploadDemo">Upload (Demo Mode)</button>
+    </div>
+    <div id="uploadResult" class="result"></div>
+  </div>
+  
+  <div class="card test-section">
+    <h2>3. Profile Update</h2>
+    <div>
+      <label for="profileName">Name:</label>
+      <input type="text" id="profileName" value="Test Brand">
+    </div>
+    <div>
+      <label for="profileLogo">Logo URL:</label>
+      <input type="text" id="profileLogo" placeholder="Logo URL will appear here after upload">
+    </div>
+    <button id="updateProfile">Update Profile</button>
+    <div id="profileResult" class="result"></div>
+  </div>
+
+  <script>
+    // Auth tests
+    document.getElementById('checkAuth').addEventListener('click', async () => {
+      const result = document.getElementById('authResult');
+      try {
+        const response = await fetch('/api/debug');
+        const data = await response.json();
+        result.innerHTML = JSON.stringify(data, null, 2);
+        result.className = response.ok ? 'result status-success' : 'result status-error';
+      } catch (error) {
+        result.innerHTML = `Error: ${error.message}`;
+        result.className = 'result status-error';
+      }
+    });
+
+    document.getElementById('demoLogin').addEventListener('click', async () => {
+      const result = document.getElementById('authResult');
+      try {
+        const response = await fetch('/api/demo-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: 'Test Brand' })
+        });
+        const data = await response.json();
+        result.innerHTML = JSON.stringify(data, null, 2);
+        result.className = response.ok ? 'result status-success' : 'result status-error';
+      } catch (error) {
+        result.innerHTML = `Error: ${error.message}`;
+        result.className = 'result status-error';
+      }
+    });
+
+    // Upload tests
+    document.getElementById('uploadNormal').addEventListener('click', async () => {
+      await uploadFile(false);
+    });
+
+    document.getElementById('uploadDemo').addEventListener('click', async () => {
+      await uploadFile(true);
+    });
+
+    async function uploadFile(demoMode) {
+      const fileInput = document.getElementById('fileInput');
+      const result = document.getElementById('uploadResult');
+      
+      if (!fileInput.files || fileInput.files.length === 0) {
+        result.innerHTML = 'Please select a file first';
+        result.className = 'result status-error';
+        return;
+      }
+      
+      const formData = new FormData();
+      formData.append('media', fileInput.files[0]);
+      
+      try {
+        const url = demoMode ? '/api/upload?demo=true' : '/api/upload';
+        const response = await fetch(url, {
+          method: 'POST',
+          body: formData
+        });
+        
+        const data = await response.json();
+        result.innerHTML = JSON.stringify(data, null, 2);
+        result.className = response.ok ? 'result status-success' : 'result status-error';
+        
+        if (response.ok && data.file && data.file.url) {
+          document.getElementById('profileLogo').value = data.file.url;
+        }
+      } catch (error) {
+        result.innerHTML = `Error: ${error.message}`;
+        result.className = 'result status-error';
+      }
+    }
+
+    // Profile update test
+    document.getElementById('updateProfile').addEventListener('click', async () => {
+      const name = document.getElementById('profileName').value;
+      const logo = document.getElementById('profileLogo').value;
+      const result = document.getElementById('profileResult');
+      
+      try {
+        const response = await fetch('/api/update-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            name, 
+            logo,
+            demo: true // Always use demo mode for this test
+          })
+        });
+        
+        const data = await response.json();
+        result.innerHTML = JSON.stringify(data, null, 2);
+        result.className = response.ok ? 'result status-success' : 'result status-error';
+      } catch (error) {
+        result.innerHTML = `Error: ${error.message}`;
+        result.className = 'result status-error';
+      }
+    });
+  </script>
+</body>
+</html>

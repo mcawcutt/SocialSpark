@@ -22,6 +22,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve static assets from the attached_assets directory
   app.use("/assets", express.static(path.join(process.cwd(), "attached_assets")));
   
+  // Serve the upload test page (only in development)
+  if (process.env.NODE_ENV === 'development') {
+    app.get("/test-upload", (req, res) => {
+      res.sendFile(path.join(process.cwd(), "upload-test.html"));
+    });
+  }
+  
   // Set up authentication routes
   setupAuth(app);
   

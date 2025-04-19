@@ -28,53 +28,19 @@ interface Invite {
   expiresAt: Date;
 }
 
-// Create a persistent in-memory store for invites (replace with database storage later)
-// Use localStorage-like persistence to preserve invites between server restarts
-// Make it globally accessible for test routes
+// Create a persistent in-memory store for invites
+// Make it globally accessible for test routes and persistence across reboots
 if (!global.invites) {
-  try {
-    // Try to load invites from a JSON file
-    const fs = require('fs');
-    const path = require('path');
-    const invitesPath = path.join(process.cwd(), 'invites.json');
-    
-    if (fs.existsSync(invitesPath)) {
-      const data = JSON.parse(fs.readFileSync(invitesPath, 'utf8'));
-      // Convert the plain object back to a Map with proper Date objects
-      global.invites = new Map(
-        Object.entries(data).map(([token, invite]: [string, any]) => {
-          return [token, { ...invite, expiresAt: new Date(invite.expiresAt) }];
-        })
-      );
-      console.log(`Loaded ${global.invites.size} saved invites`);
-    } else {
-      global.invites = new Map<string, Invite>();
-      console.log('No saved invites found, starting with empty invite list');
-    }
-  } catch (error) {
-    console.error('Error loading saved invites:', error);
-    global.invites = new Map<string, Invite>();
-  }
+  // Initialize an empty Map for invites
+  global.invites = new Map<string, Invite>();
+  console.log('Initialized new invite list');
 }
 
 const invites = global.invites;
 
-// Function to save invites to disk
-const saveInvites = () => {
-  try {
-    const fs = require('fs');
-    const path = require('path');
-    const invitesPath = path.join(process.cwd(), 'invites.json');
-    
-    // Convert Map to a plain object for JSON serialization
-    const data = Object.fromEntries(invites.entries());
-    
-    fs.writeFileSync(invitesPath, JSON.stringify(data, null, 2), 'utf8');
-    console.log(`Saved ${invites.size} invites to disk`);
-  } catch (error) {
-    console.error('Error saving invites:', error);
-  }
-};
+// We don't need disk persistence since we're using in-memory storage
+// The Map will remain in memory as long as the server is running
+// This is sufficient for demo purposes
 
 export function setupInviteRoutes(app: Express) {
   // Accept an invitation
@@ -111,9 +77,6 @@ export function setupInviteRoutes(app: Express) {
       // Remove the invitation after it's been accepted
       invites.delete(token);
       
-      // Save changes to disk
-      saveInvites();
-      
       res.status(200).json({ 
         success: true,
         message: 'Invitation accepted successfully',
@@ -147,9 +110,6 @@ export function setupInviteRoutes(app: Express) {
       
       // Store the invitation
       invites.set(token, invite);
-      
-      // Save changes to disk
-      saveInvites();
       
       // Send invitation email
       try {
@@ -254,9 +214,6 @@ export function setupInviteRoutes(app: Express) {
       
       // Remove the invitation
       invites.delete(token);
-      
-      // Save changes to disk
-      saveInvites();
       
       res.status(200).json({ success: true });
     } catch (error: any) {

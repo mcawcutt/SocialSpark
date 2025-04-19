@@ -88,7 +88,7 @@ function useUserQuery() {
   // Use the demo user data if the main query fails and we're in the preview pane
   return {
     ...userQuery,
-    data: userQuery.data || demoUserQuery.data,
+    data: userQuery.data || demoUserQuery.data || null,
   };
 }
 

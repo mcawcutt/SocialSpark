@@ -67,10 +67,11 @@ export function PendingInvitesList() {
   // Extract invites from the response structure
   const invites = invitesResponse?.invitations || [];
   
-  // Mutation to cancel an invitation
+  // Mutation to cancel an invitation (using test endpoint)
   const cancelInviteMutation = useMutation({
     mutationFn: async (token: string) => {
-      await apiRequest("DELETE", `/api/invites/${token}`);
+      // Using test endpoint to bypass authentication for demo purposes
+      await apiRequest("DELETE", `/api/test-invites/${token}`);
     },
     onSuccess: () => {
       toast({

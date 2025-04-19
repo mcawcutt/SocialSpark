@@ -8,7 +8,9 @@ if (!process.env.SENDGRID_API_KEY) {
 }
 
 // Common email configurations
-const FROM_EMAIL = 'noreply@ignyt.com';
+// Using a sender that's verified in your SendGrid account
+// This should be changed to match your verified sender in SendGrid
+const FROM_EMAIL = process.env.SENDGRID_VERIFIED_SENDER || 'test@example.com';
 const APP_NAME = 'Ignyt';
 const APP_URL = process.env.NODE_ENV === 'production' 
   ? 'https://app.ignyt.com' 

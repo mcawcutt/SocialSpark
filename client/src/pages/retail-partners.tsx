@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { RetailPartner } from "@shared/schema";
+import * as XLSX from 'xlsx';
 import { 
   PlusIcon, 
   Search, 
@@ -390,14 +391,14 @@ export default function RetailPartners() {
   const parseExcelFile = async (file: File): Promise<any[]> => {
     // Use xlsx library to read the Excel file
     const data = await file.arrayBuffer();
-    const workbook = window.XLSX.read(data, { type: 'array' });
+    const workbook = XLSX.read(data, { type: 'array' });
     
     // Get the first sheet
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     
     // Convert to JSON
-    const rows = window.XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
     
     if (rows.length < 2) {
       throw new Error("The Excel file must contain a header row and at least one data row");
@@ -519,7 +520,7 @@ export default function RetailPartners() {
                   <DialogHeader>
                     <DialogTitle>Bulk Import Retail Partners</DialogTitle>
                     <DialogDescription>
-                      Upload a CSV file with retail partner information to add multiple partners at once.
+                      Upload a CSV or Excel (.xlsx) file with retail partner information to add multiple partners at once.
                     </DialogDescription>
                   </DialogHeader>
                   
@@ -600,33 +601,55 @@ export default function RetailPartners() {
                         <>
                           <Upload className="mx-auto h-12 w-12 text-gray-400" />
                           <h3 className="mt-2 text-sm font-medium text-gray-900">
-                            {isDragging ? "Drop your file here" : "Upload a CSV file"}
+                            {isDragging ? "Drop your file here" : "Upload a CSV or Excel file"}
                           </h3>
                           <p className="mt-1 text-xs text-gray-500">
                             Drag and drop or click to browse
                           </p>
                           <p className="mt-2 text-xs text-gray-400">
-                            CSV format: name, email, phone, address, tags (comma-separated)
+                            Required columns: name, email (optional: phone, address, tags)
                           </p>
-                          <a
-                            href="#"
-                            className="mt-2 text-xs text-primary font-medium inline-block"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              const csvContent = "Name,Email,Phone,Address,Tags\nExample Store,store@example.com,555-123-4567,\"123 Main St, City, State\",\"retail,downtown,example\"";
-                              const blob = new Blob([csvContent], { type: 'text/csv' });
-                              const url = window.URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = 'partner_import_template.csv';
-                              document.body.appendChild(a);
-                              a.click();
-                              window.URL.revokeObjectURL(url);
-                              document.body.removeChild(a);
-                            }}
-                          >
-                            Download template
-                          </a>
+                          <div className="mt-2 flex flex-col xs:flex-row justify-center gap-2 text-xs">
+                            <a
+                              href="#"
+                              className="text-primary font-medium inline-block"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                const csvContent = "Name,Email,Phone,Address,Tags\nExample Store,store@example.com,555-123-4567,\"123 Main St, City, State\",\"retail,downtown,example\"";
+                                const blob = new Blob([csvContent], { type: 'text/csv' });
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = 'partner_import_template.csv';
+                                document.body.appendChild(a);
+                                a.click();
+                                window.URL.revokeObjectURL(url);
+                                document.body.removeChild(a);
+                              }}
+                            >
+                              Download CSV template
+                            </a>
+                            <a
+                              href="#"
+                              className="text-primary font-medium inline-block"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                // Create a workbook with a worksheet
+                                const wb = XLSX.utils.book_new();
+                                const wsData = [
+                                  ['Name', 'Email', 'Phone', 'Address', 'Tags'],
+                                  ['Example Store', 'store@example.com', '555-123-4567', '123 Main St, City, State', 'retail,downtown,example']
+                                ];
+                                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                                XLSX.utils.book_append_sheet(wb, ws, 'Partners');
+                                
+                                // Generate Excel file and trigger download
+                                XLSX.writeFile(wb, 'partner_import_template.xlsx');
+                              }}
+                            >
+                              Download Excel template
+                            </a>
+                          </div>
                         </>
                       )}
                     </div>

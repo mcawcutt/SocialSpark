@@ -2,6 +2,7 @@ import { Express, Request, Response } from 'express';
 
 // Simple endpoint to generate a test invitation link
 import { v4 as uuidv4 } from 'uuid';
+import { sendInviteEmail } from '../services/email';
 
 // Interface for invites (imported from invites.ts)
 interface Invite {
@@ -168,12 +169,38 @@ export function setupTestInviteRoutes(app: Express) {
       
       const inviteUrl = `${baseUrl}/accept-invite?token=${encodeURIComponent(token)}`;
       
-      res.status(201).json({ 
-        success: true, 
-        token,
-        inviteUrl,
-        message: "Test invitation created successfully. Use this URL to test the invitation flow."
-      });
+      // Send the invitation email using SendGrid
+      try {
+        const emailResult = await sendInviteEmail({
+          email,
+          name,
+          token,
+          brandName: 'Acme Brands',  // Hard-coded for test endpoint
+          customMessage: req.body.message
+        });
+        
+        console.log('Email sending result:', emailResult);
+        
+        res.status(201).json({ 
+          success: true, 
+          token,
+          inviteUrl,
+          emailSent: emailResult.success,
+          message: "Test invitation created successfully. An email has been sent to the recipient."
+        });
+      } catch (emailError: any) {
+        console.error('Failed to send invitation email:', emailError);
+        
+        // Still return success since the invitation was created, but note email failure
+        res.status(201).json({ 
+          success: true, 
+          token,
+          inviteUrl,
+          emailSent: false,
+          emailError: emailError.message,
+          message: "Test invitation created successfully, but failed to send the email. Use this URL to test the invitation flow."
+        });
+      }
     } catch (error: any) {
       console.error('Error creating test invitation:', error);
       res.status(500).json({ 

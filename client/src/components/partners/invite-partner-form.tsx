@@ -23,6 +23,7 @@ const inviteFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
   message: z.string().optional(),
+  brandId: z.number().optional().default(1), // Default to 1 for demo purposes
 });
 
 type InviteFormValues = z.infer<typeof inviteFormSchema>;
@@ -42,6 +43,7 @@ export function InvitePartnerForm({ onSuccess }: InvitePartnerFormProps) {
       name: "",
       email: "",
       message: "",
+      brandId: 1, // Default brandId for demo purposes
     },
   });
   

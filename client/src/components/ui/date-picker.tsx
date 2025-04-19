@@ -40,6 +40,12 @@ export function DatePicker({ date, setDate, disabled }: DatePickerProps) {
           selected={date}
           onSelect={setDate}
           initialFocus
+          disabled={(date) => {
+            // Disable dates in the past (before today)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Set to beginning of day for comparison
+            return date < today;
+          }}
         />
       </PopoverContent>
     </Popover>

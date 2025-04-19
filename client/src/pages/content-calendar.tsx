@@ -142,7 +142,40 @@ export default function ContentCalendar() {
   const handleDayClick = (day: number) => {
     const clickedDate = new Date(currentYear, currentMonth, day);
     setSelectedDate(clickedDate);
-    setIsNewPostDialogOpen(true);
+    
+    // Don't allow scheduling in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (clickedDate < today) {
+      toast({
+        title: "Cannot schedule in the past",
+        description: "Please select today or a future date for scheduling posts.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Check if there are posts on this day
+    const postsOnSelectedDay = getPostsForDay(day);
+    
+    if (postsOnSelectedDay.length > 0) {
+      // If there's only one post, open it directly in edit mode
+      if (postsOnSelectedDay.length === 1) {
+        setEditingPost(postsOnSelectedDay[0]);
+      } else {
+        // If there are multiple posts, show a message with their count
+        // and let the user click on individual posts from the calendar
+        toast({
+          title: `${postsOnSelectedDay.length} posts scheduled on ${clickedDate ? format(clickedDate, 'MMMM d, yyyy') : 'selected date'}`,
+          description: "Click on a specific post to edit it, or click 'Create Post' to add a new one for this date.",
+          duration: 5000
+        });
+      }
+    } else {
+      // No posts on this day, open the create new post dialog
+      setIsNewPostDialogOpen(true);
+    }
   };
   
   // Close the new post dialog

@@ -107,6 +107,7 @@ export default function ContentCalendar() {
   // Find posts for a specific day
   const getPostsForDay = (day: number) => {
     return currentMonthPosts.filter((post: ContentPost) => {
+      if (!post.scheduledDate) return false;
       const postDate = new Date(post.scheduledDate);
       return postDate.getDate() === day;
     });

@@ -92,7 +92,7 @@ export class MemStorage implements IStorage {
   private analyticsIdCounter: number;
   private mediaIdCounter: number;
   
-  sessionStore: ReturnType<typeof createMemoryStore>;
+  sessionStore: session.Store;
 
   constructor() {
     this.users = new Map();
@@ -115,18 +115,16 @@ export class MemStorage implements IStorage {
       checkPeriod: 86400000, // prune expired entries every 24h
     });
     
-    // Seed a demo user
-    this.createUser({
-      username: "demo",
-      password: "password", // Will be hashed by our auth.ts hashPassword function
-      name: "Acme Brands",
-      email: "demo@example.com",
-      role: "brand",
-      planType: "premium"
-    });
-    
-    // Seed some demo data
-    this.seedDemoData();
+    // Initialize data with proper error handling
+    this.initializeData();
+  }
+  
+  // Initialize data with proper error handling
+  private initializeData() {
+    // Run async initialization in the background
+    this.createOrPreserveDemoUser()
+      .then(() => this.seedDemoDataIfNeeded())
+      .catch(err => console.error("Error initializing data:", err));
   }
 
   // User operations
@@ -592,6 +590,40 @@ export class MemStorage implements IStorage {
         return tags.some(tag => item.tags!.includes(tag));
       }
     );
+  }
+
+  // Helper method to create or preserve an existing demo user
+  private async createOrPreserveDemoUser() {
+    // Check if the demo user already exists
+    const existingDemoUser = await this.getUserByUsername("demo");
+    
+    if (!existingDemoUser) {
+      // Create the demo user if it doesn't exist
+      console.log("Creating new demo user...");
+      this.createUser({
+        username: "demo",
+        password: "password", // Will be hashed by our auth.ts hashPassword function
+        name: "Acme Brands",
+        email: "demo@example.com",
+        role: "brand",
+        planType: "premium"
+      });
+    } else {
+      console.log(`Demo user already exists with name: ${existingDemoUser.name}`);
+    }
+  }
+  
+  // Only seed demo data if there are no existing partners
+  private async seedDemoDataIfNeeded() {
+    // Check if we already have retail partners
+    const existingPartners = Array.from(this.retailPartners.values());
+    
+    if (existingPartners.length === 0) {
+      console.log("No existing partners found, seeding demo data...");
+      this.seedDemoData();
+    } else {
+      console.log(`Found ${existingPartners.length} existing partners, skipping demo data seeding.`);
+    }
   }
 
   // Seed demo data for testing

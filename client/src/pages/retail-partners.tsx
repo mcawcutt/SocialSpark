@@ -61,13 +61,25 @@ const editPartnerSchema = z.object({
 type NewPartnerFormValues = z.infer<typeof newPartnerSchema>;
 type EditPartnerFormValues = z.infer<typeof editPartnerSchema>;
 
+// Define schema for CSV import
+const csvImportSchema = z.object({
+  file: z.instanceof(File, { message: "A CSV file is required" })
+});
+
+type CSVImportFormValues = z.infer<typeof csvImportSchema>;
+
 export default function RetailPartners() {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState<RetailPartner | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [isDragging, setIsDragging] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [previewData, setPreviewData] = useState<any[]>([]);
 
   // Fetch retail partners
   const { data: partners, isLoading } = useQuery({
@@ -276,6 +288,184 @@ export default function RetailPartners() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
+              <Dialog open={isBulkDialogOpen} onOpenChange={setIsBulkDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="flex items-center" variant="outline">
+                    <Upload className="mr-2 h-4 w-4" />
+                    Bulk Import
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-[600px]">
+                  <DialogHeader>
+                    <DialogTitle>Bulk Import Retail Partners</DialogTitle>
+                    <DialogDescription>
+                      Upload a CSV file with retail partner information to add multiple partners at once.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="flex flex-col gap-4 py-4">
+                    <div 
+                      className={`relative border-2 border-dashed rounded-lg p-8 transition-colors text-center ${
+                        isDragging ? 'border-primary bg-primary/10' : 'border-gray-300'
+                      }`}
+                      onDragEnter={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsDragging(true);
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsDragging(true);
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsDragging(false);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsDragging(false);
+                        
+                        const file = e.dataTransfer.files[0];
+                        if (file && (file.type === 'text/csv' || file.name.endsWith('.csv'))) {
+                          setCsvFile(file);
+                          handleCsvPreview(file);
+                        } else {
+                          toast({
+                            title: "Invalid file format",
+                            description: "Please upload a CSV file",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                    >
+                      <input
+                        type="file"
+                        id="csv-upload"
+                        accept=".csv"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setCsvFile(file);
+                            handleCsvPreview(file);
+                          }
+                        }}
+                      />
+                      
+                      {csvFile ? (
+                        <div className="text-center">
+                          <div className="flex items-center justify-center mb-2">
+                            <FileText className="h-10 w-10 text-primary" />
+                          </div>
+                          <p className="text-lg font-medium">{csvFile.name}</p>
+                          <p className="text-sm text-gray-500">{Math.round(csvFile.size / 1024)} KB</p>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setCsvFile(null);
+                              setPreviewData([]);
+                            }}
+                            className="mt-2"
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                          <h3 className="mt-2 text-sm font-medium text-gray-900">
+                            {isDragging ? "Drop your file here" : "Upload a CSV file"}
+                          </h3>
+                          <p className="mt-1 text-xs text-gray-500">
+                            Drag and drop or click to browse
+                          </p>
+                          <p className="mt-2 text-xs text-gray-400">
+                            CSV format: name, email, phone, address, tags (comma-separated)
+                          </p>
+                          <a
+                            href="#"
+                            className="mt-2 text-xs text-primary font-medium inline-block"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              const csvContent = "Name,Email,Phone,Address,Tags\nExample Store,store@example.com,555-123-4567,\"123 Main St, City, State\",\"retail,downtown,example\"";
+                              const blob = new Blob([csvContent], { type: 'text/csv' });
+                              const url = window.URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = 'partner_import_template.csv';
+                              document.body.appendChild(a);
+                              a.click();
+                              window.URL.revokeObjectURL(url);
+                              document.body.removeChild(a);
+                            }}
+                          >
+                            Download template
+                          </a>
+                        </>
+                      )}
+                    </div>
+                    
+                    {previewData.length > 0 && (
+                      <div className="mt-4">
+                        <h3 className="font-medium text-sm mb-2">Preview ({previewData.length} partners)</h3>
+                        <div className="border rounded-md overflow-auto max-h-[200px]">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {previewData.slice(0, 5).map((row, index) => (
+                                <tr key={index}>
+                                  <td className="px-3 py-2 text-xs">{row.name || '-'}</td>
+                                  <td className="px-3 py-2 text-xs">{row.contactEmail || '-'}</td>
+                                  <td className="px-3 py-2 text-xs">{row.contactPhone || '-'}</td>
+                                </tr>
+                              ))}
+                              {previewData.length > 5 && (
+                                <tr>
+                                  <td colSpan={3} className="px-3 py-2 text-xs text-center text-gray-500">
+                                    ...and {previewData.length - 5} more
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex justify-end space-x-2 mt-2">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setIsBulkDialogOpen(false);
+                          setCsvFile(null);
+                          setPreviewData([]);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        className="bg-[#e03eb6] hover:bg-[#e03eb6]/90 border-[#e03eb6]"
+                        disabled={!csvFile || isUploading || previewData.length === 0}
+                        onClick={handleBulkImport}
+                      >
+                        {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Import {previewData.length} Partners
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="flex items-center bg-[#e03eb6] hover:bg-[#e03eb6]/90 border-[#e03eb6] text-white">

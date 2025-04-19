@@ -95,7 +95,7 @@ export default function RetailPartners() {
 
   // Fetch retail partners
   const { data: partners, isLoading } = useQuery({
-    queryKey: ["/api/retail-partners"],
+    queryKey: ["/api/demo/retail-partners"],
   });
 
   // Create a new retail partner
@@ -455,7 +455,7 @@ export default function RetailPartners() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: ["/api/retail-partners"]});
+      queryClient.invalidateQueries({queryKey: ["/api/demo/retail-partners"]});
       toast({
         title: "Partners imported",
         description: `${previewData.length} retail partners have been imported successfully.`,

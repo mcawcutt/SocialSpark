@@ -122,6 +122,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(partners);
   });
 
+  // Special demo route to view retail partners without authentication
+  app.get("/api/demo/retail-partners", async (req, res) => {
+    try {
+      console.log("Demo route: Getting retail partners for brand ID 1");
+      const partners = await storage.getRetailPartnersByBrandId(1);
+      console.log(`Found ${partners.length} partners for demo brand 1`);
+      return res.json(partners);
+    } catch (error) {
+      console.error("Error fetching demo retail partners:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   // Special route for demo mode bulk import - no authentication required
   app.post("/api/demo/retail-partners/bulk", async (req, res) => {
     try {

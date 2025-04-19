@@ -122,6 +122,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(partners);
   });
 
+  // Special route for demo mode bulk import - no authentication required
+  app.post("/api/demo/retail-partners/bulk", async (req, res) => {
+    try {
+      console.log("Demo bulk import request received");
+      const { partners } = req.body;
+      
+      if (!Array.isArray(partners) || partners.length === 0) {
+        return res.status(400).json({ message: "Invalid request: partners must be a non-empty array" });
+      }
+      
+      // Use brand ID 1 for demo mode
+      const brandId = 1;
+      
+      // Process each partner in the array
+      const createdPartners = [];
+      const errors = [];
+      
+      for (let i = 0; i < partners.length; i++) {
+        const partner = partners[i];
+        
+        // Simple validation for the required fields
+        if (!partner.name || !partner.contactEmail) {
+          errors.push({
+            index: i,
+            partner: partner.name || `Partner at index ${i}`,
+            error: "Missing required fields (name and contactEmail)"
+          });
+          continue;
+        }
+        
+        try {
+          console.log(`Creating demo partner ${i+1}/${partners.length}: ${partner.name}`);
+          // Create the partner with the demo brand ID
+          const createdPartner = await storage.createRetailPartner({
+            ...partner,
+            brandId: brandId,
+            status: partner.status || 'pending'
+          });
+          
+          createdPartners.push(createdPartner);
+        } catch (error) {
+          console.error(`Error creating demo partner ${partner.name}:`, error);
+          errors.push({
+            index: i,
+            partner: partner.name,
+            error: error.message || "Unknown error"
+          });
+        }
+      }
+      
+      const response = {
+        success: true,
+        created: createdPartners.length,
+        partners: createdPartners,
+        errors: errors.length > 0 ? errors : undefined
+      };
+      
+      console.log(`Demo bulk import completed. Created: ${createdPartners.length}, Errors: ${errors.length}`);
+      
+      // Ensure we're sending JSON content type
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(201).json(response);
+    } catch (error) {
+      console.error("Error in demo bulk import:", error);
+      // Ensure we're sending JSON content type even on error
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(500).json({ message: "Server error", error: error.message });
+    }
+  });
+
   app.post("/api/retail-partners", requireAuth, async (req, res) => {
     try {
       const data = insertRetailPartnerSchema.parse({

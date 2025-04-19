@@ -451,7 +451,7 @@ export default function RetailPartners() {
   // Create bulk import mutation
   const bulkImportMutation = useMutation({
     mutationFn: async (partners: any[]) => {
-      const res = await apiRequest("POST", "/api/retail-partners/bulk", { partners });
+      const res = await apiRequest("POST", "/api/demo/retail-partners/bulk", { partners });
       return res.json();
     },
     onSuccess: () => {

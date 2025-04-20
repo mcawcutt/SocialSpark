@@ -728,14 +728,21 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                         
                         <MediaSelector 
                           onSelect={(mediaItem) => {
-                            console.log('Media selected from library:', mediaItem.name);
-                            // Set both the preview and the form value with options to trigger validation
-                            setImagePreview(mediaItem.fileUrl);
+                            console.log('Media selected from library:', mediaItem.name, mediaItem.fileUrl);
+                            
+                            // First, update the form value
                             form.setValue('imageUrl', mediaItem.fileUrl, {
                               shouldDirty: true,
                               shouldTouch: true,
                               shouldValidate: true
                             });
+                            
+                            // Then update the preview state
+                            setImagePreview(mediaItem.fileUrl);
+                            
+                            // Add additional confirmation for debug
+                            console.log('Media selection complete - Preview:', mediaItem.fileUrl);
+                            console.log('Media selection complete - Form value:', form.getValues('imageUrl'));
                           }}
                         />
                         

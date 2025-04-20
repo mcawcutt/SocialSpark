@@ -64,17 +64,23 @@ export function MediaSelector({ onSelect, triggerText = "Choose from Media Libra
   };
 
   const handleSelectMedia = (item: MediaLibraryItem) => {
-    console.log('MediaSelector: selecting item:', item.name); 
+    console.log('MediaSelector: selecting item:', item.name, item.fileUrl); 
     
     // Immediately call onSelect with the media item and close dialog
     try {
-      // Call the parent's onSelect function
-      onSelect(item);
+      // Close dialog first to ensure no state conflicts
       setIsOpen(false);
-      toast({
-        title: "Media selected",
-        description: `"${item.name}" has been selected and attached to this post.`,
-      });
+      
+      // Short delay to ensure the dialog closing doesn't interfere with the callback
+      setTimeout(() => {
+        // Then call the parent's onSelect function
+        onSelect(item);
+        
+        toast({
+          title: "Media selected",
+          description: `"${item.name}" has been selected and attached to this post.`,
+        });
+      }, 50);
     } catch (error) {
       console.error('Error in handleSelectMedia:', error);
       toast({

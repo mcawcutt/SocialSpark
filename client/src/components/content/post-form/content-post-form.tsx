@@ -452,15 +452,20 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
       
       console.log('✅ Upload successful, setting form value:', fileUrl);
       
-      // VERY explicitly set the form value first using setValue to ensure the value is updated
-      form.setValue('imageUrl', fileUrl, { 
-        shouldDirty: true,
-        shouldTouch: true,
-        shouldValidate: true 
-      });
-      
-      // Update the preview with the actual URL from the server
-      setImagePreview(fileUrl);
+      // Use a small timeout to make sure the state updates correctly
+      setTimeout(() => {
+        // VERY explicitly set the form value first using setValue to ensure the value is updated
+        form.setValue('imageUrl', fileUrl, { 
+          shouldDirty: true,
+          shouldTouch: true,
+          shouldValidate: true 
+        });
+        
+        // Update the preview with the actual URL from the server
+        setImagePreview(fileUrl);
+        
+        console.log('File upload complete and form updated with real URL:', fileUrl);
+      }, 100);
       
       // Success toast
       toast({

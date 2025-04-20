@@ -129,9 +129,10 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
   
   console.log('Using scheduledDate:', schedDate);
 
-  // Form setup
+  // Enhanced Form setup with better validation mode and handling
   const form = useForm<ContentPostFormValues>({
     resolver: zodResolver(contentPostSchema),
+    mode: "onChange", // Enable validation as values change
     defaultValues: {
       title: initialData?.title || "",
       description: initialData?.description || "",

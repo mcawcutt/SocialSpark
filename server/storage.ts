@@ -628,36 +628,143 @@ export class MemStorage implements IStorage {
 
   // Seed demo data for testing
   private seedDemoData() {
-    // Create retail partners
+    // Create retail partners with metadata including tags
     const partners = [
-      { name: "Riverside Cycles", status: "active", contactEmail: "contact@riversidecycles.com", connectionDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) },
-      { name: "Outdoor Supply Co.", status: "active", contactEmail: "info@outdoorsupply.com", connectionDate: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000) },
-      { name: "Gear Shop Seattle", status: "active", contactEmail: "hello@gearshopseattle.com", connectionDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
-      { name: "Mountain View Sports", status: "pending", contactEmail: "sales@mountainviewsports.com" },
-      { name: "Urban Bikes & Gear", status: "pending", contactEmail: "support@urbanbikes.com" },
-      { name: "Lakeside Outfitters", status: "pending", contactEmail: "team@lakesideoutfitters.com" },
-      { name: "Adventure World", status: "needs_attention", contactEmail: "contact@adventureworld.com" },
-      { name: "Trail Blazers", status: "needs_attention", contactEmail: "help@trailblazers.com" },
-      { name: "Vintage Cycles", status: "inactive", contactEmail: "info@vintagecycles.com" },
+      { 
+        name: "Riverside Cycles", 
+        status: "active", 
+        contactEmail: "contact@riversidecycles.com", 
+        connectionDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+        metadata: { tags: ["Outdoor", "Bikes", "Urban"] }
+      },
+      { 
+        name: "Outdoor Supply Co.", 
+        status: "active", 
+        contactEmail: "info@outdoorsupply.com", 
+        connectionDate: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
+        metadata: { tags: ["Outdoor", "Camping", "Hiking"] }
+      },
+      { 
+        name: "Gear Shop Seattle", 
+        status: "active", 
+        contactEmail: "hello@gearshopseattle.com", 
+        connectionDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+        metadata: { tags: ["Urban", "Gear", "Premium"] }
+      },
+      { 
+        name: "Mountain View Sports", 
+        status: "pending", 
+        contactEmail: "sales@mountainviewsports.com",
+        metadata: { tags: ["Mountain", "Sports", "Local"] }
+      },
+      { 
+        name: "Urban Bikes & Gear", 
+        status: "pending", 
+        contactEmail: "support@urbanbikes.com",
+        metadata: { tags: ["Urban", "Bikes", "Commuting"] }
+      },
+      { 
+        name: "Lakeside Outfitters", 
+        status: "pending", 
+        contactEmail: "team@lakesideoutfitters.com",
+        metadata: { tags: ["Lake", "Fishing", "Outdoor"] }
+      },
+      { 
+        name: "Adventure World", 
+        status: "needs_attention", 
+        contactEmail: "contact@adventureworld.com",
+        metadata: { tags: ["Adventure", "Sports", "Family"] }
+      },
+      { 
+        name: "Trail Blazers", 
+        status: "needs_attention", 
+        contactEmail: "help@trailblazers.com",
+        metadata: { tags: ["Hiking", "Trails", "Outdoor"] }
+      },
+      { 
+        name: "Vintage Cycles", 
+        status: "inactive", 
+        contactEmail: "info@vintagecycles.com",
+        metadata: { tags: ["Vintage", "Classic", "Bikes"] }
+      },
       // New partners
-      { name: "Mountain Peak Gear", status: "active", contactEmail: "info@mountainpeakgear.com", connectionDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) },
-      { name: "City Cycles", status: "active", contactEmail: "support@citycycles.com", connectionDate: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000) },
-      { name: "Outdoor Adventures", status: "active", contactEmail: "contact@outdooradventures.com", connectionDate: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000) },
-      { name: "Trail Supply Co.", status: "active", contactEmail: "hello@trailsupply.com", connectionDate: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000) },
-      { name: "River Run Outfitters", status: "active", contactEmail: "sales@riverrun.com", connectionDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) },
-      { name: "Summit Gear", status: "pending", contactEmail: "info@summitgear.com" },
-      { name: "Valley Bikes", status: "pending", contactEmail: "help@valleybikes.com" },
-      { name: "Forest Trail Shop", status: "needs_attention", contactEmail: "service@foresttrail.com" },
-      { name: "Lake City Sports", status: "inactive", contactEmail: "support@lakecitysports.com" },
-      { name: "Downtown Cycles", status: "inactive", contactEmail: "info@downtowncycles.com" }
+      { 
+        name: "Mountain Peak Gear", 
+        status: "active", 
+        contactEmail: "info@mountainpeakgear.com", 
+        connectionDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+        metadata: { tags: ["Mountain", "Climbing", "Premium"] }
+      },
+      { 
+        name: "City Cycles", 
+        status: "active", 
+        contactEmail: "support@citycycles.com", 
+        connectionDate: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000),
+        metadata: { tags: ["Urban", "City", "Bikes"] }
+      },
+      { 
+        name: "Outdoor Adventures", 
+        status: "active", 
+        contactEmail: "contact@outdooradventures.com", 
+        connectionDate: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000),
+        metadata: { tags: ["Outdoor", "Adventures", "Tours"] }
+      },
+      { 
+        name: "Trail Supply Co.", 
+        status: "active", 
+        contactEmail: "hello@trailsupply.com", 
+        connectionDate: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000),
+        metadata: { tags: ["Hiking", "Trails", "Equipment"] }
+      },
+      { 
+        name: "River Run Outfitters", 
+        status: "active", 
+        contactEmail: "sales@riverrun.com", 
+        connectionDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+        metadata: { tags: ["River", "Kayaking", "Gear"] }
+      },
+      { 
+        name: "Summit Gear", 
+        status: "pending", 
+        contactEmail: "info@summitgear.com",
+        metadata: { tags: ["Mountain", "Summit", "Climbing"] }
+      },
+      { 
+        name: "Valley Bikes", 
+        status: "pending", 
+        contactEmail: "help@valleybikes.com",
+        metadata: { tags: ["Valley", "Bikes", "Local"] }
+      },
+      { 
+        name: "Forest Trail Shop", 
+        status: "needs_attention", 
+        contactEmail: "service@foresttrail.com",
+        metadata: { tags: ["Forest", "Hiking", "Camping"] }
+      },
+      { 
+        name: "Lake City Sports", 
+        status: "inactive", 
+        contactEmail: "support@lakecitysports.com",
+        metadata: { tags: ["Lake", "Sports", "Seasonal"] }
+      },
+      { 
+        name: "Downtown Cycles", 
+        status: "inactive", 
+        contactEmail: "info@downtowncycles.com",
+        metadata: { tags: ["Urban", "Downtown", "Bikes"] }
+      }
     ];
     
+    // Explicitly create each partner with metadata correctly preserved
     partners.forEach(partner => {
+      const { metadata, ...partnerData } = partner;
+      
       this.createRetailPartner({
-        ...partner,
+        ...partnerData,
         brandId: 1,
         contactPhone: "555-123-4567",
-        address: "123 Main St, Anytown, USA"
+        address: "123 Main St, Anytown, USA",
+        metadata: metadata
       });
     });
     

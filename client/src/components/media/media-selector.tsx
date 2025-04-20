@@ -64,11 +64,12 @@ export function MediaSelector({ onSelect, triggerText = "Choose from Media Libra
   };
 
   const handleSelectMedia = (item: MediaLibraryItem) => {
+    // Immediately call onSelect with the media item
     onSelect(item);
     setIsOpen(false);
     toast({
       title: "Media selected",
-      description: `"${item.name}" has been selected.`,
+      description: `"${item.name}" has been selected and attached to this post.`,
     });
   };
 

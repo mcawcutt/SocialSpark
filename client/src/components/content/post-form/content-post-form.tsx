@@ -271,11 +271,126 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
     return null;
   };
 
-  // Completely simple handleFileChange - straightforward and direct
+  // Media validation based on platform requirements
+  const validateMediaFile = (file: File, platforms: string[]): { valid: boolean; error?: string } => {
+    // Convert file size to MB for easier comparison
+    const fileSizeMB = file.size / 1024 / 1024;
+    
+    // Check if Facebook or Instagram are selected platforms
+    const needsFacebookValidation = platforms.includes('facebook');
+    const needsInstagramValidation = platforms.includes('instagram');
+    
+    // Common file type validation
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+    
+    if (!isImage && !isVideo) {
+      return { 
+        valid: false, 
+        error: "Only image and video files are supported."
+      };
+    }
+    
+    // Facebook requirements
+    if (needsFacebookValidation) {
+      // Images: JPG, PNG (up to 8MB)
+      // Videos: MP4, MOV (up to 4GB, 240min)
+      if (isImage) {
+        const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        if (!validImageTypes.includes(file.type)) {
+          return { 
+            valid: false, 
+            error: "Facebook requires JPG or PNG images." 
+          };
+        }
+        
+        if (fileSizeMB > 8) {
+          return { 
+            valid: false, 
+            error: "Facebook images must be under 8MB." 
+          };
+        }
+      }
+      
+      if (isVideo) {
+        const validVideoTypes = ['video/mp4', 'video/quicktime']; // quicktime = .mov
+        if (!validVideoTypes.includes(file.type)) {
+          return { 
+            valid: false, 
+            error: "Facebook requires MP4 or MOV video formats." 
+          };
+        }
+        
+        if (fileSizeMB > 4000) { // 4GB max
+          return { 
+            valid: false, 
+            error: "Facebook videos must be under 4GB." 
+          };
+        }
+      }
+    }
+    
+    // Instagram requirements
+    if (needsInstagramValidation) {
+      // Images: JPG, PNG (aspect ratio between 4:5 and 1.91:1, up to 30MB)
+      // Videos: MP4 (up to 100MB, 60sec)
+      if (isImage) {
+        const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        if (!validImageTypes.includes(file.type)) {
+          return { 
+            valid: false, 
+            error: "Instagram requires JPG or PNG images." 
+          };
+        }
+        
+        if (fileSizeMB > 30) {
+          return { 
+            valid: false, 
+            error: "Instagram images must be under 30MB." 
+          };
+        }
+      }
+      
+      if (isVideo) {
+        if (file.type !== 'video/mp4') {
+          return { 
+            valid: false, 
+            error: "Instagram only supports MP4 video format." 
+          };
+        }
+        
+        if (fileSizeMB > 100) {
+          return { 
+            valid: false, 
+            error: "Instagram videos must be under 100MB." 
+          };
+        }
+      }
+    }
+    
+    return { valid: true };
+  };
+
+  // Enhanced handleFileChange with validation
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
     
     const file = e.target.files[0];
+    const platforms = form.getValues("platforms") || ["facebook", "instagram"];
+    
+    // Validate the file against platform requirements
+    const validation = validateMediaFile(file, platforms);
+    
+    if (!validation.valid) {
+      toast({
+        title: "Invalid media file",
+        description: validation.error,
+        variant: "destructive",
+      });
+      // Clear input value so the same file can be selected again
+      e.target.value = '';
+      return;
+    }
     
     // Show a local preview immediately 
     const localPreviewUrl = URL.createObjectURL(file);
@@ -309,7 +424,7 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
       // Success toast
       toast({
         title: "Upload successful",
-        description: "Your media has been uploaded.",
+        description: "Your media has been uploaded and attached to this post.",
       });
     } catch (error) {
       console.error('❌ Upload error:', error);
@@ -548,8 +663,9 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                         
                         <MediaSelector 
                           onSelect={(mediaItem) => {
+                            // Directly set both the form value and preview
                             setImagePreview(mediaItem.fileUrl);
-                            field.onChange(mediaItem.fileUrl);
+                            form.setValue('imageUrl', mediaItem.fileUrl);
                           }}
                         />
                         
@@ -560,7 +676,8 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                             size="sm"
                             onClick={() => {
                               setImagePreview(null);
-                              field.onChange("");
+                              setSelectedFile(null);
+                              form.setValue('imageUrl', '');
                             }}
                           >
                             Remove

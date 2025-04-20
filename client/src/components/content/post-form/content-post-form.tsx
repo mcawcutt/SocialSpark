@@ -371,12 +371,14 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
     return { valid: true };
   };
 
-  // Enhanced handleFileChange with validation
+  // Completely refactored handleFileChange with explicit value setting
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
     
     const file = e.target.files[0];
     const platforms = form.getValues("platforms") || ["facebook", "instagram"];
+    
+    console.log('File selected:', file.name);
     
     // Validate the file against platform requirements
     const validation = validateMediaFile(file, platforms);
@@ -405,6 +407,8 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
       const formData = new FormData();
       formData.append('media', file);
       
+      console.log('Uploading file...');
+      
       // Direct fetch with minimal complexity
       const response = await fetch('/api/upload', {
         method: 'POST',
@@ -414,12 +418,19 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
       if (!response.ok) throw new Error(`Upload failed: ${response.status}`);
       
       const result = await response.json();
+      const fileUrl = result.file.url;
       
-      // Very explicitly set the form value first, then update the preview
-      form.setValue('imageUrl', result.file.url);
+      console.log('✅ Upload successful, setting form value:', fileUrl);
       
-      // Log success
-      console.log('✅ Upload successful:', result.file.url);
+      // VERY explicitly set the form value first using setValue to ensure the value is updated
+      form.setValue('imageUrl', fileUrl, { 
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true 
+      });
+      
+      // Update the preview with the actual URL from the server
+      setImagePreview(fileUrl);
       
       // Success toast
       toast({
@@ -433,6 +444,10 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
         description: error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
       });
+      
+      // Clear the preview on error
+      setImagePreview(null);
+      setSelectedFile(null);
     } finally {
       setUploadingImage(false);
       // Clear input 
@@ -451,10 +466,11 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
 
   // Removed AI content generation functionality
 
-  // Form submission handler
+  // Enhanced form submission handler
   const onSubmit = async (data: ContentPostFormValues) => {
-    // If there's a selected file but no imageUrl, it means the upload might not have completed
-    // We should block submission until upload is complete
+    console.log('Form submitting with data:', data);
+    
+    // If there's a selected file but upload is in progress, block submission
     if (uploadingImage) {
       toast({
         title: "Upload in progress",
@@ -464,11 +480,30 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
       return;
     }
     
-    // Make sure we have the most up-to-date imageUrl from the uploaded file
+    // Final validation for image/media
     if (imagePreview && !data.imageUrl) {
+      // Image preview exists but form value doesn't - fix this inconsistency
+      console.log('Setting imageUrl from preview as last resort');
       data.imageUrl = imagePreview;
     }
     
+    // Validate that we have an image if platforms requires it
+    if (!data.imageUrl && (data.platforms.includes('instagram') || data.platforms.includes('facebook'))) {
+      toast({
+        title: "Media required",
+        description: "Posts for Instagram and Facebook require an image or video",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    console.log('Final form data being submitted:', {
+      ...data,
+      hasImage: !!data.imageUrl,
+      imageUrl: data.imageUrl ? 'Present' : 'Missing'
+    });
+    
+    // Submit form data based on whether we're creating or updating
     if (initialData && initialData.id) {
       updatePostMutation.mutate(data);
     } else {
@@ -663,9 +698,14 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                         
                         <MediaSelector 
                           onSelect={(mediaItem) => {
-                            // Directly set both the form value and preview
+                            console.log('Media selected from library:', mediaItem.name);
+                            // Set both the preview and the form value with options to trigger validation
                             setImagePreview(mediaItem.fileUrl);
-                            form.setValue('imageUrl', mediaItem.fileUrl);
+                            form.setValue('imageUrl', mediaItem.fileUrl, {
+                              shouldDirty: true,
+                              shouldTouch: true,
+                              shouldValidate: true
+                            });
                           }}
                         />
                         
@@ -675,9 +715,15 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                             variant="ghost"
                             size="sm"
                             onClick={() => {
+                              console.log('Clearing media...');
+                              // Clear everything related to media
                               setImagePreview(null);
                               setSelectedFile(null);
-                              form.setValue('imageUrl', '');
+                              form.setValue('imageUrl', '', {
+                                shouldDirty: true,
+                                shouldTouch: true,
+                                shouldValidate: true
+                              });
                             }}
                           >
                             Remove

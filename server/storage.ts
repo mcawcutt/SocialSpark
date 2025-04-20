@@ -634,21 +634,21 @@ export class MemStorage implements IStorage {
       {
         name: "Outdoor Adventure Photo",
         description: "A beautiful landscape image for outdoor brands",
-        fileUrl: "/attached_assets/image_1744731251867.png", 
+        fileUrl: "/uploads/demo-outdoor.png", 
         fileType: "image/png",
         tags: ["Outdoor", "Hiking", "Landscape"]
       },
       {
         name: "Mountain Biking Promo",
         description: "Perfect for cycling related posts",
-        fileUrl: "/attached_assets/image_1744731657291.png",
+        fileUrl: "/uploads/demo-biking.png",
         fileType: "image/png",
         tags: ["Biking", "Outdoor", "Action"]
       },
       {
         name: "Brand Logo",
         description: "Company logo for branded posts",
-        fileUrl: "/attached_assets/IGNYT_Logo Black Web.png",
+        fileUrl: "/uploads/demo-logo.png",
         fileType: "image/png",
         tags: ["Logo", "Branding", "Official"]
       }

@@ -29,10 +29,24 @@ export function MediaSelector({ onSelect, triggerText = "Choose from Media Libra
   const { toast } = useToast();
 
   // Using the demo endpoint to get media items without authentication
-  const { data: mediaItems, isLoading } = useQuery<MediaLibraryItem[]>({
+  const { data: mediaItems, isLoading, error } = useQuery<MediaLibraryItem[]>({
     queryKey: ["/api/demo/media"],
     enabled: isOpen, // Only fetch when the dialog is open
   });
+  
+  // Debug logging
+  useEffect(() => {
+    if (isOpen) {
+      console.log('MediaSelector dialog opened, fetching media items');
+      if (mediaItems) {
+        console.log(`MediaSelector: Received ${mediaItems.length} media items`);
+        console.log('First media item:', mediaItems[0]);
+      }
+      if (error) {
+        console.error('MediaSelector: Error fetching media:', error);
+      }
+    }
+  }, [isOpen, mediaItems, error]);
 
   // Reset selected item when dialog closes
   useEffect(() => {

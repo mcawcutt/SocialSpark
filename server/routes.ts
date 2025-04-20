@@ -57,6 +57,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   serveUploads(app);
 
   // Debug endpoint to check if server is running correctly
+  // Backup endpoint
+  app.post("/api/backup", requireBrandOrAdmin, async (req, res) => {
+    try {
+      const backupDir = await createBackup();
+      res.json({ 
+        success: true, 
+        message: "Backup created successfully",
+        location: backupDir
+      });
+    } catch (error) {
+      console.error("Backup failed:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Backup failed",
+        error: error.message 
+      });
+    }
+  });
+
   app.get("/api/debug", (req, res) => {
     res.json({ 
       message: "Debug endpoint reached", 

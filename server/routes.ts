@@ -134,6 +134,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Server error" });
     }
   });
+  
+  // Get all unique tags for retail partners (for tag suggestions)
+  app.get("/api/demo/retail-partners/tags", async (req, res) => {
+    try {
+      console.log("Demo route: Getting all tags for retail partners");
+      const partners = await storage.getRetailPartnersByBrandId(1);
+      
+      // Extract tags from all partners
+      const allTags = new Set<string>();
+      partners.forEach(partner => {
+        if (partner.metadata && partner.metadata.tags && Array.isArray(partner.metadata.tags)) {
+          partner.metadata.tags.forEach(tag => {
+            if (tag && typeof tag === 'string') {
+              allTags.add(tag);
+            }
+          });
+        }
+      });
+      
+      const uniqueTags = Array.from(allTags).sort();
+      console.log(`Found ${uniqueTags.length} unique tags`);
+      
+      return res.json(uniqueTags);
+    } catch (error) {
+      console.error("Error fetching retail partner tags:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
 
   // Special route for demo mode bulk import - no authentication required
   app.post("/api/demo/retail-partners/bulk", async (req, res) => {

@@ -161,24 +161,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Special demo route to update a retail partner
   app.patch("/api/demo/retail-partners/:id", async (req, res) => {
     try {
+      // Validate that id is a number
       const partnerId = parseInt(req.params.id);
+      if (isNaN(partnerId)) {
+        console.error(`Invalid partner ID: ${req.params.id}`);
+        return res.status(400).json({ message: "Invalid partner ID" });
+      }
+      
+      console.log(`Demo route: Fetching partner with ID ${partnerId}`);
       const partner = await storage.getRetailPartner(partnerId);
       
       if (!partner) {
+        console.error(`Partner not found with ID: ${partnerId}`);
         return res.status(404).json({ message: "Partner not found" });
       }
       
       // Only allow updating partners from demo brand (ID 1)
       if (partner.brandId !== 1) {
+        console.error(`Forbidden access: Partner ${partnerId} is not from demo brand`);
         return res.status(403).json({ message: "Forbidden" });
       }
       
-      console.log(`Demo route: Updating partner with ID ${partnerId}`);
-      const updatedPartner = await storage.updateRetailPartner(partnerId, req.body);
-      return res.json(updatedPartner);
+      // Log the incoming body for debugging
+      console.log(`Demo route: Updating partner with ID ${partnerId}`, JSON.stringify(req.body));
+      
+      // Ensure partner ID is preserved
+      const dataToUpdate = { ...req.body, id: partnerId };
+      
+      const updatedPartner = await storage.updateRetailPartner(partnerId, dataToUpdate);
+      
+      // Log successful update
+      console.log(`Successfully updated partner ${partnerId}`);
+      
+      // Make sure we're sending a valid JSON response
+      return res.status(200).json({
+        success: true,
+        message: "Partner updated successfully",
+        partner: updatedPartner
+      });
     } catch (error) {
       console.error("Error updating demo retail partner:", error);
-      return res.status(500).json({ message: "Server error" });
+      return res.status(500).json({ 
+        success: false,
+        message: "Server error", 
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
   

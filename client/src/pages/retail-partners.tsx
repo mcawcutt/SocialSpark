@@ -279,18 +279,38 @@ export default function RetailPartners() {
   // Handle edit partner form submission
   const onEditSubmit = (data: EditPartnerFormValues) => {
     if (selectedPartner) {
-      // Preserve existing metadata and update tags
-      const updatedData = {
-        ...data,
-        metadata: {
-          ...selectedPartner.metadata,
+      try {
+        // Prepare the metadata separately
+        const metadata = {
+          ...((selectedPartner.metadata || {}) as object), // Cast to object to avoid TypeScript errors
           tags: data.tags || []
-        }
-      };
-      updatePartnerMutation.mutate({ 
-        id: selectedPartner.id, 
-        data: updatedData
-      });
+        };
+        
+        // Ensure we're sending a clean object with expected properties
+        const updatedData = {
+          name: data.name,
+          contactEmail: data.contactEmail,
+          contactPhone: data.contactPhone || "",
+          address: data.address || "",
+          status: data.status,
+          footerTemplate: data.footerTemplate || "",
+          metadata
+        };
+        
+        console.log("Submitting updated partner data:", updatedData);
+        
+        updatePartnerMutation.mutate({ 
+          id: selectedPartner.id, 
+          data: updatedData
+        });
+      } catch (err) {
+        console.error("Error preparing data for submission:", err);
+        toast({
+          title: "Submission Error",
+          description: "There was a problem preparing your data for submission.",
+          variant: "destructive"
+        });
+      }
     }
   };
 

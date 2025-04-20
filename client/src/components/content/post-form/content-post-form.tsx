@@ -58,9 +58,9 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
 
-  // Fetch retail partners
+  // Fetch retail partners (using demo endpoint since we're in demo mode)
   const { data: partners } = useQuery<RetailPartner[]>({
-    queryKey: ['/api/retail-partners'],
+    queryKey: ['/api/demo/retail-partners'],
     enabled: isOpen && !isEvergreen
   });
 
@@ -373,16 +373,33 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
   const selectedDistributionMethod = form.watch("partnerDistribution");
   
   const targetedPartners = useMemo(() => {
-    if (!partners || partners.length === 0 || selectedDistributionMethod === "all") {
+    if (!partners || partners.length === 0) {
+      console.log('No partners available for matching');
       return [];
     }
     
+    if (selectedDistributionMethod === "all") {
+      console.log('Distribution method is "all", returning all partners');
+      return partners;
+    }
+    
     console.log('Calculating targeted partners for tags:', selectedPartnerTags);
+    console.log('Available partners for matching:', partners.length);
+    
+    // Log all partners and their tags for debugging
+    partners.forEach(partner => {
+      console.log(`DEBUG - Partner ${partner.name} metadata:`, partner.metadata);
+    });
     
     // If distribution method is by tag, find all partners that have any of the selected tags
     const filteredPartners = partners.filter(partner => {
-      if (!partner.metadata || typeof partner.metadata !== 'object' || !('tags' in partner.metadata)) {
-        console.log(`Partner ${partner.name} has no metadata tags`);
+      if (!partner.metadata || typeof partner.metadata !== 'object') {
+        console.log(`Partner ${partner.name} has no metadata object`);
+        return false;
+      }
+      
+      if (!partner.metadata.tags) {
+        console.log(`Partner ${partner.name} has metadata but no tags property`);
         return false;
       }
       
@@ -392,16 +409,24 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
         return false;
       }
       
+      // Only proceed if we have selected tags to match against
+      if (selectedPartnerTags.length === 0) {
+        console.log(`No tags selected for filtering`);
+        return false;
+      }
+      
       // Check if any of the selected tags match this partner's tags
       const hasMatchingTag = selectedPartnerTags.some(tag => {
         const matchFound = partnerTags.includes(tag);
         console.log(`Checking if partner ${partner.name} has tag '${tag}': ${matchFound ? 'YES' : 'NO'}`);
         return matchFound;
       });
-      console.log(`Partner ${partner.name} ${hasMatchingTag ? 'matches' : 'does not match'} the selected tags`);
+      
+      console.log(`Partner ${partner.name} ${hasMatchingTag ? 'MATCHES' : 'DOES NOT match'} the selected tags`);
       return hasMatchingTag;
     });
     
+    console.log('Final targeted partners count:', filteredPartners.length);
     console.log('Targeted partners:', filteredPartners.map(p => p.name));
     return filteredPartners;
   }, [partners, selectedDistributionMethod, selectedPartnerTags]);

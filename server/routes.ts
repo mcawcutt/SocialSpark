@@ -217,23 +217,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Extract tags from all partners
       const allTags = new Set<string>();
+      
+      console.log(`Processing ${partners.length} partners for tags`);
+      
       partners.forEach(partner => {
-        if (partner.metadata && partner.metadata.tags && Array.isArray(partner.metadata.tags)) {
-          partner.metadata.tags.forEach(tag => {
-            if (tag && typeof tag === 'string') {
-              allTags.add(tag);
+        // Debugging
+        console.log(`Partner ${partner.id}: ${partner.name} - metadata:`, JSON.stringify(partner.metadata || {}));
+        
+        try {
+          if (partner.metadata && typeof partner.metadata === 'object') {
+            const metadata = partner.metadata as any;
+            
+            if (metadata.tags && Array.isArray(metadata.tags)) {
+              metadata.tags.forEach((tag: any) => {
+                if (tag && typeof tag === 'string') {
+                  console.log(`Adding tag: ${tag} from partner ${partner.id}`);
+                  allTags.add(tag);
+                }
+              });
             }
-          });
+          }
+        } catch (err) {
+          console.error(`Error processing tags for partner ${partner.id}:`, err);
         }
       });
       
       const uniqueTags = Array.from(allTags).sort();
-      console.log(`Found ${uniqueTags.length} unique tags`);
+      console.log(`Found ${uniqueTags.length} unique tags: ${JSON.stringify(uniqueTags)}`);
       
-      return res.json(uniqueTags);
+      return res.status(200).json(uniqueTags);
     } catch (error) {
       console.error("Error fetching retail partner tags:", error);
-      return res.status(500).json({ message: "Server error" });
+      return res.status(500).json({ message: "Server error", error: String(error) });
     }
   });
 

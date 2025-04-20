@@ -17,6 +17,7 @@ import {
   Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -808,6 +809,11 @@ export default function RetailPartners() {
                                         if (value && !currentTags.includes(value)) {
                                           field.onChange([...currentTags, value]);
                                           e.currentTarget.value = '';
+                                          
+                                          // Invalidate tags cache if adding a new tag that doesn't exist
+                                          if (!availableTags.includes(value)) {
+                                            queryClient.invalidateQueries({queryKey: ["/api/demo/retail-partners/tags"]});
+                                          }
                                         }
                                       }
                                     }}
@@ -823,12 +829,45 @@ export default function RetailPartners() {
                                     if (value && !currentTags.includes(value)) {
                                       field.onChange([...currentTags, value]);
                                       if (input) input.value = '';
+                                      
+                                      // Invalidate tags cache if adding a new tag that doesn't exist
+                                      if (!availableTags.includes(value)) {
+                                        queryClient.invalidateQueries({queryKey: ["/api/demo/retail-partners/tags"]});
+                                      }
                                     }
                                   }}
                                 >
                                   Add
                                 </Button>
                               </div>
+                              
+                              {/* Show existing tags from other partners as suggestions */}
+                              {availableTags.length > 0 && (
+                                <div className="mt-1">
+                                  <p className="text-xs text-gray-500 mb-1">Suggested tags:</p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {availableTags
+                                      .filter(tag => {
+                                        const currentTags = field.value || [];
+                                        return !currentTags.includes(tag);
+                                      })
+                                      .map((tag, i) => (
+                                        <Badge 
+                                          key={i} 
+                                          variant="outline"
+                                          className="cursor-pointer hover:bg-gray-100"
+                                          onClick={() => {
+                                            const currentTags = field.value || [];
+                                            field.onChange([...currentTags, tag]);
+                                          }}
+                                        >
+                                          + {tag}
+                                        </Badge>
+                                      ))
+                                    }
+                                  </div>
+                                </div>
+                              )}
                               
                               {field.value && field.value.length > 0 && (
                                 <div className="flex flex-wrap gap-2 mt-2">

@@ -111,7 +111,20 @@ export default function RetailPartners() {
       const res = await apiRequest("POST", "/api/demo/retail-partners/bulk", { 
         partners: [data]
       });
-      return res.json();
+      
+      // Check if the response is ok before parsing as JSON
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Error response from server:", errorText);
+        throw new Error(`Server error: ${res.status} ${res.statusText}`);
+      }
+      
+      try {
+        return await res.json();
+      } catch (err) {
+        console.error("Error parsing response as JSON:", err);
+        throw new Error("Could not parse server response as JSON");
+      }
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({queryKey: ["/api/demo/retail-partners"]});
@@ -136,7 +149,20 @@ export default function RetailPartners() {
   const updatePartnerStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
       const res = await apiRequest("PATCH", `/api/demo/retail-partners/${id}`, { status });
-      return res.json();
+      
+      // Check if the response is ok before parsing as JSON
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Error response from server:", errorText);
+        throw new Error(`Server error: ${res.status} ${res.statusText}`);
+      }
+      
+      try {
+        return await res.json();
+      } catch (err) {
+        console.error("Error parsing response as JSON:", err);
+        throw new Error("Could not parse server response as JSON");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ["/api/demo/retail-partners"]});
@@ -159,7 +185,20 @@ export default function RetailPartners() {
   const updatePartnerMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<EditPartnerFormValues> }) => {
       const res = await apiRequest("PATCH", `/api/demo/retail-partners/${id}`, data);
-      return res.json();
+      
+      // Check if the response is ok before parsing as JSON
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Error response from server:", errorText);
+        throw new Error(`Server error: ${res.status} ${res.statusText}`);
+      }
+      
+      try {
+        return await res.json();
+      } catch (err) {
+        console.error("Error parsing response as JSON:", err);
+        throw new Error("Could not parse server response as JSON");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ["/api/demo/retail-partners"]});
@@ -464,7 +503,20 @@ export default function RetailPartners() {
   const bulkImportMutation = useMutation({
     mutationFn: async (partners: any[]) => {
       const res = await apiRequest("POST", "/api/demo/retail-partners/bulk", { partners });
-      return res.json();
+      
+      // Check if the response is ok before parsing as JSON
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Error response from server:", errorText);
+        throw new Error(`Server error: ${res.status} ${res.statusText}`);
+      }
+      
+      try {
+        return await res.json();
+      } catch (err) {
+        console.error("Error parsing response as JSON:", err);
+        throw new Error("Could not parse server response as JSON");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ["/api/demo/retail-partners"]});

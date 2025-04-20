@@ -450,21 +450,30 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
       const result = await response.json();
       const fileUrl = result.file.url;
       
-      console.log('✅ Upload successful, setting form value:', fileUrl);
+      console.log('✅ Upload successful, got URL:', fileUrl);
       
-      // Use a small timeout to make sure the state updates correctly
+      // First release the object URL to prevent memory leaks
+      if (localPreviewUrl && localPreviewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(localPreviewUrl);
+      }
+      
+      // Update the preview immediately
+      setImagePreview(null); // Force a re-render by clearing first
+      
+      // Then use a small timeout to make sure all state updates happen in sequence
       setTimeout(() => {
-        // VERY explicitly set the form value first using setValue to ensure the value is updated
+        // Set the URL to the actual server file
+        setImagePreview(fileUrl);
+        
+        // VERY explicitly set the form value
         form.setValue('imageUrl', fileUrl, { 
           shouldDirty: true,
           shouldTouch: true,
           shouldValidate: true 
         });
         
-        // Update the preview with the actual URL from the server
-        setImagePreview(fileUrl);
-        
-        console.log('File upload complete and form updated with real URL:', fileUrl);
+        console.log('Form imageUrl value is now:', form.getValues('imageUrl'));
+        console.log('Image preview set to:', fileUrl);
       }, 100);
       
       // Success toast

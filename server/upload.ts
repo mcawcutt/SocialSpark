@@ -122,16 +122,20 @@ export function setupUploadRoutes(app: Express) {
         
         console.log(`Upload successful. Returning URL: ${fileUrl}`);
         
-        return res.status(200).json({
-          message: 'File uploaded successfully',
-          file: {
-            filename: req.file.filename,
-            originalname: req.file.originalname,
-            mimetype: req.file.mimetype,
-            size: req.file.size,
-            url: fileUrl
-          }
-        });
+        // Delay the response slightly to prevent race conditions on the client
+        setTimeout(() => {
+          return res.status(200).json({
+            message: 'File uploaded successfully',
+            file: {
+              filename: req.file.filename,
+              originalname: req.file.originalname,
+              mimetype: req.file.mimetype,
+              size: req.file.size,
+              url: fileUrl,
+              timestamp: Date.now() // Add timestamp to help avoid caching issues
+            }
+          });
+        }, 50);
       } catch (error) {
         console.error('Error processing uploaded file:', error);
         return res.status(500).json({ error: 'Failed to process uploaded file' });

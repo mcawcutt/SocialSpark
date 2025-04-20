@@ -95,8 +95,21 @@ export function MediaSelector({ onSelect, triggerText = "Choose from Media Libra
     if (!selectedItem) return;
     
     try {
-      // First call the callback with the item
-      onSelect(selectedItem);
+      console.log('MediaSelector: Confirming selection of item:', selectedItem);
+      
+      // Make a copy of the selected item with a simple path to avoid issues
+      const cleanItem = { 
+        ...selectedItem,
+        // Ensure the fileUrl is absolute and correctly formatted
+        fileUrl: selectedItem.fileUrl.startsWith('/') 
+          ? selectedItem.fileUrl 
+          : `/${selectedItem.fileUrl.replace(/^\/+/, '')}`
+      };
+      
+      console.log('MediaSelector: Sending cleaned item to parent:', cleanItem);
+      
+      // Call the callback with the cleaned item
+      onSelect(cleanItem);
       
       // Then close the dialog and show confirmation
       setIsOpen(false);

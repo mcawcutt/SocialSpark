@@ -142,6 +142,30 @@ export function setupUploadRoutes(app: Express) {
 
 // Serve uploaded files
 export function serveUploads(app: Express) {
-  // Use the Express.static middleware
-  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+  // Serve uploads directory with proper cache headers
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads'), {
+    maxAge: '1h',
+    setHeaders: (res) => {
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+  }));
+  
+  // Also serve attached_assets for demo content
+  app.use('/attached_assets', express.static(path.join(process.cwd(), 'attached_assets'), {
+    maxAge: '1h',
+    setHeaders: (res) => {
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+  }));
+  
+  // For demo purposes, log available files
+  console.log('Serving files from uploads directory');
+  try {
+    const files = fs.readdirSync(path.join(process.cwd(), 'uploads'));
+    console.log(`Available files in uploads (${files.length}):`, files.slice(0, 5).join(', ') + (files.length > 5 ? '...' : ''));
+  } catch (err) {
+    console.error('Error reading uploads directory:', err);
+  }
 }

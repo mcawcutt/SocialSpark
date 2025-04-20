@@ -731,18 +731,25 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                             console.log('ContentPostForm: Media selected from library:', mediaItem.name);
                             console.log('ContentPostForm: Media URL:', mediaItem.fileUrl);
                             
-                            // Set the form value
-                            form.setValue('imageUrl', mediaItem.fileUrl, {
+                            // Force the URL to be a string and correctly formatted
+                            const imageUrl = String(mediaItem.fileUrl || '');
+                            console.log('ContentPostForm: Formatted URL to use:', imageUrl);
+                            
+                            // Set the form value FIRST
+                            form.setValue('imageUrl', imageUrl, {
                               shouldDirty: true,
                               shouldTouch: true,
                               shouldValidate: true
                             });
                             
-                            // Then update the preview state
-                            setImagePreview(mediaItem.fileUrl);
-                            
-                            // Log confirmation
-                            console.log('ContentPostForm: Media successfully attached, form value is now:', form.getValues('imageUrl'));
+                            // Force a small delay before updating preview state
+                            setTimeout(() => {
+                              // Then update the preview state
+                              setImagePreview(imageUrl);
+                              
+                              // Log confirmation
+                              console.log('ContentPostForm: Media successfully attached, form value is now:', form.getValues('imageUrl'));
+                            }, 50);
                           }}
                         />
                         

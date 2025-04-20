@@ -58,44 +58,64 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
 
-  // Fetch retail partners to extract tags
+  // Fetch retail partners
   const { data: partners } = useQuery<RetailPartner[]>({
     queryKey: ['/api/retail-partners'],
     enabled: isOpen && !isEvergreen
   });
 
+  // Fetch partner tags from the dedicated endpoint
+  const { data: tagData } = useQuery<string[]>({
+    queryKey: ['/api/demo/retail-partners/tags'],
+    enabled: isOpen && !isEvergreen,
+    onSuccess: (data) => {
+      console.log('Fetched partner tags from API:', data);
+      setAvailableTags(data || []);
+    },
+    onError: (error) => {
+      console.error('Error fetching partner tags:', error);
+      // Fallback to extracting from partners
+      if (partners && partners.length > 0) {
+        extractTagsFromPartners(partners);
+      }
+    }
+  });
+  
+  // Extract tags from partners as fallback
+  const extractTagsFromPartners = (partnersList: RetailPartner[]) => {
+    const allTags: string[] = [];
+    
+    // Extract all tags from partners
+    partnersList.forEach(partner => {
+      console.log('Partner metadata:', partner.name, partner.metadata);
+      if (partner.metadata && typeof partner.metadata === 'object' && 'tags' in partner.metadata) {
+        const tags = partner.metadata.tags;
+        if (Array.isArray(tags)) {
+          allTags.push(...tags.filter(tag => typeof tag === 'string'));
+        }
+      }
+    });
+    
+    // Get unique tags only
+    const uniqueTagsSet = new Set<string>();
+    allTags.forEach(tag => uniqueTagsSet.add(tag));
+    
+    const tagsArray = Array.from(uniqueTagsSet);
+    console.log('Available partner tags (extracted):', tagsArray);
+    setAvailableTags(tagsArray);
+  };
+  
   // Log partners data
   useEffect(() => {
     if (partners) {
       console.log('Retail partners data:', partners);
+      
+      // Use this as a fallback if the tags API didn't return data
+      if ((!tagData || tagData.length === 0) && partners.length > 0) {
+        extractTagsFromPartners(partners);
+      }
     }
-  }, [partners]);
-
-  // Extract unique tags from all partners
-  useEffect(() => {
-    if (partners && partners.length > 0) {
-      const allTags: string[] = [];
-      
-      // Extract all tags from partners
-      partners.forEach(partner => {
-        console.log('Partner metadata:', partner.name, partner.metadata);
-        if (partner.metadata && typeof partner.metadata === 'object' && 'tags' in partner.metadata) {
-          const tags = partner.metadata.tags;
-          if (Array.isArray(tags)) {
-            allTags.push(...tags.filter(tag => typeof tag === 'string'));
-          }
-        }
-      });
-      
-      // Get unique tags only
-      const uniqueTagsSet = new Set<string>();
-      allTags.forEach(tag => uniqueTagsSet.add(tag));
-      
-      const tagsArray = Array.from(uniqueTagsSet);
-      console.log('Available partner tags:', tagsArray);
-      setAvailableTags(tagsArray);
-    }
-  }, [partners]);
+  }, [partners, tagData]);
 
   // Fetch categories (in a real app, this would come from the backend)
   const categories = ["Tips & Advice", "Promotions", "Seasonal", "Product Highlights", "Industry News"];
@@ -372,7 +392,11 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
       }
       
       // Check if any of the selected tags match this partner's tags
-      const hasMatchingTag = selectedPartnerTags.some(tag => partnerTags.includes(tag));
+      const hasMatchingTag = selectedPartnerTags.some(tag => {
+        const matchFound = partnerTags.includes(tag);
+        console.log(`Checking if partner ${partner.name} has tag '${tag}': ${matchFound ? 'YES' : 'NO'}`);
+        return matchFound;
+      });
       console.log(`Partner ${partner.name} ${hasMatchingTag ? 'matches' : 'does not match'} the selected tags`);
       return hasMatchingTag;
     });

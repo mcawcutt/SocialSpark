@@ -67,19 +67,16 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
   // Fetch partner tags from the dedicated endpoint
   const { data: tagData } = useQuery<string[]>({
     queryKey: ['/api/demo/retail-partners/tags'],
-    enabled: isOpen && !isEvergreen,
-    onSuccess: (data) => {
-      console.log('Fetched partner tags from API:', data);
-      setAvailableTags(data || []);
-    },
-    onError: (error) => {
-      console.error('Error fetching partner tags:', error);
-      // Fallback to extracting from partners
-      if (partners && partners.length > 0) {
-        extractTagsFromPartners(partners);
-      }
-    }
+    enabled: isOpen && !isEvergreen
   });
+  
+  // Handle tag data changes
+  useEffect(() => {
+    if (tagData) {
+      console.log('Fetched partner tags from API:', tagData);
+      setAvailableTags(tagData);
+    }
+  }, [tagData]);
   
   // Extract tags from partners as fallback
   const extractTagsFromPartners = (partnersList: RetailPartner[]) => {
@@ -148,8 +145,12 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
         ? initialData.metadata.category as string
         : categories[0],
       isEvergreen: initialData?.isEvergreen || isEvergreen,
-      partnerDistribution: initialData?.metadata?.partnerDistribution as "all" | "byTag" || "all",
-      partnerTags: initialData?.metadata?.partnerTags as string[] || []
+      partnerDistribution: initialData?.metadata && typeof initialData.metadata === 'object' && 'partnerDistribution' in initialData.metadata
+        ? initialData.metadata.partnerDistribution as "all" | "byTag"
+        : "all",
+      partnerTags: initialData?.metadata && typeof initialData.metadata === 'object' && 'partnerTags' in initialData.metadata
+        ? initialData.metadata.partnerTags as string[]
+        : []
     }
   });
 
@@ -742,14 +743,8 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {availableTags && availableTags.length > 0 ? (
+                              {availableTags.length > 0 ? (
                                 availableTags.map((tag) => (
-                                  <SelectItem key={tag} value={tag}>
-                                    {tag}
-                                  </SelectItem>
-                                ))
-                              ) : tagData && tagData.length > 0 ? (
-                                tagData.map((tag) => (
                                   <SelectItem key={tag} value={tag}>
                                     {tag}
                                   </SelectItem>

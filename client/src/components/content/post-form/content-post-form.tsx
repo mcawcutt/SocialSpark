@@ -742,8 +742,14 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {availableTags.length > 0 ? (
+                              {availableTags && availableTags.length > 0 ? (
                                 availableTags.map((tag) => (
+                                  <SelectItem key={tag} value={tag}>
+                                    {tag}
+                                  </SelectItem>
+                                ))
+                              ) : tagData && tagData.length > 0 ? (
+                                tagData.map((tag) => (
                                   <SelectItem key={tag} value={tag}>
                                     {tag}
                                   </SelectItem>

@@ -22,6 +22,7 @@ import { Separator } from "@/components/ui/separator";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Badge } from "@/components/ui/badge";
 import { MediaSelector } from "@/components/media/media-selector";
+import { FileUploader } from "@/components/media/file-uploader";
 
 // Define validation schema for new content
 const contentPostSchema = z.object({
@@ -736,33 +737,22 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                         {...field}
                       />
                       <div className="flex items-center gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="relative"
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={uploadingImage}
-                        >
-                          {uploadingImage ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Uploading...
-                            </>
-                          ) : (
-                            <>
-                              <ImageIcon className="mr-2 h-4 w-4" />
-                              {imagePreview ? "Change Media" : "Upload Image/Video"}
-                            </>
-                          )}
-                          <input
-                            type="file"
-                            accept="image/*, video/*"
-                            ref={fileInputRef}
-                            className="absolute inset-0 opacity-0 cursor-pointer"
-                            onChange={handleFileChange}
-                          />
-                        </Button>
+                        {/* New FileUploader component */}
+                        <FileUploader 
+                          onFileUploaded={(fileUrl) => {
+                            console.log('FileUploader: Upload complete, URL:', fileUrl);
+                            // Set form value
+                            form.setValue('imageUrl', fileUrl, {
+                              shouldDirty: true,
+                              shouldTouch: true,
+                              shouldValidate: true
+                            });
+                            // Update preview
+                            setImagePreview(fileUrl);
+                            // Clear selected file
+                            setSelectedFile(null);
+                          }}
+                        />
                         
                         <MediaSelector 
                           onSelect={(mediaItem) => {

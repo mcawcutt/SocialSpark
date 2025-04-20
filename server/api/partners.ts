@@ -18,6 +18,80 @@ async function hashPassword(password: string) {
 }
 
 export function setupPartnerRoutes(app: Express) {
+  // Get all available partner tags endpoint
+  app.get('/api/retail-partners/tags', requireAuth, async (req: Request, res: Response) => {
+    try {
+      console.log("Getting partner tags for user:", req.user?.id, "Role:", req.user?.role);
+      
+      // For brand users, only show their own partners' tags
+      const brandId = req.user?.role === 'brand' ? 1 : 1; // Use brand ID 1 for demo mode
+      
+      // Get all partners for the brand
+      const partners = await storage.getRetailPartnersByBrandId(brandId);
+      
+      // Extract all unique tags from partners
+      const allTags: string[] = [];
+      partners.forEach(partner => {
+        if (partner.metadata && typeof partner.metadata === 'object') {
+          if ('tags' in partner.metadata && Array.isArray(partner.metadata.tags)) {
+            allTags.push(...partner.metadata.tags.filter(tag => typeof tag === 'string'));
+          }
+        }
+      });
+      
+      // Get unique tags only
+      const uniqueTags = [...new Set(allTags)];
+      console.log(`Found ${uniqueTags.length} unique tags for brand ${brandId}`);
+      
+      return res.json(uniqueTags);
+    } catch (error) {
+      console.error("Error fetching partner tags:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // Demo endpoint for retail partners (when not authenticated)
+  app.get('/api/demo/retail-partners', async (req: Request, res: Response) => {
+    try {
+      // Get all partners for demo brand
+      const partners = await storage.getRetailPartnersByBrandId(1);
+      console.log(`Found ${partners.length} partners for demo brand 1`);
+      return res.json(partners);
+    } catch (error) {
+      console.error("Error fetching demo retail partners:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // Demo endpoint for partner tags (when not authenticated)
+  app.get('/api/demo/retail-partners/tags', async (req: Request, res: Response) => {
+    try {
+      // Get all partners for demo brand
+      const partners = await storage.getRetailPartnersByBrandId(1);
+      
+      // Extract all unique tags from partners
+      const allTags: string[] = [];
+      partners.forEach(partner => {
+        console.log("DEBUG - Partner", partner.name, "metadata:", partner.metadata);
+        if (partner.metadata && typeof partner.metadata === 'object') {
+          if ('tags' in partner.metadata && Array.isArray(partner.metadata.tags)) {
+            allTags.push(...partner.metadata.tags.filter(tag => typeof tag === 'string'));
+          }
+        } else {
+          console.log(`Partner ${partner.name} has no metadata object`);
+        }
+      });
+      
+      // Get unique tags only
+      const uniqueTags = [...new Set(allTags)];
+      console.log(`Found ${uniqueTags.length} unique tags for demo brand`);
+      
+      return res.json(uniqueTags);
+    } catch (error) {
+      console.error("Error fetching demo partner tags:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
   // Get all retail partners for the brand
   app.get('/api/retail-partners', requireBrandOrAdmin, async (req: Request, res: Response) => {
     try {

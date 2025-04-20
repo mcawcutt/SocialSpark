@@ -85,10 +85,11 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
     // Extract all tags from partners
     partnersList.forEach(partner => {
       console.log('Partner metadata:', partner.name, partner.metadata);
-      if (partner.metadata && typeof partner.metadata === 'object' && 'tags' in partner.metadata) {
-        const tags = partner.metadata.tags;
-        if (Array.isArray(tags)) {
-          allTags.push(...tags.filter(tag => typeof tag === 'string'));
+      if (partner.metadata && typeof partner.metadata === 'object') {
+        // Type assertion to access tags property safely
+        const metadata = partner.metadata as { tags?: string[] };
+        if (metadata.tags && Array.isArray(metadata.tags)) {
+          allTags.push(...metadata.tags.filter(tag => typeof tag === 'string'));
         }
       }
     });
@@ -139,19 +140,47 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
       imageUrl: initialData?.imageUrl || "",
       platforms: initialData?.platforms || ["facebook", "instagram"],
       scheduledDate: schedDate,
-      tags: initialData?.metadata && typeof initialData.metadata === 'object' && 'tags' in initialData.metadata
-        ? (initialData.metadata.tags as string[]).join(", ")
-        : "",
-      category: initialData?.metadata && typeof initialData.metadata === 'object' && 'category' in initialData.metadata
-        ? initialData.metadata.category as string
-        : categories[0],
+      tags: (() => {
+        if (initialData?.metadata && typeof initialData.metadata === 'object') {
+          // Type assertion to access metadata properties safely
+          const metadata = initialData.metadata as { tags?: string[] };
+          if (metadata.tags && Array.isArray(metadata.tags)) {
+            return metadata.tags.join(", ");
+          }
+        }
+        return "";
+      })(),
+      category: (() => {
+        if (initialData?.metadata && typeof initialData.metadata === 'object') {
+          // Type assertion to access metadata properties safely
+          const metadata = initialData.metadata as { category?: string };
+          if (metadata.category && typeof metadata.category === 'string') {
+            return metadata.category;
+          }
+        }
+        return categories[0];
+      })(),
       isEvergreen: initialData?.isEvergreen || isEvergreen,
-      partnerDistribution: initialData?.metadata && typeof initialData.metadata === 'object' && 'partnerDistribution' in initialData.metadata
-        ? initialData.metadata.partnerDistribution as "all" | "byTag"
-        : "all",
-      partnerTags: initialData?.metadata && typeof initialData.metadata === 'object' && 'partnerTags' in initialData.metadata
-        ? initialData.metadata.partnerTags as string[]
-        : []
+      partnerDistribution: (() => {
+        if (initialData?.metadata && typeof initialData.metadata === 'object') {
+          // Type assertion to access metadata properties safely
+          const metadata = initialData.metadata as { partnerDistribution?: "all" | "byTag" };
+          if (metadata.partnerDistribution) {
+            return metadata.partnerDistribution;
+          }
+        }
+        return "all";
+      })(),
+      partnerTags: (() => {
+        if (initialData?.metadata && typeof initialData.metadata === 'object') {
+          // Type assertion to access metadata properties safely
+          const metadata = initialData.metadata as { partnerTags?: string[] };
+          if (metadata.partnerTags && Array.isArray(metadata.partnerTags)) {
+            return metadata.partnerTags;
+          }
+        }
+        return [];
+      })()
     }
   });
 

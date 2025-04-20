@@ -10,6 +10,7 @@ import { setupPartnerRoutes } from "./api/partners";
 import { setupBrandRoutes } from "./api/brands";
 import { setupInviteRoutes } from "./api/invites";
 import { setupTestInviteRoutes } from "./api/test-invites";
+import { createBackup } from "./backup";
 import { z } from "zod";
 import {
   insertRetailPartnerSchema,
@@ -19,6 +20,43 @@ import {
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Check authentication middleware
+  const requireAuth = (req: any, res: any, next: any) => {
+    console.log(`[Auth] ${req.method} ${req.path} - Auth check:`, req.isAuthenticated ? req.isAuthenticated() : "isAuthenticated not available");
+    console.log(`[Auth] ${req.method} ${req.path} - Session ID:`, req.sessionID);
+    console.log(`[Auth] ${req.method} ${req.path} - User:`, req.user ? req.user.username : "Not logged in");
+    
+    if (!req.isAuthenticated()) {
+      console.log(`[Auth] ${req.method} ${req.path} - Authentication failed, redirecting to login`);
+      return res.status(401).json({ 
+        message: "Unauthorized", 
+        detail: "Your session has expired or you are not logged in. Please log in again." 
+      });
+    }
+    next();
+  };
+  
+  // Check if user is a brand or admin
+  const requireBrandOrAdmin = (req: any, res: any, next: any) => {
+    // First check authentication
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ 
+        message: "Unauthorized", 
+        detail: "Your session has expired or you are not logged in. Please log in again." 
+      });
+    }
+    
+    // Check if user is a brand or admin
+    if (req.user.role !== 'brand' && req.user.role !== 'admin') {
+      return res.status(403).json({ 
+        message: "Forbidden", 
+        detail: "You do not have permission to access this resource. Only brand and admin users can access this." 
+      });
+    }
+    
+    next();
+  };
+
   // Serve static assets from the attached_assets directory
   app.use("/assets", express.static(path.join(process.cwd(), "attached_assets")));
   
@@ -71,7 +109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         success: false, 
         message: "Backup failed",
-        error: error.message 
+        error: String(error) 
       });
     }
   });
@@ -118,22 +156,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json({ success: true, user: req.user });
     });
   });
-
-  // Check authentication middleware
-  const requireAuth = (req: any, res: any, next: any) => {
-    console.log(`[Auth] ${req.method} ${req.path} - Auth check:`, req.isAuthenticated ? req.isAuthenticated() : "isAuthenticated not available");
-    console.log(`[Auth] ${req.method} ${req.path} - Session ID:`, req.sessionID);
-    console.log(`[Auth] ${req.method} ${req.path} - User:`, req.user ? req.user.username : "Not logged in");
-    
-    if (!req.isAuthenticated()) {
-      console.log(`[Auth] ${req.method} ${req.path} - Authentication failed, redirecting to login`);
-      return res.status(401).json({ 
-        message: "Unauthorized", 
-        detail: "Your session has expired or you are not logged in. Please log in again." 
-      });
-    }
-    next();
-  };
 
   // Retail Partners endpoints
   app.get("/api/retail-partners", requireAuth, async (req, res) => {

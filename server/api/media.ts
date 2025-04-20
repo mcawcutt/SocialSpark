@@ -11,8 +11,37 @@ export function setupMediaRoutes(app: Express) {
     try {
       // Use brand ID 1 for demo content
       const media = await storage.getMediaByBrandId(1);
-      console.log(`Found ${media.length} media items for demo`);
-      res.json(media);
+      
+      // Normalize file paths - ensure all URLs use /uploads/ for consistent access
+      const normalizedMedia = media.map(item => {
+        // Fix any path issues to ensure consistent access
+        let fileUrl = item.fileUrl;
+        
+        // Ensure paths start with a slash
+        if (fileUrl && !fileUrl.startsWith('/')) {
+          fileUrl = '/' + fileUrl;
+        }
+        
+        // For demo purposes, force all assets to use /uploads/ paths with demo files
+        if (fileUrl && fileUrl.includes('/assets/')) {
+          const parts = fileUrl.split('/');
+          const filename = parts[parts.length - 1];
+          
+          // Map specific known assets to our demo files
+          if (filename.includes('1744731251867') || filename.includes('cycling')) {
+            fileUrl = '/uploads/demo-biking.png';
+          } else if (filename.includes('1744731657291') || filename.includes('gear') || filename.includes('summer')) {
+            fileUrl = '/uploads/demo-outdoor.png';
+          } else {
+            fileUrl = '/uploads/demo-logo.png';
+          }
+        }
+        
+        return { ...item, fileUrl };
+      });
+      
+      console.log(`Found ${normalizedMedia.length} media items for demo (normalized URLs)`);
+      res.json(normalizedMedia);
     } catch (error) {
       console.error('Error fetching demo media:', error);
       res.status(500).send("Failed to fetch demo media");

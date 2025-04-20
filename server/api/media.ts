@@ -5,6 +5,20 @@ import { insertMediaLibrarySchema } from "@shared/schema";
 import { z } from "zod";
 
 export function setupMediaRoutes(app: Express) {
+  // Demo route for media library - does not require authentication
+  app.get('/api/demo/media', async (req: Request, res: Response) => {
+    console.log('Fetching demo media library items');
+    try {
+      // Use brand ID 1 for demo content
+      const media = await storage.getMediaByBrandId(1);
+      console.log(`Found ${media.length} media items for demo`);
+      res.json(media);
+    } catch (error) {
+      console.error('Error fetching demo media:', error);
+      res.status(500).send("Failed to fetch demo media");
+    }
+  });
+  
   // Get all media items for the current brand
   app.get('/api/media', async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) {

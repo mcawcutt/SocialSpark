@@ -628,6 +628,44 @@ export class MemStorage implements IStorage {
 
   // Seed demo data for testing
   private seedDemoData() {
+    // Create demo media library items
+    console.log('Creating demo media library items...');
+    const demoMediaItems = [
+      {
+        name: "Outdoor Adventure Photo",
+        description: "A beautiful landscape image for outdoor brands",
+        fileUrl: "/attached_assets/image_1744731251867.png", 
+        fileType: "image/png",
+        tags: ["Outdoor", "Hiking", "Landscape"]
+      },
+      {
+        name: "Mountain Biking Promo",
+        description: "Perfect for cycling related posts",
+        fileUrl: "/attached_assets/image_1744731657291.png",
+        fileType: "image/png",
+        tags: ["Biking", "Outdoor", "Action"]
+      },
+      {
+        name: "Brand Logo",
+        description: "Company logo for branded posts",
+        fileUrl: "/attached_assets/IGNYT_Logo Black Web.png",
+        fileType: "image/png",
+        tags: ["Logo", "Branding", "Official"]
+      }
+    ];
+    
+    // Add the media items to storage
+    demoMediaItems.forEach(item => {
+      this.createMediaItem({
+        brandId: 1, // Demo brand ID
+        name: item.name,
+        description: item.description,
+        fileUrl: item.fileUrl,
+        fileType: item.fileType,
+        tags: item.tags
+      });
+    });
+    
     // Create retail partners with metadata including tags
     const partners = [
       { 

@@ -28,8 +28,9 @@ export function MediaSelector({ onSelect, triggerText = "Choose from Media Libra
   const [selectedItem, setSelectedItem] = useState<MediaLibraryItem | null>(null);
   const { toast } = useToast();
 
+  // Using the demo endpoint to get media items without authentication
   const { data: mediaItems, isLoading } = useQuery<MediaLibraryItem[]>({
-    queryKey: ["/api/media"],
+    queryKey: ["/api/demo/media"],
     enabled: isOpen, // Only fetch when the dialog is open
   });
 

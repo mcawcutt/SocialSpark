@@ -135,10 +135,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get all unique tags for retail partners (for tag suggestions)
+  // Important: This route must come BEFORE any route with :id parameter to avoid conflicts
+  app.get("/api/demo/retail-partners/tags", async (req, res) => {
+    try {
+      console.log("Demo route: Getting all tags for retail partners");
+      const partners = await storage.getRetailPartnersByBrandId(1);
+      
+      // Extract tags from all partners
+      const allTags = new Set<string>();
+      
+      console.log(`Processing ${partners.length} partners for tags`);
+      
+      partners.forEach(partner => {
+        // Debugging
+        console.log(`Partner ${partner.id}: ${partner.name} - metadata:`, JSON.stringify(partner.metadata || {}));
+        
+        try {
+          if (partner.metadata && typeof partner.metadata === 'object') {
+            const metadata = partner.metadata as any;
+            
+            if (metadata.tags && Array.isArray(metadata.tags)) {
+              metadata.tags.forEach((tag: any) => {
+                if (tag && typeof tag === 'string') {
+                  console.log(`Adding tag: ${tag} from partner ${partner.id}`);
+                  allTags.add(tag);
+                }
+              });
+            }
+          }
+        } catch (err) {
+          console.error(`Error processing tags for partner ${partner.id}:`, err);
+        }
+      });
+      
+      const uniqueTags = Array.from(allTags).sort();
+      console.log(`Found ${uniqueTags.length} unique tags: ${JSON.stringify(uniqueTags)}`);
+      
+      return res.status(200).json(uniqueTags);
+    } catch (error) {
+      console.error("Error fetching retail partner tags:", error);
+      return res.status(500).json({ message: "Server error", error: String(error) });
+    }
+  });
+
   // Special demo route to get a specific retail partner
   app.get("/api/demo/retail-partners/:id", async (req, res) => {
     try {
+      // Check if the ID is "tags" which should be handled by the tags endpoint
+      if (req.params.id === "tags") {
+        return res.status(400).json({ message: "Invalid ID. Use /api/demo/retail-partners/tags to get tags." });
+      }
+      
       const partnerId = parseInt(req.params.id);
+      
+      if (isNaN(partnerId)) {
+        return res.status(400).json({ message: "Invalid partner ID" });
+      }
+      
       const partner = await storage.getRetailPartner(partnerId);
       
       if (!partner) {
@@ -209,49 +263,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get all unique tags for retail partners (for tag suggestions)
-  app.get("/api/demo/retail-partners/tags", async (req, res) => {
-    try {
-      console.log("Demo route: Getting all tags for retail partners");
-      const partners = await storage.getRetailPartnersByBrandId(1);
-      
-      // Extract tags from all partners
-      const allTags = new Set<string>();
-      
-      console.log(`Processing ${partners.length} partners for tags`);
-      
-      partners.forEach(partner => {
-        // Debugging
-        console.log(`Partner ${partner.id}: ${partner.name} - metadata:`, JSON.stringify(partner.metadata || {}));
-        
-        try {
-          if (partner.metadata && typeof partner.metadata === 'object') {
-            const metadata = partner.metadata as any;
-            
-            if (metadata.tags && Array.isArray(metadata.tags)) {
-              metadata.tags.forEach((tag: any) => {
-                if (tag && typeof tag === 'string') {
-                  console.log(`Adding tag: ${tag} from partner ${partner.id}`);
-                  allTags.add(tag);
-                }
-              });
-            }
-          }
-        } catch (err) {
-          console.error(`Error processing tags for partner ${partner.id}:`, err);
-        }
-      });
-      
-      const uniqueTags = Array.from(allTags).sort();
-      console.log(`Found ${uniqueTags.length} unique tags: ${JSON.stringify(uniqueTags)}`);
-      
-      return res.status(200).json(uniqueTags);
-    } catch (error) {
-      console.error("Error fetching retail partner tags:", error);
-      return res.status(500).json({ message: "Server error", error: String(error) });
-    }
-  });
-
   // Special route for demo mode bulk import - no authentication required
   app.post("/api/demo/retail-partners/bulk", async (req, res) => {
     try {

@@ -135,6 +135,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Special demo route to get a specific retail partner
+  app.get("/api/demo/retail-partners/:id", async (req, res) => {
+    try {
+      const partnerId = parseInt(req.params.id);
+      const partner = await storage.getRetailPartner(partnerId);
+      
+      if (!partner) {
+        return res.status(404).json({ message: "Partner not found" });
+      }
+      
+      // Only allow access to partners from demo brand (ID 1)
+      if (partner.brandId !== 1) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      
+      console.log(`Demo route: Fetched partner with ID ${partnerId}`);
+      return res.json(partner);
+    } catch (error) {
+      console.error("Error fetching demo retail partner:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // Special demo route to update a retail partner
+  app.patch("/api/demo/retail-partners/:id", async (req, res) => {
+    try {
+      const partnerId = parseInt(req.params.id);
+      const partner = await storage.getRetailPartner(partnerId);
+      
+      if (!partner) {
+        return res.status(404).json({ message: "Partner not found" });
+      }
+      
+      // Only allow updating partners from demo brand (ID 1)
+      if (partner.brandId !== 1) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      
+      console.log(`Demo route: Updating partner with ID ${partnerId}`);
+      const updatedPartner = await storage.updateRetailPartner(partnerId, req.body);
+      return res.json(updatedPartner);
+    } catch (error) {
+      console.error("Error updating demo retail partner:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
   // Get all unique tags for retail partners (for tag suggestions)
   app.get("/api/demo/retail-partners/tags", async (req, res) => {
     try {

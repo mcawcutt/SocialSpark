@@ -107,11 +107,15 @@ export default function RetailPartners() {
   // Create a new retail partner
   const createPartnerMutation = useMutation({
     mutationFn: async (data: NewPartnerFormValues) => {
-      const res = await apiRequest("POST", "/api/retail-partners", data);
+      // In demo mode, we use the bulk import endpoint to create a single partner
+      const res = await apiRequest("POST", "/api/demo/retail-partners/bulk", { 
+        partners: [data]
+      });
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: ["/api/retail-partners"]});
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({queryKey: ["/api/demo/retail-partners"]});
+      queryClient.invalidateQueries({queryKey: ["/api/demo/retail-partners/tags"]});
       toast({
         title: "Partner added",
         description: "The retail partner has been added successfully.",
@@ -131,11 +135,12 @@ export default function RetailPartners() {
   // Update a retail partner status
   const updatePartnerStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      const res = await apiRequest("PATCH", `/api/retail-partners/${id}`, { status });
+      const res = await apiRequest("PATCH", `/api/demo/retail-partners/${id}`, { status });
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: ["/api/retail-partners"]});
+      queryClient.invalidateQueries({queryKey: ["/api/demo/retail-partners"]});
+      queryClient.invalidateQueries({queryKey: ["/api/demo/retail-partners/tags"]});
       toast({
         title: "Status updated",
         description: "The partner status has been updated successfully.",
@@ -153,11 +158,12 @@ export default function RetailPartners() {
   // Update a retail partner
   const updatePartnerMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<EditPartnerFormValues> }) => {
-      const res = await apiRequest("PATCH", `/api/retail-partners/${id}`, data);
+      const res = await apiRequest("PATCH", `/api/demo/retail-partners/${id}`, data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: ["/api/retail-partners"]});
+      queryClient.invalidateQueries({queryKey: ["/api/demo/retail-partners"]});
+      queryClient.invalidateQueries({queryKey: ["/api/demo/retail-partners/tags"]});
       toast({
         title: "Partner updated",
         description: "The retail partner has been updated successfully.",
@@ -462,6 +468,7 @@ export default function RetailPartners() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ["/api/demo/retail-partners"]});
+      queryClient.invalidateQueries({queryKey: ["/api/demo/retail-partners/tags"]});
       toast({
         title: "Partners imported",
         description: `${previewData.length} retail partners have been imported successfully.`,

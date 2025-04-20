@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { MediaLibraryItem } from "@shared/schema";
 import { 
@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, FolderOpen, Search, Image } from "lucide-react";
+import { Loader2, FolderOpen, Search, Image, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface MediaSelectorProps {
@@ -25,12 +25,20 @@ export function MediaSelector({ onSelect, triggerText = "Choose from Media Libra
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedItem, setSelectedItem] = useState<MediaLibraryItem | null>(null);
   const { toast } = useToast();
 
   const { data: mediaItems, isLoading } = useQuery<MediaLibraryItem[]>({
     queryKey: ["/api/media"],
     enabled: isOpen, // Only fetch when the dialog is open
   });
+
+  // Reset selected item when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedItem(null);
+    }
+  }, [isOpen]);
 
   // Get unique tags from all media items
   const allTags = Array.from(
@@ -63,26 +71,27 @@ export function MediaSelector({ onSelect, triggerText = "Choose from Media Libra
     );
   };
 
-  const handleSelectMedia = (item: MediaLibraryItem) => {
+  const handleClickMedia = (item: MediaLibraryItem) => {
     console.log('MediaSelector: selecting item:', item.name, item.fileUrl); 
+    setSelectedItem(item);
+  };
+
+  const handleConfirmSelection = () => {
+    if (!selectedItem) return;
     
-    // Immediately call onSelect with the media item and close dialog
     try {
-      // Close dialog first to ensure no state conflicts
+      // First call the callback with the item
+      onSelect(selectedItem);
+      
+      // Then close the dialog and show confirmation
       setIsOpen(false);
       
-      // Short delay to ensure the dialog closing doesn't interfere with the callback
-      setTimeout(() => {
-        // Then call the parent's onSelect function
-        onSelect(item);
-        
-        toast({
-          title: "Media selected",
-          description: `"${item.name}" has been selected and attached to this post.`,
-        });
-      }, 50);
+      toast({
+        title: "Media selected",
+        description: `"${selectedItem.name}" has been attached to your post.`,
+      });
     } catch (error) {
-      console.error('Error in handleSelectMedia:', error);
+      console.error('Error selecting media:', error);
       toast({
         title: "Error selecting media",
         description: "There was a problem attaching this media item",
@@ -159,8 +168,12 @@ export function MediaSelector({ onSelect, triggerText = "Choose from Media Libra
                 {filteredMediaItems?.map((item) => (
                   <div
                     key={item.id}
-                    className="border rounded-md overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all"
-                    onClick={() => handleSelectMedia(item)}
+                    className={`border rounded-md overflow-hidden cursor-pointer transition-all ${
+                      selectedItem?.id === item.id 
+                        ? "ring-2 ring-primary" 
+                        : "hover:ring-2 hover:ring-primary/50"
+                    }`}
+                    onClick={() => handleClickMedia(item)}
                   >
                     <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative">
                       {item.fileType.startsWith("image/") ? (
@@ -172,6 +185,12 @@ export function MediaSelector({ onSelect, triggerText = "Choose from Media Libra
                       ) : (
                         <div className="flex items-center justify-center h-full">
                           <Image className="h-16 w-16 text-gray-400" />
+                        </div>
+                      )}
+                      
+                      {selectedItem?.id === item.id && (
+                        <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-1">
+                          <Check className="h-4 w-4" />
                         </div>
                       )}
                     </div>
@@ -199,9 +218,16 @@ export function MediaSelector({ onSelect, triggerText = "Choose from Media Libra
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex justify-between sm:justify-between">
           <Button variant="outline" onClick={() => setIsOpen(false)}>
             Cancel
+          </Button>
+          <Button 
+            variant="default" 
+            onClick={handleConfirmSelection}
+            disabled={!selectedItem}
+          >
+            {selectedItem ? `Select "${selectedItem.name}"` : "Select Media"}
           </Button>
         </DialogFooter>
       </DialogContent>

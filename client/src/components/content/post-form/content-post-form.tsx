@@ -728,9 +728,10 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                         
                         <MediaSelector 
                           onSelect={(mediaItem) => {
-                            console.log('Media selected from library:', mediaItem.name, mediaItem.fileUrl);
+                            console.log('ContentPostForm: Media selected from library:', mediaItem.name);
+                            console.log('ContentPostForm: Media URL:', mediaItem.fileUrl);
                             
-                            // First, update the form value
+                            // Set the form value
                             form.setValue('imageUrl', mediaItem.fileUrl, {
                               shouldDirty: true,
                               shouldTouch: true,
@@ -740,9 +741,8 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                             // Then update the preview state
                             setImagePreview(mediaItem.fileUrl);
                             
-                            // Add additional confirmation for debug
-                            console.log('Media selection complete - Preview:', mediaItem.fileUrl);
-                            console.log('Media selection complete - Form value:', form.getValues('imageUrl'));
+                            // Log confirmation
+                            console.log('ContentPostForm: Media successfully attached, form value is now:', form.getValues('imageUrl'));
                           }}
                         />
                         

@@ -940,33 +940,39 @@ export class MemStorage implements IStorage {
       const now = new Date();
       
       // Assign specific images to certain posts to replace placeholders
-      let imageUrl = "/assets/IGNYT_Icon Web.png"; // Default image
+      let imageUrl = "/uploads/demo-logo.png"; // Default image
       
       if (postData.title === "10 Ways to Improve Your Cycling") {
-        imageUrl = "/assets/image_1744731251867.png";
+        imageUrl = "/uploads/demo-biking.png";
       } else if (postData.title === "Summer Gear Essentials") {
-        imageUrl = "/assets/image_1744731657291.png";
+        imageUrl = "/uploads/demo-outdoor.png";
       } else if (postData.title === "Limited Edition Hiking Boots") {
-        imageUrl = "/assets/image_1744733659358.png";
+        imageUrl = "/uploads/demo-logo.png";
       } else if (postData.title === "Weekend Flash Sale") {
-        imageUrl = "/assets/image_1744364224836.png";
+        imageUrl = "/uploads/demo-biking.png";
       } else if (postData.title === "New Bike Maintenance Service") {
-        imageUrl = "/assets/image_1744736520163.png";
+        imageUrl = "/uploads/demo-outdoor.png";
       } else if (postData.title === "Industry Trends 2025") {
-        imageUrl = "/assets/image_1744736799635.png";
+        imageUrl = "/uploads/demo-logo.png";
       }
       
-      // Also add these images to the media library for reuse
-      if (!this.mediaLibraryItems.has(this.mediaIdCounter) && imageUrl !== "/assets/IGNYT_Icon Web.png") {
-        const mediaTitle = postData.title.length > 30 
-          ? postData.title.substring(0, 30) + "..." 
-          : postData.title;
+      // Skip media creation for default image
+      const mediaTitle = postData.title.length > 30 
+        ? postData.title.substring(0, 30) + "..." 
+        : postData.title;
+      
+      // Create media item only if it doesn't already exist
+      if (!Array.from(this.mediaLibraryItems.values()).some(item => 
+          item.name === `Image for "${mediaTitle}"` && 
+          item.fileUrl === imageUrl)
+      ) {
+        console.log(`Creating demo media item for "${mediaTitle}" with URL: ${imageUrl}`);
         
         this.createMediaItem({
           brandId: 1,
           name: `Image for "${mediaTitle}"`,
           fileUrl: imageUrl,
-          fileType: "image/jpeg",
+          fileType: "image/png",
           description: `Media asset for ${postData.title}`,
           tags: metadata?.tags || []
         });

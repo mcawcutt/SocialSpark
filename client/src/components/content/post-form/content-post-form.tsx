@@ -689,6 +689,30 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                               src={imagePreview} 
                               alt="Preview" 
                               className="w-full h-full object-cover"
+                              onLoad={() => console.log('Image loaded successfully:', imagePreview)}
+                              onError={(e) => {
+                                console.error('Error loading image preview from:', imagePreview);
+                                // Try fallback paths
+                                const imgElement = e.currentTarget;
+                                const currentSrc = imgElement.src;
+                                
+                                if (currentSrc.includes('/uploads/')) {
+                                  console.log('Trying alternate path with /attached_assets/');
+                                  const fileName = currentSrc.split('/').pop();
+                                  imgElement.src = `/attached_assets/${fileName}`;
+                                } else if (currentSrc.includes('/attached_assets/')) {
+                                  console.log('Trying alternate path with /uploads/');
+                                  const fileName = currentSrc.split('/').pop();
+                                  imgElement.src = `/uploads/${fileName}`;
+                                } else if (!currentSrc.startsWith('/')) {
+                                  console.log('Adding leading slash to path');
+                                  imgElement.src = `/${currentSrc}`;
+                                } else {
+                                  // Final fallback
+                                  console.log('Using fallback image');
+                                  imgElement.src = '/uploads/demo-logo.png';
+                                }
+                              }}
                             />
                           )}
                         </div>

@@ -1,222 +1,213 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { RetailPartner, SocialAccount } from "@shared/schema";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Facebook, Instagram, Globe, Trash2, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { FacebookConnectButton } from "./social-connect-button";
-import { Facebook, Instagram, Trash2, Globe, AlertTriangle, RefreshCw, Check } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { apiRequest } from "@/lib/queryClient";
+import { SocialAccount } from "@shared/schema";
+import { SocialConnectButton } from "./social-connect-button";
 
 interface SocialAccountsProps {
-  partner: RetailPartner;
+  partnerId: number;
+  partnerName: string;
 }
 
-export function SocialAccounts({ partner }: SocialAccountsProps) {
-  const [confirmDeleteAccount, setConfirmDeleteAccount] = useState<SocialAccount | null>(null);
+export function SocialAccounts({ partnerId, partnerName }: SocialAccountsProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState<number | null>(null);
 
-  // Fetch social accounts for this partner
-  const { 
-    data: socialAccounts, 
-    isLoading, 
-    error, 
-    refetch 
-  } = useQuery({
-    queryKey: ['/api/social-accounts', partner.id],
-    queryFn: async () => {
-      const response = await fetch(`/api/social-accounts/${partner.id}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch social accounts');
-      }
-      return response.json();
-    },
-    enabled: !!partner.id, // Only run if partner id exists
+  // Query to fetch social accounts for the partner
+  const {
+    data: accounts,
+    isLoading,
+    error,
+  } = useQuery<SocialAccount[]>({
+    queryKey: ['/api/social-accounts', partnerId],
+    queryFn: () => 
+      fetch(`/api/social-accounts/${partnerId}`)
+        .then(res => {
+          if (!res.ok) throw new Error("Failed to fetch social accounts");
+          return res.json();
+        }),
   });
 
   // Mutation to delete a social account
   const deleteMutation = useMutation({
     mutationFn: async (accountId: number) => {
-      const response = await apiRequest('DELETE', `/api/social-accounts/${accountId}`);
-      if (!response.ok) {
-        throw new Error('Failed to delete social account');
-      }
-      return response.json();
+      await apiRequest('DELETE', `/api/social-accounts/${accountId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/social-accounts', partner.id] });
-      setConfirmDeleteAccount(null);
       toast({
-        title: "Account Removed",
-        description: "The social media account has been disconnected.",
+        title: "Account disconnected",
+        description: "The social account has been disconnected successfully.",
       });
+      // Invalidate the social accounts query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['/api/social-accounts', partnerId] });
+      setIsConfirmingDelete(null);
     },
     onError: (error) => {
       toast({
-        title: "Failed to Remove Account",
-        description: error.message,
+        title: "Error disconnecting account",
+        description: error.message || "There was an error disconnecting the account.",
         variant: "destructive",
       });
+      setIsConfirmingDelete(null);
     },
   });
 
-  // Function to handle delete confirmation
-  const handleDeleteConfirm = () => {
-    if (confirmDeleteAccount) {
-      deleteMutation.mutate(confirmDeleteAccount.id);
-    }
-  };
-
-  // Get platform icon
+  // Helper for platform icons
   const getPlatformIcon = (platform: string) => {
     switch (platform.toLowerCase()) {
       case 'facebook':
-        return <Facebook size={20} className="text-blue-600" />;
+        return <Facebook className="h-5 w-5 text-blue-600" />;
       case 'instagram':
-        return <Instagram size={20} className="text-pink-600" />;
+        return <Instagram className="h-5 w-5 text-pink-600" />;
+      case 'google_business':
+        return <Globe className="h-5 w-5 text-yellow-600" />;
       default:
-        return <Globe size={20} className="text-gray-600" />;
+        return <Globe className="h-5 w-5 text-gray-600" />;
     }
   };
 
-  // Get account status badge
-  const getStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">Active</Badge>;
-      case 'pending':
-        return <Badge variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200">Pending</Badge>;
-      case 'expired':
-        return <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">Expired</Badge>;
+  // Helper for platform colors
+  const getPlatformColor = (platform: string) => {
+    switch (platform.toLowerCase()) {
+      case 'facebook':
+        return 'bg-blue-100';
+      case 'instagram':
+        return 'bg-pink-100';
+      case 'google_business':
+        return 'bg-yellow-100';
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return 'bg-gray-100';
     }
   };
 
-  return (
-    <div className="space-y-6">
+  if (isLoading) {
+    return (
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Social Media Accounts</CardTitle>
+        <CardHeader>
+          <CardTitle>Connected Social Accounts</CardTitle>
+          <CardDescription>Manage social media accounts for {partnerName}</CardDescription>
         </CardHeader>
-        
-        <CardContent>
-          {isLoading ? (
-            <div className="py-4 text-center text-gray-500">
-              <RefreshCw className="animate-spin h-5 w-5 mx-auto mb-2" />
-              <p>Loading accounts...</p>
-            </div>
-          ) : error ? (
-            <div className="py-4 text-center text-red-500">
-              <AlertTriangle className="h-5 w-5 mx-auto mb-2" />
-              <p>Error loading social accounts</p>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => refetch()}
-                className="mt-2"
-              >
-                Try Again
-              </Button>
-            </div>
-          ) : !socialAccounts || socialAccounts.length === 0 ? (
-            <div className="py-4 text-center text-gray-500">
-              <p className="mb-4">No social media accounts connected.</p>
-              <div className="flex justify-center gap-3">
-                <FacebookConnectButton 
-                  partner={partner} 
-                  onConnected={() => refetch()}
-                />
-                {/* Add buttons for other platforms like Instagram later */}
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid gap-4">
-                {socialAccounts.map((account: SocialAccount) => (
-                  <div 
-                    key={account.id} 
-                    className="flex items-center justify-between p-3 border rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      {getPlatformIcon(account.platform)}
-                      <div>
-                        <p className="font-medium">{account.platformUsername}</p>
-                        <p className="text-sm text-gray-500">{account.platform}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      {getStatusBadge(account.status)}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setConfirmDeleteAccount(account)}
-                        className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="flex justify-center gap-3 pt-4">
-                <FacebookConnectButton 
-                  partner={partner} 
-                  onConnected={() => refetch()}
-                />
-                {/* Add buttons for other platforms like Instagram later */}
-              </div>
-            </div>
-          )}
+        <CardContent className="min-h-[200px] flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
         </CardContent>
       </Card>
-      
-      {/* Confirmation Dialog for Deleting Account */}
-      <Dialog open={!!confirmDeleteAccount} onOpenChange={(open) => !open && setConfirmDeleteAccount(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Disconnect Social Account</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to disconnect this {confirmDeleteAccount?.platform} account? 
-              Scheduled content will no longer be posted to this account.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setConfirmDeleteAccount(null)}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteConfirm}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? (
-                <>
-                  <RefreshCw className="animate-spin h-4 w-4 mr-2" />
-                  Removing...
-                </>
-              ) : (
-                <>Disconnect</>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Connected Social Accounts</CardTitle>
+          <CardDescription>Manage social media accounts for {partnerName}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              Failed to load social accounts: {error instanceof Error ? error.message : "Unknown error"}
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Connected Social Accounts</CardTitle>
+        <CardDescription>Manage social media accounts for {partnerName}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {accounts && accounts.length > 0 ? (
+          <div className="space-y-4">
+            {accounts.map((account) => (
+              <div
+                key={account.id}
+                className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full ${getPlatformColor(account.platform)} flex items-center justify-center`}>
+                    {getPlatformIcon(account.platform)}
+                  </div>
+                  <div>
+                    <p className="font-medium">{account.platformUsername}</p>
+                    <p className="text-sm text-gray-500 capitalize">{account.platform.replace('_', ' ')}</p>
+                  </div>
+                </div>
+                {isConfirmingDelete === account.id ? (
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="destructive" 
+                      size="sm" 
+                      onClick={() => deleteMutation.mutate(account.id)}
+                      disabled={deleteMutation.isPending}
+                    >
+                      {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                      Confirm
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setIsConfirmingDelete(null)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => setIsConfirmingDelete(account.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span className="sr-only">Remove account</span>
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-10 space-y-3">
+            <div className="flex justify-center">
+              <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
+                <AlertCircle className="h-6 w-6 text-gray-500" />
+              </div>
+            </div>
+            <div>
+              <p className="font-medium">No social accounts connected</p>
+              <p className="text-gray-500 text-sm">
+                Use the buttons below to connect social accounts for this partner.
+              </p>
+            </div>
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="flex flex-wrap gap-2">
+        <SocialConnectButton 
+          partnerId={partnerId} 
+          platform="facebook" 
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['/api/social-accounts', partnerId] });
+          }}
+        />
+        <Button variant="outline" disabled>
+          <Instagram className="h-4 w-4 mr-2" /> 
+          Connect Instagram
+        </Button>
+        <Button variant="outline" disabled>
+          <Globe className="h-4 w-4 mr-2" /> 
+          Connect Google Business
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }

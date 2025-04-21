@@ -1,236 +1,302 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useRoute } from "wouter";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { RetailPartner } from "@shared/schema";
+import { useEffect, useState } from "react";
+import { useParams, useLocation, Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { 
-  ArrowLeft, 
-  Building, 
+  ChevronLeft, 
+  User, 
   Mail, 
   Phone, 
   MapPin, 
-  Edit, 
   Calendar, 
-  RefreshCw, 
-  AlertTriangle 
+  AlertCircle, 
+  Loader2,
+  Building,
+  Tag,
+  MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
-import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SocialAccounts } from "@/components/partners/social-accounts";
-import { MobileNav } from "@/components/layout/mobile-nav";
+import { RetailPartner } from "@shared/schema";
+import { formatDate } from "@/lib/utils";
 
 export default function PartnerDetail() {
-  const [, params] = useRoute("/retail-partners/:id");
-  const partnerId = params?.id ? parseInt(params.id) : null;
-  const { toast } = useToast();
+  const { id } = useParams();
+  const [, navigate] = useLocation();
+  const [activeTab, setActiveTab] = useState("overview");
+  const parsedId = parseInt(id);
 
-  // Fetch partner details
-  const { 
-    data: partner, 
-    isLoading, 
-    error, 
-    refetch 
-  } = useQuery({
-    queryKey: ['/api/demo/retail-partners', partnerId],
-    queryFn: async () => {
-      const response = await fetch(`/api/demo/retail-partners/${partnerId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch partner details');
-      }
-      return response.json();
-    },
-    enabled: !!partnerId, // Only run if partner id exists
+  // Query for partner details
+  const {
+    data: partner,
+    isLoading,
+    error,
+  } = useQuery<RetailPartner>({
+    queryKey: [`/api/demo/retail-partners/${id}`],
+    queryFn: () => 
+      fetch(`/api/demo/retail-partners/${id}`)
+        .then(res => {
+          if (!res.ok) throw new Error("Failed to fetch partner details");
+          return res.json();
+        }),
+    enabled: !isNaN(parsedId),
   });
 
-  // Format date function
-  const formatDate = (dateString?: string | null) => {
-    if (!dateString) return "Not available";
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
-    } catch (err) {
-      return "Invalid date";
+  // Redirect if ID is invalid
+  useEffect(() => {
+    if (isNaN(parsedId)) {
+      navigate("/retail-partners");
     }
-  };
+  }, [parsedId, navigate]);
 
-  // Get partner initials for avatar
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
+  // Get status badge color
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'bg-green-100 text-green-800 hover:bg-green-200';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
+      case 'needs_attention':
+        return 'bg-red-100 text-red-800 hover:bg-red-200';
+      case 'inactive':
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+      default:
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+    }
   };
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen flex-col">
-        <MobileNav />
-        <main className="flex-1 p-4 md:p-6">
-          <div className="mx-auto max-w-7xl">
-            <div className="flex items-center">
-              <Link href="/retail-partners">
-                <Button variant="ghost" size="icon" className="mr-4">
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              </Link>
-              <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse"></div>
-              <div className="ml-4 h-6 w-48 bg-gray-200 rounded animate-pulse"></div>
-            </div>
-            <div className="mt-8 grid gap-6 md:grid-cols-2">
-              <div className="h-64 bg-gray-200 rounded-lg animate-pulse"></div>
-              <div className="h-64 bg-gray-200 rounded-lg animate-pulse"></div>
-            </div>
-          </div>
-        </main>
+      <div className="container mx-auto py-8 px-4">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-10 w-10 animate-spin text-gray-400" />
+        </div>
       </div>
     );
   }
 
   if (error || !partner) {
     return (
-      <div className="flex min-h-screen flex-col">
-        <MobileNav />
-        <main className="flex-1 p-4 md:p-6">
-          <div className="mx-auto max-w-7xl">
-            <div className="text-center py-12">
-              <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold mb-2">Error Loading Partner</h2>
-              <p className="text-gray-600 mb-6">
-                {error instanceof Error ? error.message : "Failed to load partner details"}
-              </p>
-              <div className="flex justify-center gap-4">
-                <Button 
-                  variant="outline" 
-                  onClick={() => refetch()}
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Try Again
-                </Button>
-                <Link href="/retail-partners">
-                  <Button>
-                    Back to Partners
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </main>
+      <div className="container mx-auto py-8 px-4">
+        <Alert variant="destructive" className="max-w-3xl mx-auto">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            Failed to load partner details: {error instanceof Error ? error.message : "Partner not found"}
+          </AlertDescription>
+        </Alert>
+        <div className="flex justify-center mt-4">
+          <Button variant="outline" onClick={() => navigate("/retail-partners")}>
+            <ChevronLeft className="h-4 w-4 mr-2" />
+            Back to Partners
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <MobileNav />
-      <main className="flex-1 p-4 md:p-6">
-        <div className="mx-auto max-w-7xl">
-          {/* Header with back button */}
-          <div className="flex items-center mb-6">
-            <Link href="/retail-partners">
-              <Button variant="ghost" size="icon" className="mr-4">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <div className="flex items-center">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
-                {getInitials(partner.name)}
-              </div>
-              <h1 className="ml-3 text-xl font-bold">{partner.name}</h1>
-            </div>
-            <div className="ml-auto">
-              <Link href={`/retail-partners/edit/${partner.id}`}>
-                <Button variant="outline" size="sm" className="flex items-center gap-2">
-                  <Edit className="h-4 w-4" />
-                  Edit Partner
-                </Button>
-              </Link>
-            </div>
-          </div>
-
-          {/* Main content */}
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Partner Info Card */}
-            <div className="space-y-6">
-              <div className="bg-white rounded-lg border shadow-sm p-6">
-                <h2 className="text-lg font-semibold mb-4">Partner Information</h2>
-                <div className="space-y-4">
-                  <div className="flex items-start">
-                    <Building className="h-5 w-5 text-gray-500 mt-0.5 mr-3" />
-                    <div>
-                      <p className="text-sm text-gray-500">Business Name</p>
-                      <p className="font-medium">{partner.name}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start">
-                    <Mail className="h-5 w-5 text-gray-500 mt-0.5 mr-3" />
-                    <div>
-                      <p className="text-sm text-gray-500">Email</p>
-                      <p className="font-medium">{partner.contactEmail || "Not provided"}</p>
-                    </div>
-                  </div>
-                  
-                  {partner.contactPhone && (
-                    <div className="flex items-start">
-                      <Phone className="h-5 w-5 text-gray-500 mt-0.5 mr-3" />
-                      <div>
-                        <p className="text-sm text-gray-500">Phone</p>
-                        <p className="font-medium">{partner.contactPhone}</p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {partner.address && (
-                    <div className="flex items-start">
-                      <MapPin className="h-5 w-5 text-gray-500 mt-0.5 mr-3" />
-                      <div>
-                        <p className="text-sm text-gray-500">Address</p>
-                        <p className="font-medium">{partner.address}</p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-start">
-                    <Calendar className="h-5 w-5 text-gray-500 mt-0.5 mr-3" />
-                    <div>
-                      <p className="text-sm text-gray-500">Connected Since</p>
-                      <p className="font-medium">{formatDate(partner.connectionDate)}</p>
-                    </div>
-                  </div>
-                  
-                  {partner.metadata?.tags && partner.metadata.tags.length > 0 && (
-                    <div className="pt-2">
-                      <p className="text-sm text-gray-500 mb-2">Tags</p>
-                      <div className="flex flex-wrap gap-2">
-                        {partner.metadata.tags.map((tag: string) => (
-                          <span 
-                            key={tag} 
-                            className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 border border-gray-200"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Social Accounts */}
-            <div>
-              <SocialAccounts partner={partner} />
-            </div>
-          </div>
+    <div className="container mx-auto py-8 px-4">
+      {/* Back button and header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+        <div>
+          <Button variant="ghost" className="mb-4 px-0" onClick={() => navigate("/retail-partners")}>
+            <ChevronLeft className="h-4 w-4 mr-2" />
+            Back to Partners
+          </Button>
+          <h1 className="text-3xl font-bold">{partner.name}</h1>
+          <Badge className={`mt-2 ${getStatusColor(partner.status)}`}>
+            {partner.status.replace('_', ' ')}
+          </Badge>
         </div>
-      </main>
+        <div className="mt-4 md:mt-0 space-x-2">
+          <Button variant="outline">Edit Partner</Button>
+          <Button variant="secondary">Schedule Content</Button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="mt-6">
+        <TabsList className="mb-6">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="social">Social Accounts</TabsTrigger>
+          <TabsTrigger value="content">Content History</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        </TabsList>
+
+        {/* Overview Tab */}
+        <TabsContent value="overview">
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Basic Info Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Partner Information</CardTitle>
+                <CardDescription>Basic information about the partner</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <User className="h-5 w-5 text-gray-500 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Contact Person</p>
+                    <p className="text-gray-600">{partner.contactName || "Not specified"}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Mail className="h-5 w-5 text-gray-500 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Email</p>
+                    <p className="text-gray-600">{partner.contactEmail}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Phone className="h-5 w-5 text-gray-500 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Phone</p>
+                    <p className="text-gray-600">{partner.contactPhone || "Not provided"}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <MapPin className="h-5 w-5 text-gray-500 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Address</p>
+                    <p className="text-gray-600">{partner.address || "Not provided"}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Building className="h-5 w-5 text-gray-500 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Store Type</p>
+                    <p className="text-gray-600">{partner.storeType || "Not specified"}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Calendar className="h-5 w-5 text-gray-500 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Connected Since</p>
+                    <p className="text-gray-600">{formatDate(partner.connectionDate?.toString())}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Additional Info Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Additional Details</CardTitle>
+                <CardDescription>More information about this partner</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Tags */}
+                <div className="flex items-start gap-3">
+                  <Tag className="h-5 w-5 text-gray-500 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Tags</p>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {partner.metadata?.tags && partner.metadata.tags.length > 0 ? (
+                        partner.metadata.tags.map((tag: string) => (
+                          <Badge key={tag} variant="secondary" className="font-normal">
+                            {tag}
+                          </Badge>
+                        ))
+                      ) : (
+                        <p className="text-gray-600">No tags</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer Template */}
+                <div className="flex items-start gap-3">
+                  <MessageSquare className="h-5 w-5 text-gray-500 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Footer Template</p>
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                      {partner.footerTemplate ? (
+                        <p className="text-gray-600 whitespace-pre-line">{partner.footerTemplate}</p>
+                      ) : (
+                        <p className="text-gray-500 italic">No footer template specified</p>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-500 mt-1">
+                      This template is automatically appended to content posts shared with this partner.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-gray-500 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Notes</p>
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border min-h-[80px]">
+                      {partner.notes ? (
+                        <p className="text-gray-600 whitespace-pre-line">{partner.notes}</p>
+                      ) : (
+                        <p className="text-gray-500 italic">No notes</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Social Accounts Tab */}
+        <TabsContent value="social">
+          <SocialAccounts partnerId={partner.id} partnerName={partner.name} />
+        </TabsContent>
+
+        {/* Content History Tab */}
+        <TabsContent value="content">
+          <Card>
+            <CardHeader>
+              <CardTitle>Content History</CardTitle>
+              <CardDescription>Posts scheduled or shared with this partner</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-10">
+                <div className="flex justify-center">
+                  <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
+                    <AlertCircle className="h-6 w-6 text-gray-500" />
+                  </div>
+                </div>
+                <p className="font-medium mt-3">No content history</p>
+                <p className="text-gray-500">
+                  This partner hasn't received any content yet.
+                </p>
+                <Button className="mt-4">Schedule Content</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Analytics Tab */}
+        <TabsContent value="analytics">
+          <Card>
+            <CardHeader>
+              <CardTitle>Analytics</CardTitle>
+              <CardDescription>Performance metrics for content shared with this partner</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-10">
+                <div className="flex justify-center">
+                  <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
+                    <AlertCircle className="h-6 w-6 text-gray-500" />
+                  </div>
+                </div>
+                <p className="font-medium mt-3">No analytics available</p>
+                <p className="text-gray-500">
+                  Analytics will be available once content has been shared.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

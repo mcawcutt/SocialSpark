@@ -1,114 +1,203 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Facebook, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Facebook } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { RetailPartner } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
 interface SocialConnectButtonProps {
-  partner: RetailPartner;
-  onConnected?: () => void;
+  partnerId: number;
+  platform: "facebook"; // Can add more platforms later
+  onSuccess?: () => void;
 }
 
-export function FacebookConnectButton({ partner, onConnected }: SocialConnectButtonProps) {
-  const [isConnecting, setIsConnecting] = useState(false);
-  const { toast } = useToast();
+// Facebook SDK initialization
+function initFacebookSDK() {
+  return new Promise<void>((resolve) => {
+    // If the SDK is already loaded, resolve immediately
+    if (window.FB) {
+      resolve();
+      return;
+    }
 
-  // Function to initiate Facebook connection
-  const handleConnectFacebook = () => {
-    setIsConnecting(true);
-    
-    // Open Facebook OAuth in a popup window
-    const width = 600;
-    const height = 700;
-    const left = window.screen.width / 2 - width / 2;
-    const top = window.screen.height / 2 - height / 2;
-    
-    // Store the partner ID in sessionStorage for retrieval after auth
-    sessionStorage.setItem('facebookConnectPartnerId', partner.id.toString());
-    
-    const popup = window.open(
-      `/api/auth/facebook?returnTo=/auth/facebook/connect&partnerId=${partner.id}`,
-      'facebook-connect',
-      `width=${width},height=${height},left=${left},top=${top}`
-    );
-    
-    // Check if popup was blocked
-    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-      setIsConnecting(false);
+    // Add the Facebook SDK
+    const script = document.createElement("script");
+    script.src = "https://connect.facebook.net/en_US/sdk.js";
+    script.async = true;
+    script.defer = true;
+    document.body.appendChild(script);
+
+    // Once the script loads, initialize the SDK
+    window.fbAsyncInit = function() {
+      window.FB.init({
+        appId: "1401999351158118", // This is our Facebook App ID
+        cookie: true,
+        xfbml: true,
+        version: "v18.0"
+      });
+      resolve();
+    };
+  });
+}
+
+export function SocialConnectButton({ partnerId, platform, onSuccess }: SocialConnectButtonProps) {
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSdkReady, setIsSdkReady] = useState(false);
+
+  // Initialize Facebook SDK on component mount
+  useEffect(() => {
+    if (platform === "facebook") {
+      initFacebookSDK().then(() => {
+        setIsSdkReady(true);
+      }).catch(error => {
+        console.error("Failed to initialize Facebook SDK:", error);
+        toast({
+          title: "Facebook SDK Error",
+          description: "Failed to initialize Facebook integration. Please try again later.",
+          variant: "destructive",
+        });
+      });
+    }
+  }, [platform, toast]);
+
+  const handleFacebookConnect = async () => {
+    if (!isSdkReady) {
       toast({
-        title: "Popup Blocked",
-        description: "Please allow popups for this site and try again.",
-        variant: "destructive"
+        title: "Facebook integration not ready",
+        description: "Please wait for Facebook integration to initialize and try again.",
+        variant: "destructive",
       });
       return;
     }
-    
-    // Message listener for when the auth is complete
-    const handleMessage = (event: MessageEvent) => {
-      // Only accept messages from our own domain
-      if (event.origin !== window.location.origin) return;
-      
-      if (event.data && event.data.type === 'facebook-auth-complete') {
-        setIsConnecting(false);
-        window.removeEventListener('message', handleMessage);
-        
-        if (event.data.success) {
-          toast({
-            title: "Facebook Connected",
-            description: `Successfully connected ${partner.name} to Facebook.`,
-          });
-          
-          // Call the onConnected callback
-          if (onConnected) onConnected();
+
+    setIsLoading(true);
+
+    try {
+      // Trigger Facebook login
+      window.FB.login(async (response) => {
+        if (response.authResponse) {
+          try {
+            // Got Facebook auth response, now get extended permissions for pages
+            const pagePermissionsResponse = await new Promise((resolve) => {
+              window.FB.login((loginResponse) => {
+                resolve(loginResponse);
+              }, { 
+                scope: 'pages_show_list,pages_read_engagement,pages_manage_posts',
+                auth_type: 'rerequest'
+              });
+            });
+            
+            if (!pagePermissionsResponse.authResponse) {
+              throw new Error("Failed to get page permissions");
+            }
+            
+            // Get user profile info
+            const profile = await new Promise((resolve, reject) => {
+              window.FB.api('/me', (userRes) => {
+                if (!userRes || userRes.error) {
+                  reject(new Error("Failed to get user profile"));
+                } else {
+                  resolve(userRes);
+                }
+              });
+            });
+            
+            // Store auth data temporarily in session
+            await apiRequest('POST', '/api/social/store-facebook-auth', {
+              profile,
+              accessToken: response.authResponse.accessToken,
+            });
+            
+            // Get user pages
+            const pagesResponse = await new Promise((resolve, reject) => {
+              window.FB.api('/me/accounts', (pagesRes) => {
+                if (!pagesRes || pagesRes.error) {
+                  reject(new Error("Failed to get pages"));
+                } else {
+                  resolve(pagesRes);
+                }
+              });
+            });
+            
+            if (!pagesResponse.data || pagesResponse.data.length === 0) {
+              throw new Error("No Facebook pages found. You need to have admin access to at least one Facebook page.");
+            }
+            
+            // For this example, we'll use the first page
+            // In a real app, you might show a selection UI
+            const page = pagesResponse.data[0];
+            
+            // Create the social account in our system
+            const newAccount = await apiRequest('POST', '/api/social-accounts', {
+              partnerId,
+              platform: "facebook",
+              platformId: page.id,
+              platformUsername: page.name,
+              accessToken: page.access_token,
+              status: "active",
+              metadata: {
+                scope: "pages_show_list,pages_read_engagement,pages_manage_posts",
+                expiresIn: response.authResponse.expiresIn,
+                category: page.category
+              }
+            });
+            
+            toast({
+              title: "Facebook page connected",
+              description: `Successfully connected ${page.name} to this partner.`,
+            });
+            
+            if (onSuccess) {
+              onSuccess();
+            }
+            
+          } catch (error) {
+            console.error("Error during Facebook connection:", error);
+            toast({
+              title: "Connection failed",
+              description: error.message || "Failed to connect Facebook account",
+              variant: "destructive",
+            });
+          }
         } else {
+          console.log('User cancelled login or did not fully authorize.');
           toast({
-            title: "Connection Failed",
-            description: event.data.error || "Failed to connect to Facebook.",
-            variant: "destructive"
+            title: "Facebook connection cancelled",
+            description: "You cancelled the Facebook authorization or didn't provide the required permissions.",
           });
         }
-      }
-    };
-    
-    window.addEventListener('message', handleMessage);
-    
-    // Timeout after 2 minutes
-    setTimeout(() => {
-      window.removeEventListener('message', handleMessage);
-      if (isConnecting) {
-        setIsConnecting(false);
-        toast({
-          title: "Connection Timeout",
-          description: "The Facebook connection process timed out. Please try again.",
-          variant: "destructive"
-        });
-      }
-    }, 120000); // 2 minutes
+        setIsLoading(false);
+      }, { scope: 'email,public_profile' });
+      
+    } catch (error) {
+      console.error("Facebook connection error:", error);
+      toast({
+        title: "Connection error",
+        description: "An error occurred while connecting to Facebook. Please try again.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
   };
-  
-  return (
-    <Button 
-      variant="outline" 
-      size="sm"
-      className="flex items-center gap-2 bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
-      onClick={handleConnectFacebook}
-      disabled={isConnecting}
-    >
-      {isConnecting ? (
-        <>
-          <span className="animate-spin mr-1">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
-            </svg>
-          </span>
-          Connecting...
-        </>
-      ) : (
-        <>
-          <Facebook size={16} />
-          Connect Facebook
-        </>
-      )}
-    </Button>
-  );
+
+  if (platform === "facebook") {
+    return (
+      <Button 
+        onClick={handleFacebookConnect} 
+        disabled={isLoading || !isSdkReady}
+        variant="outline"
+        className={isLoading ? "bg-gray-100" : ""}
+      >
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        ) : (
+          <Facebook className="h-4 w-4 mr-2 text-blue-600" />
+        )}
+        Connect Facebook
+      </Button>
+    );
+  }
+
+  // Default fallback - should not happen
+  return null;
 }

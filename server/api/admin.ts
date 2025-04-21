@@ -36,6 +36,26 @@ const createBrandSchema = z.object({
 });
 
 export function setupAdminRoutes(app: Express) {
+  // Debug route to get brands without auth - FOR TESTING ONLY
+  app.get('/api/debug/brands', async (_req: Request, res: Response) => {
+    try {
+      console.log("Debug route: Getting all brands without auth check");
+      const brands = await storage.getUsersByRole('brand');
+      
+      // Add active property for any brands where it might be undefined
+      const brandsWithActive = brands.map(user => ({
+        ...user,
+        active: user.active !== undefined ? user.active : true
+      }));
+      
+      console.log(`Found ${brandsWithActive.length} brands:`, brandsWithActive.map(b => b.name).join(', '));
+      return res.json(brandsWithActive);
+    } catch (error) {
+      console.error("Error in debug brands route:", error);
+      return res.status(500).json({ error: "Failed to fetch brands" });
+    }
+  });
+
   // Get all brands (admin only)
   app.get('/api/admin/brands', adminOnly, async (req: Request, res: Response) => {
     try {

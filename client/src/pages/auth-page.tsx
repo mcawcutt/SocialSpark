@@ -271,7 +271,7 @@ export default function AuthPage() {
                         fetch('/api/demo-login', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ role: 'admin' }),
+                          body: JSON.stringify({ role: 'admin' }), // Important: This sets the admin role
                           credentials: 'include'
                         })
                         .then(async res => {

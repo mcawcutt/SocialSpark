@@ -29,7 +29,7 @@ export default function AdminBrands() {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await queryClient.invalidateQueries({ queryKey: ['/api/admin/brands'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/brands'] });
       toast({
         title: "Refreshed",
         description: "Brand list has been refreshed."
@@ -54,7 +54,7 @@ export default function AdminBrands() {
       
       if (!res.ok) throw new Error('Failed to update brand status');
       
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/brands'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/brands'] });
       
       toast({
         title: "Status Updated",

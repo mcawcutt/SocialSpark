@@ -237,31 +237,59 @@ export default function AuthPage() {
                       </div>
                     </div>
                   </div>
-                  <button 
-                    className="text-primary-600 font-medium hover:underline mt-2"
-                    onClick={() => {
-                      console.log('Attempting quick login...');
-                      fetch('/api/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username: 'demo', password: 'password' }),
-                        credentials: 'include'
-                      })
-                      .then(async res => {
-                        console.log('Login response status:', res.status);
-                        if (res.ok) {
-                          const user = await res.json();
-                          console.log('Login successful:', user);
-                          window.location.href = '/';
-                        } else {
-                          console.error('Login failed:', await res.text());
-                        }
-                      })
-                      .catch(error => console.error('Login error:', error));
-                    }}
-                  >
-                    Quick Login as Demo User
-                  </button>
+                  <div className="flex flex-col gap-2">
+                    <button 
+                      className="text-primary-600 font-medium hover:underline mt-2"
+                      onClick={() => {
+                        console.log('Attempting quick login as demo...');
+                        fetch('/api/login', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ username: 'demo', password: 'password' }),
+                          credentials: 'include'
+                        })
+                        .then(async res => {
+                          console.log('Login response status:', res.status);
+                          if (res.ok) {
+                            const user = await res.json();
+                            console.log('Login successful:', user);
+                            window.location.href = '/';
+                          } else {
+                            console.error('Login failed:', await res.text());
+                          }
+                        })
+                        .catch(error => console.error('Login error:', error));
+                      }}
+                    >
+                      Quick Login as Demo User
+                    </button>
+                    
+                    <button 
+                      className="text-primary-600 font-medium hover:underline mt-1"
+                      onClick={() => {
+                        console.log('Attempting quick login as admin...');
+                        fetch('/api/demo-login', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ role: 'admin' }),
+                          credentials: 'include'
+                        })
+                        .then(async res => {
+                          console.log('Admin login response status:', res.status);
+                          if (res.ok) {
+                            const user = await res.json();
+                            console.log('Admin login successful:', user);
+                            window.location.href = '/admin/dashboard';
+                          } else {
+                            console.error('Admin login failed:', await res.text());
+                          }
+                        })
+                        .catch(error => console.error('Admin login error:', error));
+                      }}
+                    >
+                      Quick Login as Admin
+                    </button>
+                  </div>
                 </div>
               </TabsContent>
               

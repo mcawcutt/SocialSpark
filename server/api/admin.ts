@@ -172,23 +172,38 @@ export function setupAdminRoutes(app: Express) {
     try {
       const brandId = parseInt(req.params.id);
       
+      console.log(`[AdminImpersonation] Admin ${req.user.username} is attempting to impersonate brand with ID: ${brandId}`);
+      
       if (isNaN(brandId)) {
+        console.log(`[AdminImpersonation] Invalid brand ID: ${req.params.id}`);
         return res.status(400).json({ message: "Invalid brand ID" });
       }
       
       const brand = await storage.getUser(brandId);
       
       if (!brand) {
+        console.log(`[AdminImpersonation] Brand with ID ${brandId} not found`);
         return res.status(404).json({ message: "Brand not found" });
       }
       
+      console.log(`[AdminImpersonation] Found brand: ${brand.name} (${brand.role})`);
+      
       // Only allow impersonating brands
       if (brand.role !== 'brand') {
+        console.log(`[AdminImpersonation] Cannot impersonate non-brand account. Role: ${brand.role}`);
         return res.status(400).json({ message: "Not a brand account" });
       }
       
       // Store the original admin user's ID in the session for returning later
       const adminUser = req.user;
+      console.log(`[AdminImpersonation] Storing admin user in session: ${adminUser.id} (${adminUser.username})`);
+      
+      // Ensure session is initialized
+      if (!req.session) {
+        console.log(`[AdminImpersonation] ERROR: Session is not initialized!`);
+        return res.status(500).json({ message: "Session not initialized" });
+      }
+      
       req.session.adminImpersonator = {
         id: adminUser.id,
         username: adminUser.username,

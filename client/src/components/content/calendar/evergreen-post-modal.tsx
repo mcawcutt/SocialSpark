@@ -64,8 +64,14 @@ export function EvergreenPostModal({
   
   // Get evergreen posts
   const { data: evergreenPosts = [], isLoading: isLoadingPosts } = useQuery<any[]>({
-    queryKey: ["/api/content-posts/evergreen"],
-    enabled: isOpen,
+    queryKey: ["/api/content-posts/evergreen", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const res = await fetch(`/api/content-posts/evergreen?brandId=${user.id}`);
+      if (!res.ok) throw new Error("Failed to fetch evergreen posts");
+      return res.json();
+    },
+    enabled: isOpen && !!user,
   });
   
   // Handle platform toggle
@@ -138,10 +144,12 @@ export function EvergreenPostModal({
       0
     );
     
+    // Submit the evergreen post scheduling request
     createEvergreenScheduleMutation.mutate({
       scheduledDate: finalDate,
       platforms: platformSelection,
       brandId,
+      // Partners are automatically fetched from the server for this brand
     });
   };
   

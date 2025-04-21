@@ -220,18 +220,24 @@ export function setupContentRoutes(app: Express) {
   // Schedule an evergreen post for a specific date
   app.post('/api/content-posts/evergreen-schedule', async (req: Request, res: Response) => {
     try {
-      const { brandId, scheduledDate, partnerIds, platforms } = req.body;
+      const { brandId, scheduledDate, platforms } = req.body;
       
-      if (!brandId || !scheduledDate || !partnerIds || !platforms) {
+      if (!brandId || !scheduledDate || !platforms) {
         return res.status(400).json({ error: 'Missing required parameters' });
-      }
-      
-      if (!Array.isArray(partnerIds) || partnerIds.length === 0) {
-        return res.status(400).json({ error: 'At least one partner ID is required' });
       }
       
       if (!Array.isArray(platforms) || platforms.length === 0) {
         return res.status(400).json({ error: 'At least one platform is required' });
+      }
+      
+      // Get all retail partners for this brand
+      const partners = await storage.getRetailPartnersByBrandId(brandId);
+      
+      if (partners.length === 0) {
+        return res.status(404).json({ 
+          error: 'No retail partners found',
+          message: 'Please add retail partners first before scheduling evergreen posts.'
+        });
       }
       
       // Get all evergreen posts for this brand
@@ -252,6 +258,7 @@ export function setupContentRoutes(app: Express) {
       // Create a scheduled parent post for the evergreen content
       const parentPost = await storage.createContentPost({
         brandId,
+        creatorId: brandId, // Use brandId as creatorId for demo purposes
         title: `Evergreen Schedule - ${new Date(scheduledDate).toLocaleDateString()}`,
         description: "Automatically scheduled evergreen posts for partners",
         platforms,
@@ -263,11 +270,12 @@ export function setupContentRoutes(app: Express) {
       // Store the results
       const results = {
         parentPost,
-        assignments: [] as any[]
+        assignments: [] as any[],
+        partners: partners.length
       };
       
       // For each partner, randomly select an evergreen post and create an assignment
-      for (const partnerId of partnerIds) {
+      for (const partner of partners) {
         // Randomly select an evergreen post
         const randomIndex = Math.floor(Math.random() * evergreenPosts.length);
         const selectedPost = evergreenPosts[randomIndex];
@@ -275,9 +283,9 @@ export function setupContentRoutes(app: Express) {
         // Create assignment connecting the parent post, partner, and selected content
         const assignment = await storage.createPostAssignment({
           postId: parentPost.id,
-          partnerId,
-          customFooter: req.body.customFooter,
-          customTags: req.body.customTags,
+          partnerId: partner.id,
+          customFooter: null,
+          customTags: null,
           metadata: {
             selectedEvergreenPostId: selectedPost.id,
             originalTitle: selectedPost.title,
@@ -291,6 +299,10 @@ export function setupContentRoutes(app: Express) {
           selectedPost: {
             id: selectedPost.id,
             title: selectedPost.title
+          },
+          partner: {
+            id: partner.id,
+            name: partner.name
           }
         });
       }

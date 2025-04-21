@@ -625,21 +625,30 @@ export class MemStorage implements IStorage {
     }
   }
   
-  // Only seed demo data if there are no existing partners
+  // Only seed demo data for the demo user, and only if there are no existing partners
   private async seedDemoDataIfNeeded() {
-    // Check if we already have retail partners
-    const existingPartners = Array.from(this.retailPartners.values());
+    // Get the demo user
+    const demoUser = await this.getUserByUsername("demo");
+    
+    if (!demoUser) {
+      console.log("Demo user not found, skipping demo data seeding.");
+      return;
+    }
+    
+    // Check if we already have retail partners for the demo user
+    const existingPartners = Array.from(this.retailPartners.values())
+      .filter(partner => partner.brandId === demoUser.id);
     
     if (existingPartners.length === 0) {
-      console.log("No existing partners found, seeding demo data...");
-      this.seedDemoData();
+      console.log("No existing partners found for demo user, seeding demo data...");
+      this.seedDemoData(demoUser.id);
     } else {
-      console.log(`Found ${existingPartners.length} existing partners, skipping demo data seeding.`);
+      console.log(`Found ${existingPartners.length} existing partners for demo user, skipping demo data seeding.`);
     }
   }
 
-  // Seed demo data for testing
-  private seedDemoData() {
+  // Seed demo data for testing - only for the demo user
+  private seedDemoData(brandId: number) {
     // Create demo media library items
     console.log('Creating demo media library items...');
     const demoMediaItems = [
@@ -669,7 +678,7 @@ export class MemStorage implements IStorage {
     // Add the media items to storage
     demoMediaItems.forEach(item => {
       this.createMediaItem({
-        brandId: 1, // Demo brand ID
+        brandId, // Use the provided brandId
         name: item.name,
         description: item.description,
         fileUrl: item.fileUrl,
@@ -811,7 +820,7 @@ export class MemStorage implements IStorage {
       
       this.createRetailPartner({
         ...partnerData,
-        brandId: 1,
+        brandId,
         contactPhone: "555-123-4567",
         address: "123 Main St, Anytown, USA",
         metadata: metadata
@@ -981,7 +990,7 @@ export class MemStorage implements IStorage {
         console.log(`Creating demo media item for "${mediaTitle}" with URL: ${imageUrl}`);
         
         this.createMediaItem({
-          brandId: 1,
+          brandId,
           name: `Image for "${mediaTitle}"`,
           fileUrl: imageUrl,
           fileType: "image/png",
@@ -992,7 +1001,7 @@ export class MemStorage implements IStorage {
       
       const createdPost: ContentPost = { 
         ...postData,
-        brandId: 1,
+        brandId,
         imageUrl, 
         id,
         createdAt: now,

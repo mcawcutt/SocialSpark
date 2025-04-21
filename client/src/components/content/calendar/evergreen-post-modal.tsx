@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface EvergreenPostModalProps {
   isOpen: boolean;
@@ -50,8 +51,11 @@ export function EvergreenPostModal({
     "instagram",
   ]);
   
-  // State for selected partner IDs
+  // State for partner distribution and selection
+  const [partnerDistribution, setPartnerDistribution] = useState<"all" | "byTag">("all");
   const [selectedPartnerIds, setSelectedPartnerIds] = useState<number[]>([]);
+  const [selectedPartnerTags, setSelectedPartnerTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
   
   // Get retail partners
   const { data: partners = [] } = useQuery<any[]>({
@@ -79,6 +83,47 @@ export function EvergreenPostModal({
     },
     enabled: isOpen && !!user,
   });
+  
+  // Fetch partner tags from the dedicated endpoint
+  const { data: tagData } = useQuery<string[]>({
+    queryKey: ['/api/demo/retail-partners/tags'],
+    enabled: isOpen
+  });
+  
+  // Update available tags when tag data changes
+  useEffect(() => {
+    if (tagData && tagData.length > 0) {
+      console.log('Fetched partner tags from API:', tagData);
+      setAvailableTags(tagData);
+    } else if (partners && partners.length > 0) {
+      // Extract tags from partners as fallback
+      const allTags: string[] = [];
+      
+      partners.forEach(partner => {
+        if (partner.metadata && typeof partner.metadata === 'object') {
+          const metadata = partner.metadata as { tags?: string[] };
+          if (metadata.tags && Array.isArray(metadata.tags)) {
+            allTags.push(...metadata.tags.filter(tag => typeof tag === 'string'));
+          }
+        }
+      });
+      
+      // Get unique tags only
+      const uniqueTagsSet = new Set<string>();
+      allTags.forEach(tag => uniqueTagsSet.add(tag));
+      
+      const tagsArray = Array.from(uniqueTagsSet);
+      console.log('Available partner tags (extracted):', tagsArray);
+      setAvailableTags(tagsArray);
+    }
+  }, [tagData, partners]);
+  
+  // Set all partner IDs when partners data changes
+  useEffect(() => {
+    if (partnerDistribution === "all" && partners && partners.length > 0) {
+      setSelectedPartnerIds(partners.map(p => p.id));
+    }
+  }, [partners, partnerDistribution]);
   
   // Get evergreen posts
   const { data: evergreenPosts = [], isLoading: isLoadingPosts } = useQuery<any[]>({
@@ -264,57 +309,140 @@ export function EvergreenPostModal({
             </div>
           </div>
           
-          {/* Partner selection section */}
+          {/* Partner Distribution Section */}
           <div className="grid grid-cols-4 items-start gap-4 mt-4">
             <Label className="text-right pt-2">Partners</Label>
             <div className="col-span-3">
-              {partners.length === 0 ? (
-                <div className="text-sm text-amber-700">
-                  No retail partners available
-                </div>
-              ) : (
-                <div className="max-h-40 overflow-y-auto border rounded-md p-2">
-                  {partners.map(partner => (
-                    <div key={partner.id} className="flex items-center space-x-2 py-1">
-                      <Checkbox
-                        id={`partner-${partner.id}`}
-                        checked={selectedPartnerIds.includes(partner.id)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedPartnerIds([...selectedPartnerIds, partner.id]);
-                          } else {
-                            setSelectedPartnerIds(selectedPartnerIds.filter(id => id !== partner.id));
-                          }
-                        }}
-                      />
-                      <Label htmlFor={`partner-${partner.id}`} className="cursor-pointer">
-                        {partner.name}
-                      </Label>
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium">Partner Distribution</h3>
+                <RadioGroup 
+                  defaultValue="all"
+                  onValueChange={(value) => {
+                    if (value === "all") {
+                      // Set all partner IDs when "all" is selected
+                      setSelectedPartnerIds(partners.map(p => p.id));
+                    } else {
+                      // Clear selection when switching to "byTag"
+                      setSelectedPartnerIds([]);
+                    }
+                    setPartnerDistribution(value as "all" | "byTag");
+                  }}
+                  value={partnerDistribution}
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="all" id="all-partners" />
+                    <Label htmlFor="all-partners" className="font-normal cursor-pointer">
+                      All Retail Partners
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="byTag" id="by-tag" />
+                    <Label htmlFor="by-tag" className="font-normal cursor-pointer">
+                      Target Partners by Tag
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+              
+              {partnerDistribution === "byTag" && (
+                <div className="mt-4">
+                  <Label className="text-sm">Partner Tags</Label>
+                  <Select
+                    onValueChange={(value) => {
+                      const currentTags = selectedPartnerTags;
+                      if (!currentTags.includes(value)) {
+                        setSelectedPartnerTags([...currentTags, value]);
+                        // Update selected partner IDs based on the selected tags
+                        const taggedPartners = partners.filter(partner => {
+                          if (!partner.metadata || typeof partner.metadata !== 'object') return false;
+                          const metadata = partner.metadata as { tags?: string[] };
+                          if (!metadata.tags || !Array.isArray(metadata.tags)) return false;
+                          return [...currentTags, value].some(tag => metadata.tags!.includes(tag));
+                        });
+                        setSelectedPartnerIds(taggedPartners.map(p => p.id));
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select partner tags" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableTags.length > 0 ? (
+                        availableTags.map((tag) => (
+                          <SelectItem key={tag} value={tag}>
+                            {tag}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="loading" disabled>
+                          Loading tags...
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Selected tags list with delete option */}
+                  {selectedPartnerTags.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {selectedPartnerTags.map(tag => (
+                        <div
+                          key={tag}
+                          className="bg-secondary text-secondary-foreground rounded-md px-2 py-1 text-xs flex items-center gap-1"
+                        >
+                          {tag}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0 rounded-full"
+                            onClick={() => {
+                              const newTags = selectedPartnerTags.filter(t => t !== tag);
+                              setSelectedPartnerTags(newTags);
+                              // Update selected partner IDs based on the remaining tags
+                              if (newTags.length === 0) {
+                                setSelectedPartnerIds([]);
+                              } else {
+                                const taggedPartners = partners.filter(partner => {
+                                  if (!partner.metadata || typeof partner.metadata !== 'object') return false;
+                                  const metadata = partner.metadata as { tags?: string[] };
+                                  if (!metadata.tags || !Array.isArray(metadata.tags)) return false;
+                                  return newTags.some(t => metadata.tags!.includes(t));
+                                });
+                                setSelectedPartnerIds(taggedPartners.map(p => p.id));
+                              }
+                            }}
+                          >
+                            <span className="sr-only">Remove</span>
+                            ×
+                          </Button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
+                  
+                  {/* Display partners that will receive this post */}
+                  {partnerDistribution === "byTag" && selectedPartnerTags.length > 0 && (
+                    <div className="mt-4 border rounded-md p-3 bg-muted/30">
+                      <h4 className="text-sm font-medium mb-2">Partners receiving this content:</h4>
+                      {selectedPartnerIds.length > 0 ? (
+                        <div className="space-y-1 max-h-20 overflow-y-auto">
+                          {partners
+                            .filter(p => selectedPartnerIds.includes(p.id))
+                            .map(partner => (
+                              <div key={partner.id} className="text-sm flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-primary"></div>
+                                {partner.name}
+                              </div>
+                            ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No partners match the selected tags.</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
-              
-              <div className="flex justify-between mt-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setSelectedPartnerIds(partners.map(p => p.id))}
-                  disabled={partners.length === 0}
-                >
-                  Select All
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setSelectedPartnerIds([])}
-                  disabled={selectedPartnerIds.length === 0}
-                >
-                  Clear All
-                </Button>
-              </div>
             </div>
           </div>
           

@@ -50,6 +50,9 @@ export function EvergreenPostModal({
     "instagram",
   ]);
   
+  // State for selected partner IDs
+  const [selectedPartnerIds, setSelectedPartnerIds] = useState<number[]>([]);
+  
   // Get retail partners
   const { data: partners = [] } = useQuery<any[]>({
     queryKey: ["/api/retail-partners", user?.id],
@@ -89,6 +92,7 @@ export function EvergreenPostModal({
       scheduledDate: Date;
       platforms: string[];
       brandId: number;
+      partnerIds: number[];
     }) => {
       const response = await fetch("/api/content-posts/evergreen-schedule", {
         method: "POST",
@@ -144,17 +148,27 @@ export function EvergreenPostModal({
       0
     );
     
+    // Make sure we have partners selected
+    if (selectedPartnerIds.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please select at least one retail partner.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Submit the evergreen post scheduling request
     createEvergreenScheduleMutation.mutate({
       scheduledDate: finalDate,
       platforms: platformSelection,
       brandId,
-      // Partners are automatically fetched from the server for this brand
+      partnerIds: selectedPartnerIds,
     });
   };
   
   // Validate before submission
-  const isValid = platformSelection.length > 0;
+  const isValid = platformSelection.length > 0 && selectedPartnerIds.length > 0;
   
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -219,6 +233,60 @@ export function EvergreenPostModal({
                   onCheckedChange={() => togglePlatform("google")}
                 />
                 <Label htmlFor="google">Google Business</Label>
+              </div>
+            </div>
+          </div>
+          
+          {/* Partner selection section */}
+          <div className="grid grid-cols-4 items-start gap-4 mt-4">
+            <Label className="text-right pt-2">Partners</Label>
+            <div className="col-span-3">
+              {partners.length === 0 ? (
+                <div className="text-sm text-amber-700">
+                  No retail partners available
+                </div>
+              ) : (
+                <div className="max-h-40 overflow-y-auto border rounded-md p-2">
+                  {partners.map(partner => (
+                    <div key={partner.id} className="flex items-center space-x-2 py-1">
+                      <Checkbox
+                        id={`partner-${partner.id}`}
+                        checked={selectedPartnerIds.includes(partner.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedPartnerIds([...selectedPartnerIds, partner.id]);
+                          } else {
+                            setSelectedPartnerIds(selectedPartnerIds.filter(id => id !== partner.id));
+                          }
+                        }}
+                      />
+                      <Label htmlFor={`partner-${partner.id}`} className="cursor-pointer">
+                        {partner.name}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <div className="flex justify-between mt-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setSelectedPartnerIds(partners.map(p => p.id))}
+                  disabled={partners.length === 0}
+                >
+                  Select All
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setSelectedPartnerIds([])}
+                  disabled={selectedPartnerIds.length === 0}
+                >
+                  Clear All
+                </Button>
               </div>
             </div>
           </div>

@@ -220,9 +220,9 @@ export function setupContentRoutes(app: Express) {
   // Schedule an evergreen post for a specific date
   app.post('/api/content-posts/evergreen-schedule', async (req: Request, res: Response) => {
     try {
-      const { brandId, scheduledDate, platforms } = req.body;
+      const { brandId, scheduledDate, platforms, partnerIds } = req.body;
       
-      if (!brandId || !scheduledDate || !platforms) {
+      if (!brandId || !scheduledDate || !platforms || !partnerIds) {
         return res.status(400).json({ error: 'Missing required parameters' });
       }
       
@@ -230,13 +230,18 @@ export function setupContentRoutes(app: Express) {
         return res.status(400).json({ error: 'At least one platform is required' });
       }
       
-      // Get all retail partners for this brand
-      const partners = await storage.getRetailPartnersByBrandId(brandId);
+      if (!Array.isArray(partnerIds) || partnerIds.length === 0) {
+        return res.status(400).json({ error: 'At least one partner ID is required' });
+      }
       
-      if (partners.length === 0) {
+      // Get all retail partners for this brand that match the selected partner IDs
+      const allPartners = await storage.getRetailPartnersByBrandId(brandId);
+      const selectedPartners = allPartners.filter(partner => partnerIds.includes(partner.id));
+      
+      if (selectedPartners.length === 0) {
         return res.status(404).json({ 
-          error: 'No retail partners found',
-          message: 'Please add retail partners first before scheduling evergreen posts.'
+          error: 'No matching retail partners found',
+          message: 'The selected partners could not be found or do not belong to this brand.'
         });
       }
       
@@ -271,14 +276,61 @@ export function setupContentRoutes(app: Express) {
       const results = {
         parentPost,
         assignments: [] as any[],
-        partners: partners.length
+        partners: selectedPartners.length
       };
       
-      // For each partner, randomly select an evergreen post and create an assignment
-      for (const partner of partners) {
-        // Randomly select an evergreen post
-        const randomIndex = Math.floor(Math.random() * evergreenPosts.length);
-        const selectedPost = evergreenPosts[randomIndex];
+      // Get previous assignment history for all selected partners
+      // We'll use this to avoid assigning the same post to a partner again
+      const previousAssignments: Record<number, Set<number>> = {};
+      
+      // Initialize empty sets for each partner
+      for (const partner of selectedPartners) {
+        previousAssignments[partner.id] = new Set<number>();
+      }
+      
+      // Find previous evergreen assignments
+      const previousPosts = allPosts.filter(post => 
+        post.isEvergreen && 
+        post.status === 'scheduled' && 
+        post.id !== parentPost.id
+      );
+      
+      for (const post of previousPosts) {
+        const assignments = await storage.getPostAssignmentsByPostId(post.id);
+        
+        for (const assignment of assignments) {
+          // Only consider assignments for the selected partners
+          if (partnerIds.includes(assignment.partnerId) && assignment.metadata) {
+            try {
+              const metadata = assignment.metadata as any;
+              if (metadata.selectedEvergreenPostId) {
+                // Add this post ID to the set of previously assigned posts for this partner
+                if (!previousAssignments[assignment.partnerId]) {
+                  previousAssignments[assignment.partnerId] = new Set<number>();
+                }
+                previousAssignments[assignment.partnerId].add(metadata.selectedEvergreenPostId);
+              }
+            } catch (e) {
+              console.warn('Error parsing assignment metadata', e);
+            }
+          }
+        }
+      }
+      
+      // For each partner, select an evergreen post and create an assignment
+      for (const partner of selectedPartners) {
+        // Filter out posts that were recently assigned to this partner
+        const previouslyAssignedIds = previousAssignments[partner.id];
+        const availablePosts = evergreenPosts.filter(post => 
+          !previouslyAssignedIds.has(post.id) || previouslyAssignedIds.size >= evergreenPosts.length
+        );
+        
+        // If we've gone through all posts or there are no available posts, use all posts
+        const postsToChooseFrom = availablePosts.length > 0 ? availablePosts : evergreenPosts;
+        
+        // Randomly select from available posts
+        const randomIndex = Math.floor(Math.random() * postsToChooseFrom.length);
+        const selectedPost = postsToChooseFrom[randomIndex];
         
         // Create assignment connecting the parent post, partner, and selected content
         const assignment = await storage.createPostAssignment({

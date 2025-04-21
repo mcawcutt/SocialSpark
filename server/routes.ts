@@ -168,7 +168,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Serve the admin brand login page directly
   app.get('/admin-brand-login', (_req, res) => {
-    res.sendFile(path.resolve(process.cwd(), "admin-brand-login.html"));
+    // Use absolute path and set Content-Type explicitly to avoid Vite middleware interference
+    const absolutePath = path.resolve(process.cwd(), "admin-brand-login.html");
+    console.log("Serving admin-brand-login from:", absolutePath);
+    res.setHeader('Content-Type', 'text/html');
+    res.sendFile(absolutePath, (err) => {
+      if (err) {
+        console.error("Error serving admin-brand-login.html:", err);
+        res.status(500).send("Error loading admin brand login page");
+      }
+    });
+  });
+  
+  // Serve the new brand login page directly
+  app.get('/brand-login', (_req, res) => {
+    // Use absolute path and set Content-Type explicitly to avoid Vite middleware interference
+    const absolutePath = path.resolve(process.cwd(), "brand-login.html");
+    console.log("Serving brand-login from:", absolutePath);
+    res.setHeader('Content-Type', 'text/html');
+    res.sendFile(absolutePath, (err) => {
+      if (err) {
+        console.error("Error serving brand-login.html:", err);
+        res.status(500).send("Error loading brand login page");
+      }
+    });
   });
   
   // Special demo brand login endpoint for specific brand selection

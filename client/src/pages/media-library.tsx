@@ -131,11 +131,11 @@ const FileUploadForm = ({ onSuccess }: { onSuccess: () => void }) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
-    // For now, we'll just handle the first file 
-    // (multiple file support needs more UI changes)
-    const file = files[0];
-    
-    await processFile(file);
+    // Handle multiple files
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      await processFile(file);
+    }
   };
   
   // Handle drag events
@@ -163,9 +163,11 @@ const FileUploadForm = ({ onSuccess }: { onSuccess: () => void }) => {
     setIsDragging(false);
     
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      // Just handle the first file for now
-      const file = e.dataTransfer.files[0];
-      await processFile(file);
+      // Handle multiple files
+      for (let i = 0; i < e.dataTransfer.files.length; i++) {
+        const file = e.dataTransfer.files[i];
+        await processFile(file);
+      }
     }
   };
 
@@ -252,9 +254,12 @@ const FileUploadForm = ({ onSuccess }: { onSuccess: () => void }) => {
                   ) : (
                     <>
                       <Upload className="h-6 w-6 mb-2" />
-                      <span className="text-sm">{isDragging ? 'Drop file here' : 'Click or drag to upload'}</span>
+                      <span className="text-sm">{isDragging ? 'Drop files here' : 'Click or drag to upload'}</span>
                       <span className="text-xs text-gray-500">
                         SVG, PNG, JPG, GIF or MP4 (max. 20MB)
+                      </span>
+                      <span className="text-xs text-blue-500 font-medium">
+                        Multiple files supported
                       </span>
                     </>
                   )}
@@ -266,6 +271,7 @@ const FileUploadForm = ({ onSuccess }: { onSuccess: () => void }) => {
                   className="hidden"
                   onChange={handleFileUpload}
                   disabled={isUploading}
+                  multiple
                 />
               </div>
             )}
@@ -456,8 +462,9 @@ export default function MediaLibrary() {
         <div className="fixed inset-0 bg-primary/20 flex items-center justify-center z-50 pointer-events-none">
           <div className="bg-background p-8 rounded-lg shadow-lg text-center">
             <Upload className="h-12 w-12 mx-auto mb-4 text-primary" />
-            <h3 className="text-xl font-bold">Drop to Upload</h3>
+            <h3 className="text-xl font-bold">Drop Files to Upload</h3>
             <p className="text-gray-500">Drop your media files here to add them to the library</p>
+            <p className="text-blue-500 text-sm mt-2">Multiple files supported!</p>
           </div>
         </div>
       )}
@@ -475,8 +482,8 @@ export default function MediaLibrary() {
             <DialogHeader>
               <DialogTitle>Add to Media Library</DialogTitle>
               <DialogDescription>
-                Upload a new image or video to your media library. This will be available
-                for use in your content posts.
+                Upload new images or videos to your media library. Multiple files are supported.
+                All uploaded media will be available for use in your content posts.
               </DialogDescription>
             </DialogHeader>
             <FileUploadForm onSuccess={() => setIsAddDialogOpen(false)} />
@@ -535,10 +542,10 @@ export default function MediaLibrary() {
           </DialogTrigger>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {filteredMediaItems?.map((item) => (
-            <Card key={item.id} className="overflow-hidden">
-              <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative">
+            <Card key={item.id} className="overflow-hidden h-full">
+              <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative h-28">
                 {item.fileType.startsWith("image/") ? (
                   <img
                     src={item.fileUrl}
@@ -547,29 +554,35 @@ export default function MediaLibrary() {
                   />
                 ) : (
                   <div className="flex items-center justify-center h-full">
-                    <Image className="h-16 w-16 text-gray-400" />
+                    <Image className="h-10 w-10 text-gray-400" />
                   </div>
                 )}
               </div>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base truncate">{item.name}</CardTitle>
+              <CardHeader className="p-2">
+                <CardTitle className="text-xs font-medium truncate">{item.name}</CardTitle>
               </CardHeader>
-              <CardContent className="pb-2">
+              <CardContent className="p-2 pt-0">
                 {item.description && (
-                  <p className="text-sm text-gray-500 line-clamp-2">{item.description}</p>
+                  <p className="text-xs text-gray-500 line-clamp-1">{item.description}</p>
                 )}
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {item.tags?.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="text-xs">
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {item.tags?.slice(0, 2).map((tag) => (
+                    <Badge key={tag} variant="secondary" className="text-[10px] px-1 py-0">
                       {tag}
                     </Badge>
                   ))}
+                  {(item.tags?.length || 0) > 2 && (
+                    <Badge variant="outline" className="text-[10px] px-1 py-0">
+                      +{(item.tags?.length || 0) - 2}
+                    </Badge>
+                  )}
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-between">
+              <CardFooter className="p-2 pt-0 flex justify-between items-center">
                 <Button
                   size="sm"
                   variant="ghost"
+                  className="h-6 text-xs px-2"
                   onClick={() => {
                     // Copy the URL to clipboard
                     navigator.clipboard.writeText(item.fileUrl);
@@ -583,10 +596,11 @@ export default function MediaLibrary() {
                 </Button>
                 <Button
                   size="sm"
-                  variant="destructive"
+                  variant="ghost"
+                  className="h-6 w-6 p-0"
                   onClick={() => deleteMediaMutation.mutate(item.id)}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-3 w-3 text-red-500" />
                 </Button>
               </CardFooter>
             </Card>

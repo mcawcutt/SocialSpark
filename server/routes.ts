@@ -333,7 +333,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Retail Partners endpoints
   app.get("/api/retail-partners", requireAuth, async (req, res) => {
-    const partners = await storage.getRetailPartnersByBrandId(req.user!.id);
+    // For brand users, use the brandId property (which is set to their own ID)
+    // For other users (admin), use their user ID directly
+    const brandId = req.user!.brandId || req.user!.id;
+    console.log(`[RetailPartners] Getting partners for user ${req.user!.username} (${req.user!.id}) with brandId=${brandId}`);
+    const partners = await storage.getRetailPartnersByBrandId(brandId);
+    console.log(`[RetailPartners] Found ${partners.length} partners for brandId=${brandId}`);
     res.json(partners);
   });
 
@@ -550,14 +555,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/retail-partners", requireAuth, async (req, res) => {
     try {
+      const brandId = req.user!.brandId || req.user!.id;
+      console.log(`[CreateRetailPartner] Creating partner for brandId=${brandId}, user=${req.user!.username}`);
+      
       const data = insertRetailPartnerSchema.parse({
         ...req.body,
-        brandId: req.user!.id
+        brandId: brandId
       });
       
       const partner = await storage.createRetailPartner(data);
+      console.log(`[CreateRetailPartner] Created partner ${partner.id} for brandId=${brandId}`);
       res.status(201).json(partner);
     } catch (error) {
+      console.error("[CreateRetailPartner] Error:", error);
       res.status(400).json({ message: "Invalid data", error });
     }
   });
@@ -595,10 +605,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Social Accounts endpoints
   app.get("/api/social-accounts", requireAuth, async (req, res) => {
-    const partners = await storage.getRetailPartnersByBrandId(req.user!.id);
+    const brandId = req.user!.brandId || req.user!.id;
+    console.log(`[GetSocialAccounts] Getting accounts for brandId=${brandId}, user=${req.user!.username}`);
+    
+    const partners = await storage.getRetailPartnersByBrandId(brandId);
     const partnerIds = partners.map(p => p.id);
     
     const accounts = await storage.getSocialAccountsByPartnerIds(partnerIds);
+    console.log(`[GetSocialAccounts] Found ${accounts.length} accounts for ${partners.length} partners`);
     res.json(accounts);
   });
 
@@ -619,21 +633,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Content Posts endpoints
   app.get("/api/content-posts", requireAuth, async (req, res) => {
-    const posts = await storage.getContentPostsByBrandId(req.user!.id);
+    const brandId = req.user!.brandId || req.user!.id;
+    console.log(`[GetContentPosts] Getting posts for brandId=${brandId}, user=${req.user!.username}`);
+    
+    const posts = await storage.getContentPostsByBrandId(brandId);
+    console.log(`[GetContentPosts] Found ${posts.length} posts for brandId=${brandId}`);
     res.json(posts);
   });
 
   app.post("/api/content-posts", requireAuth, async (req, res) => {
     try {
+      const brandId = req.user!.brandId || req.user!.id;
+      console.log(`[CreateContentPost] Creating post for brandId=${brandId}, user=${req.user!.username}`);
+      
       const data = insertContentPostSchema.parse({
         ...req.body,
-        brandId: req.user!.id
+        brandId: brandId
       });
       
       const post = await storage.createContentPost(data);
+      console.log(`[CreateContentPost] Created post ${post.id} for brandId=${brandId}`);
       
       // If post assignments are included
       if (req.body.partners && Array.isArray(req.body.partners)) {
+        console.log(`[CreateContentPost] Creating ${req.body.partners.length} partner assignments`);
         for (const partnerId of req.body.partners) {
           await storage.createPostAssignment({
             postId: post.id,
@@ -646,6 +669,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(201).json(post);
     } catch (error) {
+      console.error("[CreateContentPost] Error:", error);
       res.status(400).json({ message: "Invalid data", error });
     }
   });

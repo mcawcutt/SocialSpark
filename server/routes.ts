@@ -10,7 +10,8 @@ import { setupPartnerRoutes } from "./api/partners";
 import { setupBrandRoutes } from "./api/brands";
 import { setupInviteRoutes } from "./api/invites";
 import { setupTestInviteRoutes } from "./api/test-invites";
-import { setupSocialRoutes } from "./api/social";
+// Import social API routes
+import { socialRouter } from "./api/social";
 import { createBackup } from "./backup";
 import { z } from "zod";
 import {
@@ -96,7 +97,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   serveUploads(app);
   
   // Set up social media routes
-  setupSocialRoutes(app);
+  // Using the socialRouter directly
+  app.use('/api', socialRouter);
 
   // Debug endpoint to check if server is running correctly
   // Backup endpoint

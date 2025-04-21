@@ -1,20 +1,16 @@
 import { Request, Response, NextFunction } from "express";
-import { storage } from "./storage";
 
 /**
  * Middleware to require authentication for routes
  */
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  // Check if the user is authenticated
-  if (req.isAuthenticated()) {
-    return next();
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({
+      message: "Unauthorized",
+      detail: "Your session has expired or you are not logged in. Please log in to continue."
+    });
   }
-
-  // If not authenticated, respond with 401 Unauthorized
-  return res.status(401).json({
-    message: "Unauthorized",
-    detail: "Please log in to access this resource"
-  });
+  next();
 }
 
 /**
@@ -23,22 +19,20 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
  */
 export function requireRole(roles: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
-    // First ensure the user is authenticated
     if (!req.isAuthenticated()) {
       return res.status(401).json({
         message: "Unauthorized",
-        detail: "Please log in to access this resource"
+        detail: "Please log in to access this resource."
       });
     }
 
-    // Then check if they have the required role
-    if (!roles.includes(req.user.role)) {
+    if (!req.user || !req.user.role || !roles.includes(req.user.role)) {
       return res.status(403).json({
         message: "Forbidden",
-        detail: "You do not have permission to access this resource"
+        detail: "You do not have permission to access this resource."
       });
     }
-
+    
     next();
   };
 }
@@ -47,21 +41,19 @@ export function requireRole(roles: string[]) {
  * Middleware to require brand or admin role
  */
 export function requireBrandOrAdmin(req: Request, res: Response, next: NextFunction) {
-  // First ensure the user is authenticated
   if (!req.isAuthenticated()) {
     return res.status(401).json({
       message: "Unauthorized",
-      detail: "Please log in to access this resource"
+      detail: "Please log in to access this resource."
     });
   }
 
-  // Then check if they have the required role
-  if (req.user.role !== 'brand' && req.user.role !== 'admin') {
+  if (!req.user || !req.user.role || (req.user.role !== 'brand' && req.user.role !== 'admin')) {
     return res.status(403).json({
       message: "Forbidden",
-      detail: "Only brand owners and administrators can perform this action"
+      detail: "You do not have permission to access this resource."
     });
   }
-
+  
   next();
 }

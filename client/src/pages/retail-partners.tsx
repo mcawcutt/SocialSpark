@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { RetailPartner } from "@shared/schema";
+import { Link } from "wouter";
 import * as XLSX from 'xlsx';
 import { 
   PlusIcon, 
@@ -1048,7 +1049,9 @@ export default function RetailPartners() {
                                     {getInitials(partner.name)}
                                   </div>
                                   <div className="ml-3">
-                                    <p className="font-medium text-gray-800">{partner.name}</p>
+                                    <Link href={`/retail-partners/${partner.id}`}>
+                                      <p className="font-medium text-gray-800 hover:text-primary hover:underline cursor-pointer">{partner.name}</p>
+                                    </Link>
                                     <p className="text-gray-500 text-sm">{partner.address || "No address provided"}</p>
                                     {partner.metadata?.tags && partner.metadata.tags.length > 0 && (
                                       <div className="flex flex-wrap gap-1 mt-1">
@@ -1103,7 +1106,11 @@ export default function RetailPartners() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem>View Details</DropdownMenuItem>
+                                    <Link href={`/retail-partners/${partner.id}`}>
+                                      <DropdownMenuItem>
+                                        View Details
+                                      </DropdownMenuItem>
+                                    </Link>
                                     <DropdownMenuItem onClick={() => {
                                       setSelectedPartner(partner);
                                       setIsEditDialogOpen(true);

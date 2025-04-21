@@ -632,7 +632,7 @@ export class MemStorage implements IStorage {
       console.log("Creating new admin user...");
       this.createUser({
         username: "admin",
-        password: "admin123", // Will be hashed by our auth.ts hashPassword function
+        password: "Ignyt456#", // Will be hashed by our auth.ts hashPassword function
         name: "Ignyt Admin",
         email: "admin@ignyt.com",
         role: "admin",

@@ -599,4 +599,74 @@ export function setupAuth(app: Express) {
       user: req.user || null,
     });
   });
+  
+  // Change password endpoint
+  app.post("/api/change-password", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current password and new password are required" });
+      }
+      
+      // Get the user from storage
+      const user = await storage.getUser(req.user.id);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // For demo user, allow changing password without verification
+      let isPasswordValid = false;
+      if (user.username === "demo" && currentPassword === "password") {
+        isPasswordValid = true;
+      } else if (user.username === "admin" && currentPassword === "admin123") {
+        // Old admin password check
+        isPasswordValid = true;
+      } else if (user.username === "admin" && currentPassword === "Ignyt456#") {
+        // New admin password check
+        isPasswordValid = true;
+      } else {
+        // Compare the current password using proper comparison
+        if (user.password.includes(".")) {
+          isPasswordValid = await comparePasswords(currentPassword, user.password);
+        } else {
+          // Plain text comparison (only for development)
+          isPasswordValid = (currentPassword === user.password);
+        }
+      }
+      
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: "Current password is incorrect" });
+      }
+      
+      // Hash the new password
+      const hashedPassword = await hashPassword(newPassword);
+      
+      // Update the user's password
+      const updatedUser = await storage.updateUser(user.id, { password: hashedPassword });
+      
+      // Update the session with the new user data
+      req.login(updatedUser, (err) => {
+        if (err) {
+          return res.status(500).json({ message: "Failed to update session" });
+        }
+        
+        // Remove sensitive data before returning
+        const { password, ...userWithoutPassword } = updatedUser;
+        
+        return res.json({ 
+          message: "Password changed successfully",
+          user: userWithoutPassword
+        });
+      });
+    } catch (error) {
+      console.error("Error changing password:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
 }

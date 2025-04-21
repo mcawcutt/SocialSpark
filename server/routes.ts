@@ -167,7 +167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Special demo login endpoint for testing purposes
-  app.post("/api/demo-login", (req, res) => {
+  app.post("/api/demo-login", async (req, res) => {
     // This is only for development and testing
     if (process.env.NODE_ENV === 'production') {
       return res.status(403).json({ message: "Demo login not available in production" });
@@ -175,54 +175,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     console.log("Processing demo login request");
     
-    // Check if requesting admin login
-    if (req.body.role === 'admin') {
-      console.log("Processing demo ADMIN login");
-      req.login({
-        id: 2,
-        username: "admin",
-        password: "password", // This is just for the session object, not security sensitive
-        name: "System Administrator",
-        email: "admin@example.com",
-        role: "admin",
-        planType: null,
-        logo: null,
-        parentId: null,
-        active: true,
-        createdAt: new Date()
-      }, (err) => {
-        if (err) {
-          console.error("Demo admin login failed:", err);
-          return res.status(500).json({ message: "Demo admin login failed", error: err.message });
+    try {
+      // Check if requesting admin login
+      if (req.body.role === 'admin') {
+        console.log("Processing demo ADMIN login");
+        
+        // Get the admin user from storage
+        const adminUser = await storage.getUserByUsername("admin");
+        
+        if (!adminUser) {
+          return res.status(404).json({ message: "Admin user not found in database" });
         }
         
-        console.log(`Demo admin login successful`);
-        return res.json({ success: true, user: req.user });
-      });
-    } else {
-      // In demo mode, log in as the demo user
-      req.login({
-        id: 1,
-        username: "demo",
-        password: "password", // This is just for the session object, not security sensitive
-        name: req.body.name || "Acme Brands",
-        email: "demo@example.com",
-        role: "brand",
-        brandId: 1,
-        planType: "premium",
-        logo: req.body.logo || null,
-        parentId: null,
-        active: true,
-        createdAt: new Date()
-      }, (err) => {
-        if (err) {
-          console.error("Demo login failed:", err);
-          return res.status(500).json({ message: "Demo login failed", error: err.message });
+        req.login(adminUser, (err) => {
+          if (err) {
+            console.error("Demo admin login failed:", err);
+            return res.status(500).json({ message: "Demo admin login failed", error: err.message });
+          }
+          
+          console.log(`Demo admin login successful`);
+          return res.json({ success: true, user: req.user });
+        });
+      } else {
+        console.log("Processing demo BRAND login");
+        
+        // Get the demo user from storage
+        const demoUser = await storage.getUserByUsername("demo");
+        
+        if (!demoUser) {
+          return res.status(404).json({ message: "Demo user not found in database" });
         }
         
-        console.log(`Demo login successful for: ${req.user?.name}`);
-        return res.json({ success: true, user: req.user });
-      });
+        req.login(demoUser, (err) => {
+          if (err) {
+            console.error("Demo user login failed:", err);
+            return res.status(500).json({ message: "Demo login failed", error: err.message });
+          }
+          
+          console.log(`Demo brand login successful`);
+          return res.json({ success: true, user: req.user });
+        });
+      }
+    } catch (error) {
+      console.error("Error in demo login:", error);
+      return res.status(500).json({ message: "Server error during demo login" });
     }
   });
 

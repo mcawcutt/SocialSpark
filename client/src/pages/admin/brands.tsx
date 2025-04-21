@@ -17,9 +17,9 @@ export default function AdminBrands() {
   
   // Fetch brand data
   const { data: brands = [], isLoading } = useQuery({
-    queryKey: ['/api/admin/brands'],
+    queryKey: ['/api/brands'],
     queryFn: async () => {
-      const res = await fetch('/api/admin/brands');
+      const res = await fetch('/api/brands');
       if (!res.ok) throw new Error('Failed to fetch brands');
       return res.json();
     },

@@ -59,6 +59,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     next();
   };
+  
+  // Check if user has a specific role
+  const requireRole = (roles: string[]) => {
+    return (req: any, res: any, next: any) => {
+      console.log(`[Auth] ${req.method} ${req.path} - Role check:`, req.user?.role, `Required roles: ${roles}`);
+      
+      // First check authentication
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ 
+          message: "Unauthorized", 
+          detail: "Your session has expired or you are not logged in. Please log in again." 
+        });
+      }
+      
+      // Check if user has required role
+      if (!req.user || !req.user.role || !roles.includes(req.user.role)) {
+        return res.status(403).json({ 
+          message: "Forbidden", 
+          detail: `You do not have permission to access this resource. Required role(s): ${roles.join(', ')}.` 
+        });
+      }
+      
+      next();
+    };
+  };
 
   // Serve static assets from the attached_assets directory
   app.use("/assets", express.static(path.join(process.cwd(), "attached_assets")));
@@ -150,29 +175,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     console.log("Processing demo login request");
     
-    // In demo mode, log in as the demo user
-    req.login({
-      id: 1,
-      username: "demo",
-      password: "password", // This is just for the session object, not security sensitive
-      name: req.body.name || "Acme Brands",
-      email: "demo@example.com",
-      role: "brand",
-      brandId: 1,
-      planType: "premium",
-      logo: req.body.logo || null,
-      parentId: null,
-      active: true,
-      createdAt: new Date()
-    }, (err) => {
-      if (err) {
-        console.error("Demo login failed:", err);
-        return res.status(500).json({ message: "Demo login failed", error: err.message });
-      }
-      
-      console.log(`Demo login successful for: ${req.user?.name}`);
-      return res.json({ success: true, user: req.user });
-    });
+    // Check if requesting admin login
+    if (req.body.role === 'admin') {
+      console.log("Processing demo ADMIN login");
+      req.login({
+        id: 2,
+        username: "admin",
+        password: "password", // This is just for the session object, not security sensitive
+        name: "System Administrator",
+        email: "admin@example.com",
+        role: "admin",
+        planType: null,
+        logo: null,
+        parentId: null,
+        active: true,
+        createdAt: new Date()
+      }, (err) => {
+        if (err) {
+          console.error("Demo admin login failed:", err);
+          return res.status(500).json({ message: "Demo admin login failed", error: err.message });
+        }
+        
+        console.log(`Demo admin login successful`);
+        return res.json({ success: true, user: req.user });
+      });
+    } else {
+      // In demo mode, log in as the demo user
+      req.login({
+        id: 1,
+        username: "demo",
+        password: "password", // This is just for the session object, not security sensitive
+        name: req.body.name || "Acme Brands",
+        email: "demo@example.com",
+        role: "brand",
+        brandId: 1,
+        planType: "premium",
+        logo: req.body.logo || null,
+        parentId: null,
+        active: true,
+        createdAt: new Date()
+      }, (err) => {
+        if (err) {
+          console.error("Demo login failed:", err);
+          return res.status(500).json({ message: "Demo login failed", error: err.message });
+        }
+        
+        console.log(`Demo login successful for: ${req.user?.name}`);
+        return res.json({ success: true, user: req.user });
+      });
+    }
   });
 
   // Retail Partners endpoints
@@ -540,6 +591,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Summary statistics for dashboard
+  // Get all brands (admin only)
+  app.get("/api/brands", requireAuth, requireRole(['admin']), async (req, res) => {
+    try {
+      console.log("Fetching all brands for admin");
+      const brands = await storage.getUsersByRole('brand');
+      return res.json(brands);
+    } catch (error) {
+      console.error("Error fetching brands:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
   app.get("/api/dashboard-stats", requireAuth, async (req, res) => {
     // Get counts for quick stats
     const activePosts = await storage.getActivePostCount(req.user!.id);

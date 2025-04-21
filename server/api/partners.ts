@@ -21,27 +21,29 @@ export function setupPartnerRoutes(app: Express) {
   // Get all available partner tags endpoint
   app.get('/api/retail-partners/tags', requireAuth, async (req: Request, res: Response) => {
     try {
-      console.log("Getting partner tags for user:", req.user?.id, "Role:", req.user?.role);
+      // Use brandId property (set during login/impersonation) if available, otherwise fall back to user ID
+      const brandId = req.user?.brandId || req.user?.id;
+      console.log(`[GetPartnerTags] Getting tags for brandId=${brandId}, user=${req.user?.username} (${req.user?.id}), role=${req.user?.role}`);
       
-      // For brand users, only show their own partners' tags
-      let brandId = req.user?.id;
+      // If admin, allow overriding with query param
+      let effectiveBrandId = brandId;
+      if (req.user?.role === 'admin' && req.query.brandId) {
+        effectiveBrandId = parseInt(req.query.brandId as string, 10);
+      }
       
-      // If admin, use the demo brand ID only if explicitly requested
-      if (req.user?.role === 'admin') {
-        // Only use demo brand (1) if specifically requesting it
-        brandId = req.query.brandId ? parseInt(req.query.brandId as string, 10) : null;
-        
-        // If no brandId specified and admin role, return default tags
-        if (!brandId) {
-          return res.json([
-            "Urban", "Outdoor", "Premium", "Sale", 
-            "Family", "Summer", "Winter", "Gear"
-          ]);
-        }
+      // If admin with no brand specified, return default tags
+      if (req.user?.role === 'admin' && !req.query.brandId) {
+        const defaultTags = [
+          "Urban", "Outdoor", "Premium", "Sale", 
+          "Family", "Summer", "Winter", "Gear"
+        ];
+        console.log(`[GetPartnerTags] Admin requested tags with no brand specified, returning defaults`);
+        return res.json(defaultTags);
       }
       
       // Get all partners for the brand
-      const partners = await storage.getRetailPartnersByBrandId(brandId);
+      const partners = await storage.getRetailPartnersByBrandId(effectiveBrandId);
+      console.log(`[GetPartnerTags] Found ${partners.length} partners for brandId=${effectiveBrandId}`);
       
       // Extract all unique tags from partners
       const allTags: string[] = [];
@@ -55,19 +57,21 @@ export function setupPartnerRoutes(app: Express) {
       
       // Get unique tags only
       const uniqueTags = [...new Set(allTags)];
-      console.log(`Found ${uniqueTags.length} unique tags for brand ${brandId}`);
+      console.log(`[GetPartnerTags] Found ${uniqueTags.length} unique tags for brandId=${effectiveBrandId}`);
       
       // If there are no tags, return some defaults
       if (uniqueTags.length === 0) {
-        return res.json([
+        const defaultTags = [
           "Urban", "Outdoor", "Premium", "Sale", 
           "Family", "Summer", "Winter", "Gear"
-        ]);
+        ];
+        console.log(`[GetPartnerTags] No tags found for brandId=${effectiveBrandId}, returning defaults`);
+        return res.json(defaultTags);
       }
       
       return res.json(uniqueTags);
     } catch (error) {
-      console.error("Error fetching partner tags:", error);
+      console.error("[GetPartnerTags] Error fetching partner tags:", error);
       return res.status(500).json({ message: "Server error" });
     }
   });
@@ -137,59 +141,39 @@ export function setupPartnerRoutes(app: Express) {
   // Get all retail partners for the brand
   app.get('/api/retail-partners', requireBrandOrAdmin, async (req: Request, res: Response) => {
     try {
-      console.log("Getting retail partners for user:", req.user?.id, "Role:", req.user?.role);
+      // Use brandId property (set during login/impersonation) if available, otherwise fall back to user ID
+      const brandId = req.user?.brandId || req.user?.id;
+      console.log(`[GetRetailPartnersAPI] Getting retail partners for brandId=${brandId}, user=${req.user?.username} (${req.user?.id}), role=${req.user?.role}`);
       
-      // For brand users, only show their own partners
+      // For brand users, only show their own partners using the brandId
       if (req.user?.role === 'brand') {
-        // Get all brands owned by this user
-        const userBrands = await db.query.brands.findMany({
-          where: eq(brands.ownerId, req.user.id)
-        });
-        
-        const brandIds = userBrands.map(brand => brand.id);
-        
-        if (brandIds.length === 0) {
-          // Brand users should only see their own partners
-          // Don't use demo data for newly created brands
-          console.log("No brands found for user. Using user's own ID as brandId");
-          
-          // Safely get only partners associated with this specific user ID
-          const partners = await storage.getRetailPartnersByBrandId(req.user.id);
-          console.log(`Found ${partners.length} partners for user ${req.user.id}`);
-          return res.json(partners);
-        }
-        
-        // Get all partners for all brands owned by this user
-        // This is simplified - in production you would use an "in" clause
-        const partners = await storage.getRetailPartnersByBrandId(brandIds[0]);
-        console.log(`Found ${partners.length} partners for brand ${brandIds[0]}`);
+        const partners = await storage.getRetailPartnersByBrandId(brandId);
+        console.log(`[GetRetailPartnersAPI] Found ${partners.length} partners for brandId=${brandId}`);
         return res.json(partners);
       }
       
-      // For admins, allow filtering by brand ID
-      const brandId = req.query.brandId ? parseInt(req.query.brandId as string, 10) : null;
+      // For admins, allow filtering by brand ID from query param
+      const requestedBrandId = req.query.brandId ? parseInt(req.query.brandId as string, 10) : null;
       
-      if (brandId) {
-        const partners = await storage.getRetailPartnersByBrandId(brandId);
-        console.log(`Found ${partners.length} partners for brand ${brandId}`);
+      if (requestedBrandId) {
+        const partners = await storage.getRetailPartnersByBrandId(requestedBrandId);
+        console.log(`[GetRetailPartnersAPI] Admin requested partners for brandId=${requestedBrandId}, found ${partners.length}`);
         return res.json(partners);
       } else {
         // For admins without a filter, return all partners (potentially paginated in a real app)
-        // This is simplified - you would implement pagination in production
         try {
           const allPartners = await db.query.retailPartners.findMany({
             limit: 100
           });
-          console.log(`Found ${allPartners.length} partners in database`);
+          console.log(`[GetRetailPartnersAPI] Admin requested all partners, found ${allPartners.length}`);
           return res.json(allPartners);
         } catch (dbError) {
-          console.error("Error querying database for partners:", dbError);
-          // Don't use partners from demo brand (brandId 1) for other brands
-          return res.json([]); // Return empty array instead of demo partners
+          console.error("[GetRetailPartnersAPI] Error querying database for partners:", dbError);
+          return res.json([]); // Return empty array
         }
       }
     } catch (error) {
-      console.error("Error fetching retail partners:", error);
+      console.error("[GetRetailPartnersAPI] Error fetching retail partners:", error);
       return res.status(500).json({ message: "Server error" });
     }
   });

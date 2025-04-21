@@ -331,73 +331,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Retail Partners endpoints
-  app.get("/api/retail-partners", requireAuth, async (req, res) => {
-    // For brand users, use the brandId property (which is set to their own ID)
-    // For other users (admin), use their user ID directly
-    const brandId = req.user!.brandId || req.user!.id;
-    console.log(`[RetailPartners] Getting partners for user ${req.user!.username} (${req.user!.id}) with brandId=${brandId}`);
-    const partners = await storage.getRetailPartnersByBrandId(brandId);
-    console.log(`[RetailPartners] Found ${partners.length} partners for brandId=${brandId}`);
-    res.json(partners);
-  });
+  // NOTE: Retail Partners endpoints have been moved to server/api/partners.ts
 
-  // Special demo route to view retail partners without authentication
-  app.get("/api/demo/retail-partners", async (req, res) => {
-    try {
-      console.log("Demo route: Getting retail partners for brand ID 1");
-      const partners = await storage.getRetailPartnersByBrandId(1);
-      console.log(`Found ${partners.length} partners for demo brand 1`);
-      return res.json(partners);
-    } catch (error) {
-      console.error("Error fetching demo retail partners:", error);
-      return res.status(500).json({ message: "Server error" });
-    }
-  });
-  
-  // Get all unique tags for retail partners (for tag suggestions)
-  // Important: This route must come BEFORE any route with :id parameter to avoid conflicts
-  app.get("/api/demo/retail-partners/tags", async (req, res) => {
-    try {
-      console.log("Demo route: Getting all tags for retail partners");
-      const partners = await storage.getRetailPartnersByBrandId(1);
-      
-      // Extract tags from all partners
-      const allTags = new Set<string>();
-      
-      console.log(`Processing ${partners.length} partners for tags`);
-      
-      partners.forEach(partner => {
-        // Debugging
-        console.log(`Partner ${partner.id}: ${partner.name} - metadata:`, JSON.stringify(partner.metadata || {}));
-        
-        try {
-          if (partner.metadata && typeof partner.metadata === 'object') {
-            const metadata = partner.metadata as any;
-            
-            if (metadata.tags && Array.isArray(metadata.tags)) {
-              metadata.tags.forEach((tag: any) => {
-                if (tag && typeof tag === 'string') {
-                  console.log(`Adding tag: ${tag} from partner ${partner.id}`);
-                  allTags.add(tag);
-                }
-              });
-            }
-          }
-        } catch (err) {
-          console.error(`Error processing tags for partner ${partner.id}:`, err);
-        }
-      });
-      
-      const uniqueTags = Array.from(allTags).sort();
-      console.log(`Found ${uniqueTags.length} unique tags: ${JSON.stringify(uniqueTags)}`);
-      
-      return res.status(200).json(uniqueTags);
-    } catch (error) {
-      console.error("Error fetching retail partner tags:", error);
-      return res.status(500).json({ message: "Server error", error: String(error) });
-    }
-  });
+  // NOTE: These demo routes have been moved to server/api/partners.ts
 
   // Special demo route to get a specific retail partner
   app.get("/api/demo/retail-partners/:id", async (req, res) => {
@@ -553,55 +489,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/retail-partners", requireAuth, async (req, res) => {
-    try {
-      const brandId = req.user!.brandId || req.user!.id;
-      console.log(`[CreateRetailPartner] Creating partner for brandId=${brandId}, user=${req.user!.username}`);
-      
-      const data = insertRetailPartnerSchema.parse({
-        ...req.body,
-        brandId: brandId
-      });
-      
-      const partner = await storage.createRetailPartner(data);
-      console.log(`[CreateRetailPartner] Created partner ${partner.id} for brandId=${brandId}`);
-      res.status(201).json(partner);
-    } catch (error) {
-      console.error("[CreateRetailPartner] Error:", error);
-      res.status(400).json({ message: "Invalid data", error });
-    }
-  });
-
-  app.get("/api/retail-partners/:id", requireAuth, async (req, res) => {
-    const partner = await storage.getRetailPartner(parseInt(req.params.id));
-    if (!partner) {
-      return res.status(404).json({ message: "Partner not found" });
-    }
-    
-    if (partner.brandId !== req.user!.id) {
-      return res.status(403).json({ message: "Forbidden" });
-    }
-    
-    res.json(partner);
-  });
-
-  app.patch("/api/retail-partners/:id", requireAuth, async (req, res) => {
-    const partner = await storage.getRetailPartner(parseInt(req.params.id));
-    if (!partner) {
-      return res.status(404).json({ message: "Partner not found" });
-    }
-    
-    if (partner.brandId !== req.user!.id) {
-      return res.status(403).json({ message: "Forbidden" });
-    }
-    
-    try {
-      const updatedPartner = await storage.updateRetailPartner(parseInt(req.params.id), req.body);
-      res.json(updatedPartner);
-    } catch (error) {
-      res.status(400).json({ message: "Invalid data", error });
-    }
-  });
+  // NOTE: Retail Partner routes have been moved to server/api/partners.ts
 
   // Social Accounts endpoints
   app.get("/api/social-accounts", requireAuth, async (req, res) => {
@@ -617,16 +505,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/social-accounts", requireAuth, async (req, res) => {
+    const brandId = req.user!.brandId || req.user!.id;
+    console.log(`[CreateSocialAccount] Creating account for brandId=${brandId}, partnerId=${req.body.partnerId}`);
+    
     const partner = await storage.getRetailPartner(req.body.partnerId);
-    if (!partner || partner.brandId !== req.user!.id) {
-      return res.status(403).json({ message: "Forbidden" });
+    
+    if (!partner) {
+      return res.status(404).json({ message: "Partner not found" });
+    }
+    
+    if (partner.brandId !== brandId) {
+      console.log(`[CreateSocialAccount] Forbidden: Partner ${req.body.partnerId} belongs to brand ${partner.brandId}, not ${brandId}`);
+      return res.status(403).json({ message: "Forbidden: You don't have access to this partner" });
     }
     
     try {
       const data = insertSocialAccountSchema.parse(req.body);
       const account = await storage.createSocialAccount(data);
+      console.log(`[CreateSocialAccount] Created account ${account.id} for partner ${req.body.partnerId}`);
       res.status(201).json(account);
     } catch (error) {
+      console.error("[CreateSocialAccount] Error:", error);
       res.status(400).json({ message: "Invalid data", error });
     }
   });

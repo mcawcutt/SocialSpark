@@ -230,35 +230,49 @@ export function Sidebar() {
             </>
           )}
           
-          {/* Accessible to all users */}
-          <SidebarItem 
-            icon={<Image />} 
-            label="Media Library" 
-            href="/media-library" 
-            active={location === '/media-library'}
-          />
-          
-          <SidebarItem 
-            icon={<BarChart3 />} 
-            label="Analytics" 
-            href="/analytics" 
-            active={location === '/analytics'}
-          />
-          
-          {/* Admin only sections */}
-          {isAdmin && (
+          {/* Admin-specific sidebar */}
+          {isAdmin ? (
             <>
               <SidebarItem 
-                icon={<Building />} 
-                label="Admin Dashboard" 
+                icon={<LayoutDashboard />} 
+                label="Overview" 
                 href="/admin/dashboard" 
                 active={location === '/admin/dashboard'}
               />
               <SidebarItem 
+                icon={<Building />} 
+                label="Brands" 
+                href="/admin/brands" 
+                active={location === '/admin/brands'}
+              />
+              <SidebarItem 
+                icon={<BarChart3 />} 
+                label="Analytics" 
+                href="/admin/analytics" 
+                active={location === '/admin/analytics'}
+              />
+              <SidebarItem 
                 icon={<Users />} 
-                label="User Management" 
+                label="Users" 
                 href="/admin/users" 
                 active={location === '/admin/users'}
+              />
+            </>
+          ) : (
+            /* Regular user sidebar items */
+            <>
+              <SidebarItem 
+                icon={<Image />} 
+                label="Media Library" 
+                href="/media-library" 
+                active={location === '/media-library'}
+              />
+              
+              <SidebarItem 
+                icon={<BarChart3 />} 
+                label="Analytics" 
+                href="/analytics" 
+                active={location === '/analytics'}
               />
             </>
           )}

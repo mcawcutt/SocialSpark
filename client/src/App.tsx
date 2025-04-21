@@ -49,6 +49,8 @@ function Router() {
             
             {/* Admin only routes */}
             <AdminRoute path="/admin/dashboard" component={AdminDashboard} />
+            <AdminRoute path="/admin/brands" component={AdminDashboard} /> {/* Point to Admin Dashboard for now */}
+            <AdminRoute path="/admin/analytics" component={AdminDashboard} /> {/* Point to Admin Dashboard for now */}
             <AdminRoute path="/admin/users" component={Settings} /> {/* Replace with UserManagement when created */}
             
             {/* Test routes */}

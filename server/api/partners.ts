@@ -24,7 +24,7 @@ export function setupPartnerRoutes(app: Express) {
       console.log("Getting partner tags for user:", req.user?.id, "Role:", req.user?.role);
       
       // For brand users, only show their own partners' tags
-      const brandId = req.user?.role === 'brand' ? 1 : 1; // Use brand ID 1 for demo mode
+      const brandId = req.user?.role === 'brand' ? req.user.id : 1; // Use actual user ID for real users, brand ID 1 for demo mode
       
       // Get all partners for the brand
       const partners = await storage.getRetailPartnersByBrandId(brandId);

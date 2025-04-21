@@ -645,8 +645,95 @@ export class MemStorage implements IStorage {
         role: "admin",
         planType: "premium"
       });
+      
+      // Create additional demo brands for admin view
+      console.log("Creating additional demo brands for admin view...");
+      
+      // Create Dulux brand
+      await this.createUser({
+        username: "dulux",
+        password: "password",
+        name: "Dulux Paints",
+        email: "contact@dulux.com",
+        role: "brand",
+        planType: "premium",
+        logo: "/uploads/demo-logo.png",
+        active: true
+      });
+      
+      // Create SportX brand
+      await this.createUser({
+        username: "sportx",
+        password: "password",
+        name: "SportX Gear",
+        email: "info@sportx.com",
+        role: "brand",
+        planType: "basic",
+        logo: "/uploads/demo-logo.png",
+        active: true
+      });
+      
+      // Create TechHub brand
+      await this.createUser({
+        username: "techhub",
+        password: "password",
+        name: "TechHub Solutions",
+        email: "support@techhub.com",
+        role: "brand",
+        planType: "premium",
+        logo: "/uploads/demo-logo.png",
+        active: false
+      });
     } else {
       console.log(`Admin user already exists with name: ${existingAdminUser.name}`);
+      
+      // Check if the demo brands already exist
+      const existingDulux = await this.getUserByUsername("dulux");
+      const existingSportX = await this.getUserByUsername("sportx");
+      const existingTechHub = await this.getUserByUsername("techhub");
+      
+      // Create any missing brands
+      if (!existingDulux) {
+        console.log("Creating Dulux demo brand...");
+        await this.createUser({
+          username: "dulux",
+          password: "password",
+          name: "Dulux Paints",
+          email: "contact@dulux.com",
+          role: "brand",
+          planType: "premium",
+          logo: "/uploads/demo-logo.png",
+          active: true
+        });
+      }
+      
+      if (!existingSportX) {
+        console.log("Creating SportX demo brand...");
+        await this.createUser({
+          username: "sportx",
+          password: "password",
+          name: "SportX Gear",
+          email: "info@sportx.com",
+          role: "brand",
+          planType: "basic",
+          logo: "/uploads/demo-logo.png",
+          active: true
+        });
+      }
+      
+      if (!existingTechHub) {
+        console.log("Creating TechHub demo brand...");
+        await this.createUser({
+          username: "techhub",
+          password: "password",
+          name: "TechHub Solutions",
+          email: "support@techhub.com",
+          role: "brand",
+          planType: "premium",
+          logo: "/uploads/demo-logo.png",
+          active: false
+        });
+      }
     }
   }
   

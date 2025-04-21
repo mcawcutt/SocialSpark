@@ -15,11 +15,11 @@ export default function AdminBrands() {
   const { toast } = useToast();
   const [isRefreshing, setIsRefreshing] = useState(false);
   
-  // Fetch brand data
+  // Fetch brand data from admin endpoint
   const { data: brands = [], isLoading } = useQuery({
-    queryKey: ['/api/brands'],
+    queryKey: ['/api/admin/brands'],
     queryFn: async () => {
-      const res = await fetch('/api/brands');
+      const res = await fetch('/api/admin/brands');
       if (!res.ok) throw new Error('Failed to fetch brands');
       return res.json();
     },
@@ -29,7 +29,7 @@ export default function AdminBrands() {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await queryClient.invalidateQueries({ queryKey: ['/api/brands'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/admin/brands'] });
       toast({
         title: "Refreshed",
         description: "Brand list has been refreshed."

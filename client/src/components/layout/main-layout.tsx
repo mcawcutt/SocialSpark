@@ -2,6 +2,7 @@ import { ReactNode, useEffect } from "react";
 import { Sidebar } from "./sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
+import { DemoBanner } from "@/components/ui/demo-banner";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -34,6 +35,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       <Sidebar />
       <main className="flex-1 overflow-auto">
         <div className="container mx-auto py-6">
+          <DemoBanner />
           {children}
         </div>
       </main>

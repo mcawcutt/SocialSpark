@@ -153,6 +153,24 @@ export default function AuthPage() {
               <TabsContent value="login">
                 <Form {...loginForm}>
                   <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+                    {loginMutation.isError && (
+                      <div className="rounded-md bg-red-50 p-4 mb-4">
+                        <div className="flex">
+                          <div className="flex-shrink-0">
+                            <AlertCircle className="h-5 w-5 text-red-400" aria-hidden="true" />
+                          </div>
+                          <div className="ml-3">
+                            <h3 className="text-sm font-medium text-red-800">
+                              Authentication Failed
+                            </h3>
+                            <div className="mt-1 text-sm text-red-700">
+                              <p>Invalid username or password. Please try again.</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
                     <FormField
                       control={loginForm.control}
                       name="username"
@@ -195,13 +213,30 @@ export default function AuthPage() {
                         "Login"
                       )}
                     </Button>
+                    
+                    <div className="text-sm text-center text-gray-600">
+                      <p>Admin: username: <span className="font-mono">admin</span>, password: <span className="font-mono">Ignyt456#</span></p>
+                      <p>Demo: username: <span className="font-mono">demo</span>, password: <span className="font-mono">password</span></p>
+                    </div>
                   </form>
                 </Form>
                 
                 <div className="mt-4 text-center">
-                  <p className="text-sm font-medium text-gray-800 border p-2 rounded bg-gray-100">
-                    For demo purposes, use username: <strong className="text-primary-600">demo</strong> and password: <strong className="text-primary-600">password</strong>
-                  </p>
+                  <div className="text-sm font-medium text-gray-800 border p-2 rounded bg-gray-100">
+                    <p className="font-semibold mb-1 text-primary-600">Login with these credentials:</p>
+                    <div className="grid grid-cols-2 gap-2 text-left mx-auto max-w-xs">
+                      <div className="border-r pr-2">
+                        <p className="font-medium">Demo:</p>
+                        <p>Username: <span className="font-mono">demo</span></p>
+                        <p>Password: <span className="font-mono">password</span></p>
+                      </div>
+                      <div className="pl-2">
+                        <p className="font-medium">Admin:</p>
+                        <p>Username: <span className="font-mono">admin</span></p>
+                        <p>Password: <span className="font-mono">Ignyt456#</span></p>
+                      </div>
+                    </div>
+                  </div>
                   <button 
                     className="text-primary-600 font-medium hover:underline mt-2"
                     onClick={() => {
@@ -225,7 +260,7 @@ export default function AuthPage() {
                       .catch(error => console.error('Login error:', error));
                     }}
                   >
-                    Quick Login
+                    Quick Login as Demo User
                   </button>
                 </div>
               </TabsContent>

@@ -129,6 +129,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       message: "Debug endpoint reached", 
       sessionExists: !!req.session,
       isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : false,
+      hasSession: !!req.session,
+      sessionID: req.sessionID,
+      sessionCookie: req.headers.cookie,
+      session: req.session ? {
+        isImpersonated: req.session.isImpersonated || false,
+        adminImpersonator: req.session.adminImpersonator || null
+      } : null,
       user: req.user || null,
       timestamp: new Date().toISOString()
     });

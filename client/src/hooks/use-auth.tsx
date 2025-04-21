@@ -259,6 +259,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdmin = !!user && user.role === "admin";
   const isBrand = !!user && user.role === "brand";
   const isPartner = !!user && user.role === "partner";
+  
+  // Debug information for authentication
+  console.log("[Auth Debug]", { 
+    user: user ? {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      brandId: user.brandId,
+      name: user.name
+    } : null,
+    isAdmin,
+    isBrand,
+    isPartner
+  });
 
   return (
     <AuthContext.Provider

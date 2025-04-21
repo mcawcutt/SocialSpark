@@ -285,7 +285,13 @@ export function setupAuth(app: Express) {
         return res.status(401).json({ message: "Authentication failed" });
       }
       
-      console.log("Authentication successful for user:", user.username);
+      console.log("Authentication successful for user:", user.username, "with role:", user.role);
+      
+      // For brand users, set the brandId as their own id for data isolation
+      if (user.role === 'brand' && !user.brandId) {
+        console.log(`[Login] Adding brandId=${user.id} to brand user for data isolation`);
+        user.brandId = user.id;
+      }
       
       req.login(user, (loginErr) => {
         if (loginErr) {

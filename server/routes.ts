@@ -216,25 +216,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const brandUser = await storage.getUserByUsername(brandUsername);
       
       if (!brandUser) {
+        console.log(`[DemoBrandLogin] Brand with username '${brandUsername}' not found`);
         return res.status(404).json({ message: `Brand with username '${brandUsername}' not found` });
       }
       
+      console.log(`[DemoBrandLogin] Found brand user:`, JSON.stringify({
+        id: brandUser.id,
+        username: brandUser.username,
+        name: brandUser.name,
+        role: brandUser.role
+      }));
+      
       // Check if it's actually a brand
       if (brandUser.role !== 'brand') {
+        console.log(`[DemoBrandLogin] Selected user is not a brand account. Role: ${brandUser.role}`);
         return res.status(400).json({ message: "Selected user is not a brand account" });
       }
       
-      req.login(brandUser, (err) => {
+      // For brand users, set the brandId as their own id for convenience
+      // This is important after our data isolation changes
+      const brandUserWithBrandId = {
+        ...brandUser,
+        brandId: brandUser.id // Set brandId to their own id for brand users
+      };
+      
+      console.log(`[DemoBrandLogin] Added brandId=${brandUserWithBrandId.brandId} to brand user`);
+      
+      req.login(brandUserWithBrandId, (err) => {
         if (err) {
-          console.error("Demo brand login failed:", err);
+          console.error("[DemoBrandLogin] Demo brand login failed:", err);
           return res.status(500).json({ message: "Demo brand login failed", error: err.message });
         }
         
-        console.log(`Demo login successful for brand: ${brandUser.name}`);
-        return res.json({ success: true, user: brandUser });
+        console.log(`[DemoBrandLogin] Login successful for brand: ${brandUserWithBrandId.name} (ID: ${brandUserWithBrandId.id})`);
+        return res.json({ 
+          success: true, 
+          user: brandUserWithBrandId 
+        });
       });
     } catch (error) {
-      console.error("Error in demo brand login:", error);
+      console.error("[DemoBrandLogin] Error in demo brand login:", error);
       return res.status(500).json({ message: "Server error during demo login" });
     }
   });
@@ -251,46 +272,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Check if requesting admin login
       if (req.body.role === 'admin') {
-        console.log("Processing demo ADMIN login");
+        console.log("[DemoLogin] Processing demo ADMIN login");
         
         // Get the admin user from storage
         const adminUser = await storage.getUserByUsername("admin");
         
         if (!adminUser) {
+          console.log("[DemoLogin] Admin user not found in database");
           return res.status(404).json({ message: "Admin user not found in database" });
         }
         
+        console.log(`[DemoLogin] Found admin user: ${adminUser.username} (ID: ${adminUser.id})`);
+        
         req.login(adminUser, (err) => {
           if (err) {
-            console.error("Demo admin login failed:", err);
+            console.error("[DemoLogin] Demo admin login failed:", err);
             return res.status(500).json({ message: "Demo admin login failed", error: err.message });
           }
           
-          console.log(`Demo admin login successful`);
-          return res.json({ success: true, user: req.user });
+          console.log(`[DemoLogin] Admin login successful`);
+          return res.json({ success: true, user: adminUser });
         });
       } else {
-        console.log("Processing demo BRAND login");
+        console.log("[DemoLogin] Processing demo BRAND login");
         
         // Get the demo user from storage
         const demoUser = await storage.getUserByUsername("demo");
         
         if (!demoUser) {
+          console.log("[DemoLogin] Demo user not found in database");
           return res.status(404).json({ message: "Demo user not found in database" });
         }
         
-        req.login(demoUser, (err) => {
+        // For brand users, set the brandId as their own id for convenience
+        const demoUserWithBrandId = {
+          ...demoUser,
+          brandId: demoUser.id // Set brandId to their own id for brand users
+        };
+        
+        console.log(`[DemoLogin] Found demo brand user: ${demoUserWithBrandId.username} (ID: ${demoUserWithBrandId.id}, brandId: ${demoUserWithBrandId.brandId})`);
+        
+        req.login(demoUserWithBrandId, (err) => {
           if (err) {
-            console.error("Demo user login failed:", err);
+            console.error("[DemoLogin] Demo user login failed:", err);
             return res.status(500).json({ message: "Demo login failed", error: err.message });
           }
           
-          console.log(`Demo brand login successful`);
-          return res.json({ success: true, user: req.user });
+          console.log(`[DemoLogin] Demo brand login successful`);
+          return res.json({ 
+            success: true, 
+            user: demoUserWithBrandId 
+          });
         });
       }
     } catch (error) {
-      console.error("Error in demo login:", error);
+      console.error("[DemoLogin] Error in demo login:", error);
       return res.status(500).json({ message: "Server error during demo login" });
     }
   });

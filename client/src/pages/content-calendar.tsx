@@ -128,10 +128,16 @@ export default function ContentCalendar() {
     );
   };
 
-  // Get status badge color
-  const getStatusColor = (status: string) => {
+  // Get status badge color based on status and whether it's evergreen
+  const getStatusColor = (status: string, isEvergreen: boolean = false) => {
+    // For evergreen posts, use a distinct green style
+    if (isEvergreen) {
+      return "bg-green-100 text-green-800 border border-green-300";
+    }
+    
+    // For regular posts
     switch (status) {
-      case "scheduled": return "bg-green-100 text-green-800";
+      case "scheduled": return "bg-blue-100 text-blue-800";
       case "draft": return "bg-yellow-100 text-yellow-800";
       case "automated": return "bg-blue-100 text-blue-800";
       case "published": return "bg-gray-100 text-gray-800";
@@ -499,7 +505,12 @@ export default function ContentCalendar() {
                     currentMonthPosts.sort((a: any, b: any) => {
                       return new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime();
                     }).map((post: any) => (
-                      <div key={post.id} className="flex items-center py-3 border-b border-gray-100 text-sm hover:bg-gray-50 rounded-md p-2">
+                      <div 
+                        key={post.id} 
+                        className={`flex items-center py-3 border-b text-sm hover:bg-gray-50 rounded-md p-2 ${
+                          post.isEvergreen ? 'border-green-200 bg-green-50/40' : 'border-gray-100'
+                        }`}
+                      >
                         <div className="w-32 text-gray-600">
                           {post.scheduledDate ? format(new Date(post.scheduledDate), 'MMM d, yyyy') : '-'}
                           <div className="text-xs text-gray-500">
@@ -517,7 +528,10 @@ export default function ContentCalendar() {
                             )}
                           </div>
                           <div>
-                            <div className="font-medium text-gray-800">{post.title}</div>
+                            <div className="flex items-center gap-1">
+                              {post.isEvergreen && <Leaf className="h-4 w-4 text-green-600 flex-shrink-0" />}
+                              <div className="font-medium text-gray-800">{post.title}</div>
+                            </div>
                             <div className="text-xs text-gray-500 truncate max-w-sm">
                               {post.description}
                             </div>
@@ -527,8 +541,8 @@ export default function ContentCalendar() {
                           {renderPlatformIcons(post.platforms)}
                         </div>
                         <div className="w-28 text-center">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${getStatusColor(post.status)}`}>
-                            {post.status}
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${getStatusColor(post.status, post.isEvergreen)}`}>
+                            {post.isEvergreen ? "Evergreen" : post.status}
                           </span>
                         </div>
                         <div className="w-28 text-center text-gray-600">

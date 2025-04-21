@@ -1,9 +1,11 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { DragDropContext, DropResult, resetServerContext } from "react-beautiful-dnd";
+import { DragDropContext, DropResult, Droppable, resetServerContext } from "react-beautiful-dnd";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { CreatePostButton } from "@/components/content/post-form/create-post-button";
 import { ContentPostForm } from "@/components/content/post-form/content-post-form";
+import { EvergreenPostIcon } from "@/components/content/calendar/evergreen-post-icon";
+import { EvergreenPostModal } from "@/components/content/calendar/evergreen-post-modal";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -17,6 +19,7 @@ import {
   Filter,
   Grid3X3,
   List,
+  Leaf,
   Image as ImageIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -140,6 +143,10 @@ export default function ContentCalendar() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isNewPostDialogOpen, setIsNewPostDialogOpen] = useState(false);
   
+  // State for evergreen post modal
+  const [isEvergreenModalOpen, setIsEvergreenModalOpen] = useState(false);
+  const [evergreenDate, setEvergreenDate] = useState<Date | null>(null);
+  
   // Handle day click to open new post dialog
   const handleDayClick = (day: number) => {
     const clickedDate = new Date(currentYear, currentMonth, day);
@@ -236,10 +243,6 @@ export default function ContentCalendar() {
       return;
     }
     
-    // Extract post ID from draggable ID
-    const postId = parseInt(draggableId);
-    if (isNaN(postId)) return;
-    
     // Extract date from destination droppable ID
     // Format: day-YYYY-MM-DD
     const destParts = destination.droppableId.split('-');
@@ -250,6 +253,34 @@ export default function ContentCalendar() {
     const destDay = parseInt(destParts[3]);
     
     if (isNaN(destYear) || isNaN(destMonth) || isNaN(destDay)) return;
+    
+    // Check if this is an evergreen post icon being dropped
+    if (draggableId === "evergreen-post") {
+      // Set the date for the evergreen post modal
+      const targetDate = new Date(destYear, destMonth, destDay);
+      
+      // Don't allow scheduling in the past
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (targetDate < today) {
+        toast({
+          title: "Cannot schedule in the past",
+          description: "Please select today or a future date for scheduling posts.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      setEvergreenDate(targetDate);
+      setIsEvergreenModalOpen(true);
+      return;
+    }
+    
+    // Handle regular post dragging
+    // Extract post ID from draggable ID
+    const postId = parseInt(draggableId);
+    if (isNaN(postId)) return;
     
     // Find the original post to preserve its time
     const post = posts?.find((p: ContentPostType) => p.id === postId);
@@ -280,7 +311,7 @@ export default function ContentCalendar() {
     
     // Reschedule the post
     reschedulePostMutation.mutate({ postId, newDate });
-  }, [reschedulePostMutation, posts]);
+  }, [reschedulePostMutation, posts, toast, setEvergreenDate, setIsEvergreenModalOpen]);
 
   return (
     <div className="min-h-screen flex flex-col">

@@ -6,6 +6,7 @@ import {
 import { User, InsertUser } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 type AuthContextType = {
   user: User | null;
@@ -189,6 +190,7 @@ function useLogoutMutation() {
       // First attempt regular logout
       const response = await fetch("/api/logout", {
         method: "POST",
+        credentials: "include" // Make sure we're sending cookies for authenticated requests
       });
       
       if (!response.ok) {
@@ -213,18 +215,14 @@ function useLogoutMutation() {
       queryClient.setQueryData(["/api/user"], null);
       queryClient.setQueryData(["/api/demo-user"], null);
       
-      // Invalidate both queries to trigger a complete refresh
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/demo-user"] });
+      // Invalidate all queries to reset the entire cache
+      queryClient.removeQueries();
       
       // Store a timestamp to prevent immediate re-login with demo user
       sessionStorage.setItem('last_logout_time', Date.now().toString());
       
-      // Don't force page refresh as it's confusing for users
-      // Just log that we've cleared the cache
-      if (window.location.host.includes('replit.dev') || window.location.search.includes('demo=true')) {
-        console.log("Demo user state cleared");
-      }
+      // Redirect to the login page immediately
+      window.location.href = "/auth";
       
       toast({
         title: "Logout successful",

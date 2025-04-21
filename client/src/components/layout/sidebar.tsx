@@ -204,8 +204,8 @@ export function Sidebar() {
             active={location === '/content-calendar'}
           />
           
-          {/* Brand and Admin only sections */}
-          {(isBrand || isAdmin) && (
+          {/* Brand only sections */}
+          {isBrand && (
             <>
               <SidebarItem 
                 icon={<Store />} 

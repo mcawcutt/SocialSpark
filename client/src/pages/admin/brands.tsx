@@ -72,24 +72,45 @@ export default function AdminBrands() {
   };
 
   // Handle brand impersonation
-  const handleImpersonate = async (id: number) => {
+  const handleImpersonate = async (id: number, username?: string) => {
     try {
-      const res = await apiRequest("POST", `/api/admin/impersonate/${id}`, {});
-      
-      if (!res.ok) throw new Error('Failed to impersonate brand');
-      
-      const data = await res.json();
-      
-      // Invalidate user data and redirect
-      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-      
-      // Redirect to brand dashboard
-      window.location.href = '/';
-      
-      toast({
-        title: "Impersonating Brand",
-        description: data.message
-      });
+      // If username is provided, use the demo-brand-login endpoint instead
+      if (username) {
+        const res = await apiRequest("POST", `/api/demo-brand-login`, { brandUsername: username });
+        
+        if (!res.ok) throw new Error('Failed to login as brand');
+        
+        const data = await res.json();
+        
+        // Invalidate user data and redirect
+        queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+        
+        // Redirect to brand dashboard
+        window.location.href = '/';
+        
+        toast({
+          title: "Logged in as Brand",
+          description: `Successfully logged in as ${data.user.name}`
+        });
+      } else {
+        // Use the regular impersonation endpoint
+        const res = await apiRequest("POST", `/api/admin/impersonate/${id}`, {});
+        
+        if (!res.ok) throw new Error('Failed to impersonate brand');
+        
+        const data = await res.json();
+        
+        // Invalidate user data and redirect
+        queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+        
+        // Redirect to brand dashboard
+        window.location.href = '/';
+        
+        toast({
+          title: "Impersonating Brand",
+          description: data.message
+        });
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -162,7 +183,7 @@ interface BrandsListProps {
   brands: any[];
   isLoading: boolean;
   onToggleStatus: (id: number, active: boolean) => void;
-  onImpersonate: (id: number) => void;
+  onImpersonate: (id: number, username?: string) => void;
 }
 
 function BrandsList({ brands, isLoading, onToggleStatus, onImpersonate }: BrandsListProps) {
@@ -233,7 +254,7 @@ function BrandsList({ brands, isLoading, onToggleStatus, onImpersonate }: Brands
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={() => onImpersonate(brand.id)}
+                  onClick={() => onImpersonate(brand.id, brand.username)}
                 >
                   Login as Brand
                 </Button>

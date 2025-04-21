@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Brand Login</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      color: #e03eb6;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .card:hover {
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      transform: translateY(-2px);
+    }
+    .card h2 {
+      margin-top: 0;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    .hidden {
+      display: none;
+    }
+    button {
+      background-color: #e03eb6;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    button:hover {
+      background-color: #c02ea5;
+    }
+    .details {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Select Brand to Login</h1>
+  
+  <div id="message" class="hidden"></div>
+  
+  <div id="brands-container">
+    <div class="card" data-username="demo">
+      <h2>Acme Brands</h2>
+      <p class="details">Username: demo | Role: brand | Plan: Premium</p>
+      <button onclick="loginAsBrand('demo')">Login as Acme Brands</button>
+    </div>
+    
+    <div class="card" data-username="dulux">
+      <h2>Dulux Paints</h2>
+      <p class="details">Username: dulux | Role: brand | Plan: Premium</p>
+      <button onclick="loginAsBrand('dulux')">Login as Dulux Paints</button>
+    </div>
+    
+    <div class="card" data-username="sportx">
+      <h2>SportX Gear</h2>
+      <p class="details">Username: sportx | Role: brand | Plan: Basic</p>
+      <button onclick="loginAsBrand('sportx')">Login as SportX Gear</button>
+    </div>
+    
+    <div class="card" data-username="techhub">
+      <h2>TechHub Solutions</h2>
+      <p class="details">Username: techhub | Role: brand | Plan: Premium (Inactive)</p>
+      <button onclick="loginAsBrand('techhub')">Login as TechHub Solutions</button>
+    </div>
+
+    <div class="card" data-username="admin">
+      <h2>Admin Account</h2>
+      <p class="details">Username: admin | Role: admin</p>
+      <button onclick="loginAsAdmin()">Login as Admin</button>
+    </div>
+  </div>
+
+  <script>
+    // Function to show a message
+    function showMessage(text, isError = false) {
+      const messageEl = document.getElementById('message');
+      messageEl.textContent = text;
+      messageEl.className = isError ? 'error' : 'success';
+      messageEl.classList.remove('hidden');
+      
+      // Scroll to top to show message
+      window.scrollTo(0, 0);
+    }
+    
+    // Function to login as a specific brand
+    async function loginAsBrand(brandUsername) {
+      try {
+        showMessage(`Attempting to login as ${brandUsername}...`);
+        
+        const response = await fetch('/api/demo-brand-login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ brandUsername }),
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          showMessage(`Successfully logged in as ${data.user.name}. Redirecting...`);
+          
+          // Redirect to dashboard after a brief delay
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1000);
+        } else {
+          showMessage(`Login failed: ${data.message}`, true);
+        }
+      } catch (error) {
+        showMessage(`Error: ${error.message}`, true);
+      }
+    }
+    
+    // Function to login as admin
+    async function loginAsAdmin() {
+      try {
+        showMessage('Attempting to login as admin...');
+        
+        const response = await fetch('/api/demo-login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ role: 'admin' }),
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          showMessage(`Successfully logged in as admin. Redirecting...`);
+          
+          // Redirect to admin dashboard after a brief delay
+          setTimeout(() => {
+            window.location.href = '/admin/dashboard';
+          }, 1000);
+        } else {
+          showMessage(`Login failed: ${data.message}`, true);
+        }
+      } catch (error) {
+        showMessage(`Error: ${error.message}`, true);
+      }
+    }
+  </script>
+</body>
+</html>

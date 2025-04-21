@@ -166,6 +166,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
+  // Serve the admin brand login page directly
+  app.get('/admin-brand-login', (_req, res) => {
+    res.sendFile(path.resolve(process.cwd(), "admin-brand-login.html"));
+  });
+  
+  // Special demo brand login endpoint for specific brand selection
+  app.post("/api/demo-brand-login", async (req, res) => {
+    // This is only for development and testing
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(403).json({ message: "Demo login not available in production" });
+    }
+    
+    console.log("Processing demo BRAND login with selection");
+    
+    try {
+      const { brandUsername } = req.body;
+      
+      if (!brandUsername) {
+        return res.status(400).json({ message: "Brand username is required" });
+      }
+      
+      console.log(`Looking up brand user with username: ${brandUsername}`);
+      
+      // Get the brand user from storage
+      const brandUser = await storage.getUserByUsername(brandUsername);
+      
+      if (!brandUser) {
+        return res.status(404).json({ message: `Brand with username '${brandUsername}' not found` });
+      }
+      
+      // Check if it's actually a brand
+      if (brandUser.role !== 'brand') {
+        return res.status(400).json({ message: "Selected user is not a brand account" });
+      }
+      
+      req.login(brandUser, (err) => {
+        if (err) {
+          console.error("Demo brand login failed:", err);
+          return res.status(500).json({ message: "Demo brand login failed", error: err.message });
+        }
+        
+        console.log(`Demo login successful for brand: ${brandUser.name}`);
+        return res.json({ success: true, user: brandUser });
+      });
+    } catch (error) {
+      console.error("Error in demo brand login:", error);
+      return res.status(500).json({ message: "Server error during demo login" });
+    }
+  });
+
   // Special demo login endpoint for testing purposes
   app.post("/api/demo-login", async (req, res) => {
     // This is only for development and testing

@@ -1,6 +1,7 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import { Strategy as FacebookStrategy } from "passport-facebook";
+import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
@@ -66,6 +67,69 @@ export function setupAuth(app: Express) {
   app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
+
+  // Facebook strategy
+  if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
+    passport.use(
+      new FacebookStrategy(
+        {
+          clientID: process.env.FACEBOOK_APP_ID,
+          clientSecret: process.env.FACEBOOK_APP_SECRET,
+          callbackURL: "/auth/facebook/callback",
+          profileFields: ["id", "displayName", "email", "picture.type(large)"],
+          enableProof: true
+        },
+        async (accessToken, refreshToken, profile, done) => {
+          try {
+            console.log("Facebook profile:", profile);
+            
+            // Check if this social account is already linked to a user
+            const existingSocialAccount = await storage.getSocialAccountByPlatformId("facebook", profile.id);
+            
+            let user;
+            
+            if (existingSocialAccount) {
+              // If this social account is already linked, get the associated retail partner
+              const retailPartner = await storage.getRetailPartner(existingSocialAccount.partnerId);
+              if (retailPartner && retailPartner.userId) {
+                // Get the user account associated with this retail partner
+                user = await storage.getUser(retailPartner.userId);
+              }
+            }
+            
+            if (user) {
+              // Store the access token in the social account for future API calls
+              await storage.updateSocialAccount(existingSocialAccount.id, { 
+                accessToken,
+                refreshToken: refreshToken || null,
+                metadata: {
+                  ...existingSocialAccount.metadata,
+                  lastLogin: new Date().toISOString()
+                }
+              });
+              
+              return done(null, user);
+            } else {
+              // This is a new login, not linked to any existing account
+              // We don't create a new user automatically, instead return the profile
+              // so the route handler can decide what to do (usually redirect to a linking page)
+              return done(null, false, { 
+                message: "This Facebook account is not linked to any user account",
+                facebookProfile: profile,
+                accessToken,
+                refreshToken
+              });
+            }
+          } catch (error) {
+            console.error("Error during Facebook authentication:", error);
+            return done(error as Error);
+          }
+        }
+      )
+    );
+  } else {
+    console.log("Facebook authentication is not configured. Missing FACEBOOK_APP_ID or FACEBOOK_APP_SECRET.");
+  }
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {

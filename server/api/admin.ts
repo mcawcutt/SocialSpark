@@ -1,8 +1,29 @@
-import { Express, Request, Response } from "express";
+import { Express, Request, Response, NextFunction } from "express";
 import { storage } from "../storage";
-import { requireAuth, requireRole } from "../middleware";
 import { z } from "zod";
 import { User } from "@shared/schema";
+
+// Custom middleware for admin routes
+const adminOnly = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.isAuthenticated()) {
+    console.log(`[AdminAPI] ${req.method} ${req.path} - Not authenticated`);
+    return res.status(401).json({ 
+      message: "Unauthorized", 
+      detail: "You must be logged in to access this resource." 
+    });
+  }
+  
+  if (!req.user || req.user.role !== 'admin') {
+    console.log(`[AdminAPI] ${req.method} ${req.path} - Not admin, role:`, req.user?.role);
+    return res.status(403).json({ 
+      message: "Forbidden", 
+      detail: "You do not have permission to access this resource. Admin access required." 
+    });
+  }
+  
+  console.log(`[AdminAPI] ${req.method} ${req.path} - Admin access granted:`, req.user.username);
+  next();
+};
 
 // Schema for creating a new brand
 const createBrandSchema = z.object({
@@ -16,7 +37,7 @@ const createBrandSchema = z.object({
 
 export function setupAdminRoutes(app: Express) {
   // Get all brands (admin only)
-  app.get('/api/admin/brands', requireAuth, requireRole(['admin']), async (req: Request, res: Response) => {
+  app.get('/api/admin/brands', adminOnly, async (req: Request, res: Response) => {
     try {
       // Use our new method to get all brand users directly
       const brands = await storage.getUsersByRole('brand');
@@ -35,7 +56,7 @@ export function setupAdminRoutes(app: Express) {
   });
 
   // Create a new brand (admin only)
-  app.post('/api/admin/brands', requireAuth, requireRole(['admin']), async (req: Request, res: Response) => {
+  app.post('/api/admin/brands', adminOnly, async (req: Request, res: Response) => {
     try {
       const validation = createBrandSchema.safeParse(req.body);
       
@@ -84,7 +105,7 @@ export function setupAdminRoutes(app: Express) {
   });
 
   // Update brand status (admin only)
-  app.patch('/api/admin/brands/:id', requireAuth, requireRole(['admin']), async (req: Request, res: Response) => {
+  app.patch('/api/admin/brands/:id', adminOnly, async (req: Request, res: Response) => {
     try {
       const brandId = parseInt(req.params.id);
       
@@ -104,14 +125,14 @@ export function setupAdminRoutes(app: Express) {
       }
       
       // Update only allowed fields
-      const allowedUpdates = ['active', 'planType', 'name', 'logo'];
+      // Allowed fields to update
       const updates: Partial<User> = {};
       
-      for (const field of allowedUpdates) {
-        if (field in req.body) {
-          updates[field] = req.body[field];
-        }
-      }
+      // Manual assignment to avoid TypeScript issues with dynamic property access
+      if ('active' in req.body) updates.active = req.body.active;
+      if ('planType' in req.body) updates.planType = req.body.planType;
+      if ('name' in req.body) updates.name = req.body.name;
+      if ('logo' in req.body) updates.logo = req.body.logo;
       
       if (Object.keys(updates).length === 0) {
         return res.status(400).json({ message: "No valid updates provided" });
@@ -127,7 +148,7 @@ export function setupAdminRoutes(app: Express) {
   });
 
   // Impersonate a brand (admin only)
-  app.post('/api/admin/impersonate/:id', requireAuth, requireRole(['admin']), async (req: Request, res: Response) => {
+  app.post('/api/admin/impersonate/:id', adminOnly, async (req: Request, res: Response) => {
     try {
       const brandId = parseInt(req.params.id);
       
@@ -177,7 +198,16 @@ export function setupAdminRoutes(app: Express) {
   });
   
   // Return to admin account after impersonation
-  app.post('/api/admin/end-impersonation', requireAuth, async (req: Request, res: Response) => {
+  app.post('/api/admin/end-impersonation', (req: Request, res: Response, next: NextFunction) => {
+    // Special middleware for end-impersonation - we just need to check if authenticated
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ 
+        message: "Unauthorized", 
+        detail: "You must be logged in to access this resource." 
+      });
+    }
+    next();
+  }, async (req: Request, res: Response) => {
     try {
       // Check if this is an impersonated session
       if (!req.session.isImpersonated || !req.session.adminImpersonator) {
@@ -216,7 +246,7 @@ export function setupAdminRoutes(app: Express) {
   });
 
   // Get a specific brand (admin only)
-  app.get('/api/admin/brands/:id', requireAuth, requireRole(['admin']), async (req: Request, res: Response) => {
+  app.get('/api/admin/brands/:id', adminOnly, async (req: Request, res: Response) => {
     try {
       const brandId = parseInt(req.params.id);
       
@@ -249,7 +279,7 @@ export function setupAdminRoutes(app: Express) {
   });
 
   // Get platform stats (admin only)
-  app.get('/api/admin/stats', requireAuth, requireRole(['admin']), async (req: Request, res: Response) => {
+  app.get('/api/admin/stats', adminOnly, async (req: Request, res: Response) => {
     try {
       // Get all brand users directly using our new method
       const brandUsers = await storage.getUsersByRole('brand');

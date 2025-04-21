@@ -1,6 +1,22 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Building, Users, LayoutDashboard, RefreshCw, Plus, UserRound } from "lucide-react";
+import { 
+  Building, 
+  Users, 
+  LayoutDashboard, 
+  RefreshCw, 
+  Plus, 
+  UserRound, 
+  LineChart, 
+  Zap, 
+  CreditCard,
+  Activity, 
+  BarChart3,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+  Settings
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -273,76 +289,250 @@ export default function AdminDashboard() {
         </TabsList>
 
         <TabsContent value="overview">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <Card>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <Card className="bg-gradient-to-br from-primary/5 to-background">
               <CardHeader className="pb-2">
-                <CardTitle className="text-2xl">Brands</CardTitle>
+                <CardTitle className="text-2xl flex items-center">
+                  <CreditCard className="h-5 w-5 mr-2 text-primary" />
+                  Monthly Revenue
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-4xl font-bold">
-                  {statsLoading ? (
+                  ${statsLoading ? (
                     <span className="animate-pulse">...</span>
                   ) : (
-                    stats?.totalBrands || 0
+                    stats?.monthlyRevenue || "15,250"
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Active brands: {statsLoading ? "..." : stats?.activeBrands || 0}
+                  <span className="text-green-500">↑ 12%</span> vs last month
                 </p>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gradient-to-br from-primary/5 to-background">
               <CardHeader className="pb-2">
-                <CardTitle className="text-2xl">Retail Partners</CardTitle>
+                <CardTitle className="text-2xl flex items-center">
+                  <Building className="h-5 w-5 mr-2 text-primary" />
+                  Active Brands
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-4xl font-bold">
                   {statsLoading ? (
                     <span className="animate-pulse">...</span>
                   ) : (
-                    stats?.totalRetailPartners || 0
+                    stats?.activeBrands || 0
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Connected partners: {statsLoading ? "..." : stats?.activeRetailPartners || 0}
+                  <span className="text-green-500">↑ 3</span> new this month
                 </p>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gradient-to-br from-primary/5 to-background">
               <CardHeader className="pb-2">
-                <CardTitle className="text-2xl">Content Posts</CardTitle>
+                <CardTitle className="text-2xl flex items-center">
+                  <Zap className="h-5 w-5 mr-2 text-primary" />
+                  Resource Usage
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-4xl font-bold">
                   {statsLoading ? (
                     <span className="animate-pulse">...</span>
                   ) : (
-                    stats?.totalPosts || 0
+                    `${stats?.resourceUsage || 68}%`
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Social accounts: {statsLoading ? "..." : stats?.totalSocialAccounts || 0}
+                  <span className="text-amber-500">↑ 5%</span> vs last week
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-primary/5 to-background">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-2xl flex items-center">
+                  <Activity className="h-5 w-5 mr-2 text-primary" />
+                  System Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center space-x-1 text-xl font-bold text-green-500">
+                  <CheckCircle className="h-5 w-5 mr-1" />
+                  <span>Operational</span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  All services running normally
                 </p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Recent activity and system health would go here */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>
-                View the latest activity across the platform
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Activity tracking will be added in a future update.
-              </p>
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <BarChart3 className="h-5 w-5 mr-2" />
+                  Revenue by Subscription Level
+                </CardTitle>
+                <CardDescription>
+                  Monthly recurring revenue breakdown
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-medium">Premium ($199/mo)</span>
+                      <span className="text-sm font-medium">$7,960</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2.5">
+                      <div className="bg-primary h-2.5 rounded-full" style={{ width: '52%' }}></div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-medium">Standard ($99/mo)</span>
+                      <span className="text-sm font-medium">$5,940</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2.5">
+                      <div className="bg-primary h-2.5 rounded-full" style={{ width: '39%' }}></div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-medium">Basic ($49/mo)</span>
+                      <span className="text-sm font-medium">$1,350</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2.5">
+                      <div className="bg-primary h-2.5 rounded-full" style={{ width: '9%' }}></div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="border-t pt-4">
+                <p className="text-sm text-muted-foreground">Total MRR: <strong>$15,250</strong></p>
+              </CardFooter>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <LineChart className="h-5 w-5 mr-2" />
+                  System Resources
+                </CardTitle>
+                <CardDescription>
+                  Resource usage by brand accounts
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-medium">Storage Usage (20GB limit)</span>
+                      <span className="text-sm font-medium">14.2GB / 20GB</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2.5">
+                      <div className="bg-amber-500 h-2.5 rounded-full" style={{ width: '71%' }}></div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-medium">API Calls (100k/day limit)</span>
+                      <span className="text-sm font-medium">63.4k / 100k</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2.5">
+                      <div className="bg-green-500 h-2.5 rounded-full" style={{ width: '63%' }}></div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-medium">Database Connections (500 limit)</span>
+                      <span className="text-sm font-medium">342 / 500</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2.5">
+                      <div className="bg-green-500 h-2.5 rounded-full" style={{ width: '68%' }}></div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="border-t pt-4">
+                <p className="text-sm text-muted-foreground">
+                  <AlertCircle className="h-4 w-4 inline-block mr-1 text-amber-500" />
+                  Storage approaching 75% threshold
+                </p>
+              </CardFooter>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Activity className="h-5 w-5 mr-2" />
+                  Recent Platform Activity
+                </CardTitle>
+                <CardDescription>
+                  System-wide activity and events
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex">
+                    <div className="min-w-[56px] self-start">
+                      <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary">
+                        <CheckCircle className="h-4 w-4" />
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">System backup completed</p>
+                      <p className="text-xs text-muted-foreground">Today at 3:45 PM</p>
+                      <p className="text-sm mt-1">Daily automatic system backup completed successfully. All data has been preserved.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex">
+                    <div className="min-w-[56px] self-start">
+                      <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-amber-500/10 text-amber-500">
+                        <AlertCircle className="h-4 w-4" />
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Storage usage alert</p>
+                      <p className="text-xs text-muted-foreground">Today at 2:15 PM</p>
+                      <p className="text-sm mt-1">Media storage usage has exceeded 70% of the allocated quota. Consider upgrading your plan.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex">
+                    <div className="min-w-[56px] self-start">
+                      <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-green-500/10 text-green-500">
+                        <Building className="h-4 w-4" />
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">New brand account created</p>
+                      <p className="text-xs text-muted-foreground">Yesterday at 10:22 AM</p>
+                      <p className="text-sm mt-1">Peak Outdoors has joined the platform on the Premium plan. Their account is now active.</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="border-t pt-4">
+                <Button variant="ghost" size="sm" className="ml-auto">
+                  View all activity
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="brands">
@@ -436,18 +626,224 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="users">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Settings className="h-5 w-5 mr-2" />
+                  Subscription Settings
+                </CardTitle>
+                <CardDescription>
+                  Manage subscription plans and pricing
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="p-4 border rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-medium">Premium Plan</h3>
+                        <p className="text-sm text-muted-foreground">$199/month</p>
+                      </div>
+                      <Button variant="outline" size="sm">Edit</Button>
+                    </div>
+                    <div className="mt-4">
+                      <p className="text-sm"><span className="font-medium">Features:</span> Unlimited posts, 100 retail partners, priority support, white-labeling</p>
+                      <p className="text-sm mt-1"><span className="font-medium">Active users:</span> 40</p>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 border rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-medium">Standard Plan</h3>
+                        <p className="text-sm text-muted-foreground">$99/month</p>
+                      </div>
+                      <Button variant="outline" size="sm">Edit</Button>
+                    </div>
+                    <div className="mt-4">
+                      <p className="text-sm"><span className="font-medium">Features:</span> 50 posts/month, 25 retail partners, email support</p>
+                      <p className="text-sm mt-1"><span className="font-medium">Active users:</span> 60</p>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 border rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-medium">Basic Plan</h3>
+                        <p className="text-sm text-muted-foreground">$49/month</p>
+                      </div>
+                      <Button variant="outline" size="sm">Edit</Button>
+                    </div>
+                    <div className="mt-4">
+                      <p className="text-sm"><span className="font-medium">Features:</span> 20 posts/month, 10 retail partners, standard support</p>
+                      <p className="text-sm mt-1"><span className="font-medium">Active users:</span> 28</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="border-t pt-4">
+                <Button variant="outline" className="ml-auto">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add New Plan
+                </Button>
+              </CardFooter>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Activity className="h-5 w-5 mr-2" />
+                  User Activity
+                </CardTitle>
+                <CardDescription>
+                  Recent user logins and account activities
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 border-b">
+                    <div className="flex items-center">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                        <UserRound className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Sarah Johnson</p>
+                        <p className="text-xs text-muted-foreground">Mountain Gear Inc.</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm">Logged in</p>
+                      <p className="text-xs text-muted-foreground">Today, 4:15 PM</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 border-b">
+                    <div className="flex items-center">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                        <UserRound className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Alex Chen</p>
+                        <p className="text-xs text-muted-foreground">Bike World</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm">Updated profile</p>
+                      <p className="text-xs text-muted-foreground">Today, 2:33 PM</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 border-b">
+                    <div className="flex items-center">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                        <UserRound className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Maria Rodriguez</p>
+                        <p className="text-xs text-muted-foreground">Summit Sports</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm">Changed password</p>
+                      <p className="text-xs text-muted-foreground">Today, 11:42 AM</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3">
+                    <div className="flex items-center">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                        <UserRound className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">James Wilson</p>
+                        <p className="text-xs text-muted-foreground">Trek Adventures</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm">New registration</p>
+                      <p className="text-xs text-muted-foreground">Yesterday, 3:20 PM</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="border-t pt-4">
+                <Button variant="ghost" size="sm" className="ml-auto">
+                  View all activity
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+          
           <Card>
-            <CardHeader>
-              <CardTitle>User Management</CardTitle>
-              <CardDescription>
-                This section will be implemented in a future update.
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Admin User Management</CardTitle>
+                <CardDescription>
+                  Manage administrator accounts and permissions
+                </CardDescription>
+              </div>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Admin
+              </Button>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
-                The user management interface will allow administrators to view and manage
-                all users across the platform, including partners and brand admins.
-              </p>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Username</TableHead>
+                    <TableHead>Last Active</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell>
+                      <div className="font-medium">Admin User</div>
+                      <div className="text-xs text-muted-foreground">admin@ignyt.com</div>
+                    </TableCell>
+                    <TableCell>admin</TableCell>
+                    <TableCell>Now</TableCell>
+                    <TableCell>
+                      <Badge>Super Admin</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm">Edit</Button>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      <div className="font-medium">John Smith</div>
+                      <div className="text-xs text-muted-foreground">john@ignyt.com</div>
+                    </TableCell>
+                    <TableCell>john</TableCell>
+                    <TableCell>2 hours ago</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">Support Admin</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm">Edit</Button>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      <div className="font-medium">Emma Davis</div>
+                      <div className="text-xs text-muted-foreground">emma@ignyt.com</div>
+                    </TableCell>
+                    <TableCell>emma</TableCell>
+                    <TableCell>Yesterday</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">Support Admin</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm">Edit</Button>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>

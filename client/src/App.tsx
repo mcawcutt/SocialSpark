@@ -19,6 +19,8 @@ import AuthPage from "@/pages/auth-page";
 import EvergreenContent from "@/pages/evergreen-content";
 import MediaLibrary from "@/pages/media-library";
 import AdminDashboard from "@/pages/admin/dashboard";
+import AdminBrands from "@/pages/admin/brands";
+import AdminAnalytics from "@/pages/admin/analytics";
 import TestUpload from "@/pages/test-upload";
 import { AuthProvider } from "@/hooks/use-auth";
 import { MainLayout } from "@/components/layout/main-layout";
@@ -49,8 +51,8 @@ function Router() {
             
             {/* Admin only routes */}
             <AdminRoute path="/admin/dashboard" component={AdminDashboard} />
-            <AdminRoute path="/admin/brands" component={AdminDashboard} /> {/* Point to Admin Dashboard for now */}
-            <AdminRoute path="/admin/analytics" component={AdminDashboard} /> {/* Point to Admin Dashboard for now */}
+            <AdminRoute path="/admin/brands" component={AdminBrands} />
+            <AdminRoute path="/admin/analytics" component={AdminAnalytics} />
             <AdminRoute path="/admin/users" component={Settings} /> {/* Replace with UserManagement when created */}
             
             {/* Test routes */}

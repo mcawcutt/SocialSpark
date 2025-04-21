@@ -262,12 +262,17 @@ export function Sidebar() {
             /* Regular user sidebar items */
             <>
               <SidebarItem 
+                icon={<Calendar />} 
+                label="Content Calendar" 
+                href="/content-calendar" 
+                active={location === '/content-calendar'}
+              />
+              <SidebarItem 
                 icon={<Image />} 
                 label="Media Library" 
                 href="/media-library" 
                 active={location === '/media-library'}
               />
-              
               <SidebarItem 
                 icon={<BarChart3 />} 
                 label="Analytics" 

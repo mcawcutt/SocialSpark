@@ -5,6 +5,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { RetailPartner } from "@shared/schema";
 import { Link } from "wouter";
 import * as XLSX from 'xlsx';
+import { AddPartnerForm } from "@/components/retail-partners/add-partner-form";
 import { 
   PlusIcon, 
   Search, 
@@ -595,6 +596,8 @@ export default function RetailPartners() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
+              <AddPartnerForm />
+              
               <Dialog open={isBulkDialogOpen} onOpenChange={setIsBulkDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="flex items-center" variant="outline">

@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ImageIcon, Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { DatePicker } from "@/components/ui/date-picker";
+import { TimePicker } from "@/components/ui/time-picker";
 import { Badge } from "@/components/ui/badge";
 import { MediaSelector } from "@/components/media/media-selector";
 import { FileUploader } from "@/components/media/file-uploader";
@@ -122,12 +123,18 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
   // Log when the dialog is opened/closed
   console.log('Dialog is open:', isOpen);
   
-  // Prepare default values with proper handling of scheduledDate
+  // Create a date with the current local time if no date is provided
+  const now = new Date();
+  
+  // Prepare default values with proper handling of scheduledDate and current local time
   const schedDate = initialData?.scheduledDate 
     ? (initialData.scheduledDate instanceof Date 
         ? initialData.scheduledDate 
         : new Date(initialData.scheduledDate)) 
-    : undefined;
+    : now;
+  
+  // Keep track of selected date and time separately
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(schedDate);
   
   console.log('Using scheduledDate:', schedDate);
 
@@ -506,6 +513,7 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
       form.reset();
       setSelectedFile(null);
       setImagePreview(null);
+      setSelectedDate(undefined); // Reset the date picker state
     }
   };
 
@@ -593,12 +601,15 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
         return false;
       }
       
-      if (!partner.metadata.tags) {
+      // Type assertion to access metadata properties safely
+      const metadata = partner.metadata as { tags?: string[] };
+      
+      if (!metadata.tags) {
         console.log(`Partner ${partner.name} has metadata but no tags property`);
         return false;
       }
       
-      const partnerTags = partner.metadata.tags;
+      const partnerTags = metadata.tags;
       if (!Array.isArray(partnerTags)) {
         console.log(`Partner ${partner.name} tags are not an array:`, partnerTags);
         return false;
@@ -928,20 +939,66 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
 
             {!isEvergreen && (
               <>
-                <FormField
-                  control={form.control}
-                  name="scheduledDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Schedule Date (optional)</FormLabel>
-                      <DatePicker
-                        date={field.value}
-                        setDate={field.onChange}
-                      />
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="flex flex-col space-y-4">
+                  <h3 className="font-medium">Schedule Post (optional)</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="scheduledDate"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Date</FormLabel>
+                          <DatePicker
+                            date={field.value}
+                            setDate={(date) => {
+                              if (date) {
+                                // Preserve the current time when changing the date
+                                const currentDate = field.value || new Date();
+                                date.setHours(currentDate.getHours());
+                                date.setMinutes(currentDate.getMinutes());
+                                field.onChange(date);
+                                setSelectedDate(date);
+                              } else {
+                                field.onChange(undefined);
+                                setSelectedDate(undefined);
+                              }
+                            }}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="scheduledDate"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Time</FormLabel>
+                          <TimePicker
+                            time={field.value}
+                            setTime={(time) => {
+                              if (time) {
+                                // Preserve the current date when changing just the time
+                                if (field.value) {
+                                  const newDate = new Date(field.value);
+                                  newDate.setHours(time.getHours());
+                                  newDate.setMinutes(time.getMinutes());
+                                  field.onChange(newDate);
+                                } else {
+                                  field.onChange(time);
+                                }
+                              } else {
+                                field.onChange(undefined);
+                              }
+                            }}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
                 
                 {/* Partner Distribution Selection */}
                 <div className="space-y-4">

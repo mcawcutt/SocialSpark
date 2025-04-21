@@ -116,7 +116,14 @@ export function Sidebar() {
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-sm font-medium">{user.name}</p>
+            <p className="text-sm font-medium flex items-center">
+              {user.name}
+              {(user as any).isDemoUser && (
+                <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded">
+                  Demo
+                </span>
+              )}
+            </p>
             <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
           </div>
         </div>

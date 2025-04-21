@@ -66,6 +66,14 @@ function useUserQuery() {
         return null;
       }
       
+      // Get the authenticated user first to make sure we're not logged in
+      const authCheck = await fetch("/api/user");
+      if (authCheck.ok) {
+        // If we're logged in, don't use demo data
+        console.log("User is authenticated, not using demo data");
+        return null;
+      }
+      
       const response = await fetch("/api/demo-user", {
         headers: {
           "X-Recently-Logged-Out": recentlyLoggedOut ? "true" : "false"
@@ -81,7 +89,13 @@ function useUserQuery() {
         return null;
       }
       
-      return await response.json();
+      const demoData = await response.json();
+      // Mark the user data as demo to make it clear in the UI
+      if (demoData) {
+        demoData.isDemoUser = true;
+      }
+      
+      return demoData;
     }
   });
   

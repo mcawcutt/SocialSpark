@@ -14,6 +14,7 @@ export const users = pgTable("users", {
   planType: text("plan_type").default("standard"), // "standard" or "premium"
   logo: text("logo"), // Brand logo URL
   parentId: integer("parent_id"), // For multi-brand management (child brands under a parent)
+  active: boolean("active").default(true), // Whether the user account is active
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -60,6 +61,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   planType: true,
   logo: true,
   parentId: true,
+  active: true,
 });
 
 export const insertBrandSchema = createInsertSchema(brands).pick({

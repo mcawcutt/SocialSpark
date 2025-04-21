@@ -10,6 +10,7 @@ import { setupPartnerRoutes } from "./api/partners";
 import { setupBrandRoutes } from "./api/brands";
 import { setupInviteRoutes } from "./api/invites";
 import { setupTestInviteRoutes } from "./api/test-invites";
+import { setupAdminRoutes } from "./api/admin";
 // Import social API routes
 import { socialRouter } from "./api/social";
 import { createBackup } from "./backup";
@@ -89,6 +90,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up test invite routes for development
   setupTestInviteRoutes(app);
+  
+  // Set up admin routes
+  setupAdminRoutes(app);
   
   // Set up file upload routes
   setupUploadRoutes(app);

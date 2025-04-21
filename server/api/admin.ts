@@ -18,9 +18,26 @@ export function setupAdminRoutes(app: Express) {
   // Get all brands (admin only)
   app.get('/api/admin/brands', requireAuth, requireRole(['admin']), async (req: Request, res: Response) => {
     try {
-      // In a real application, this would be paginated
-      const brands = Array.from(storage.users.values())
-        .filter(user => user.role === 'brand')
+      // We can't directly access private users map, so we need to get users another way
+      // Since we don't have a direct method to get all users, we'll create a workaround
+      const allUsers = [];
+      let userFound = true;
+      let userId = 1;
+      
+      // Fetch users one by one until we don't find any more
+      while (userFound && userId < 100) { // Limit to prevent infinite loops
+        const user = await storage.getUser(userId);
+        if (user) {
+          allUsers.push(user);
+          userId++;
+        } else {
+          userFound = false;
+        }
+      }
+      
+      // Filter to get only brand users
+      const brands = allUsers
+        .filter(user => user?.role === 'brand')
         .map(user => ({
           ...user,
           // Add active property (all brands are active by default)
@@ -162,26 +179,62 @@ export function setupAdminRoutes(app: Express) {
   // Get platform stats (admin only)
   app.get('/api/admin/stats', requireAuth, requireRole(['admin']), async (req: Request, res: Response) => {
     try {
-      // Count total brands
-      const totalBrands = Array.from(storage.users.values())
-        .filter(user => user.role === 'brand').length;
+      // Get all users to count brands
+      const allUsers = [];
+      let userId = 1;
+      let userFound = true;
       
-      // Count total retail partners
-      const totalRetailPartners = storage.retailPartners.size;
+      // Fetch users one by one
+      while (userFound && userId < 100) {
+        const user = await storage.getUser(userId);
+        if (user) {
+          allUsers.push(user);
+          userId++;
+        } else {
+          userFound = false;
+        }
+      }
       
-      // Count total content posts
-      const totalPosts = storage.contentPosts.size;
+      // Count brands
+      const brandUsers = allUsers.filter(user => user.role === 'brand');
+      const totalBrands = brandUsers.length;
+      const activeBrands = brandUsers.filter(user => user.active !== false).length;
       
-      // Count total social accounts
-      const totalSocialAccounts = storage.socialAccounts.size;
+      // Get retail partners count
+      const retailPartnersByBrand = new Map();
+      for (const brandUser of brandUsers) {
+        const partners = await storage.getRetailPartnersByBrandId(brandUser.id);
+        retailPartnersByBrand.set(brandUser.id, partners);
+      }
+      
+      // Calculate total retail partners
+      const allPartners = Array.from(retailPartnersByBrand.values()).flat();
+      const totalRetailPartners = allPartners.length;
+      const activeRetailPartners = allPartners.filter(partner => partner.status === 'active').length;
+      
+      // For content posts, need to accumulate by brand
+      let totalPosts = 0;
+      for (const brandUser of brandUsers) {
+        const posts = await storage.getContentPostsByBrandId(brandUser.id);
+        totalPosts += posts.length;
+      }
+      
+      // For social accounts, need to get all partners and their social accounts
+      let totalSocialAccounts = 0;
+      for (const partners of retailPartnersByBrand.values()) {
+        for (const partner of partners) {
+          const accounts = await storage.getSocialAccountsByPartnerId(partner.id);
+          totalSocialAccounts += accounts.length;
+        }
+      }
       
       return res.json({
         totalBrands,
         totalRetailPartners,
         totalPosts,
         totalSocialAccounts,
-        activeBrands: totalBrands, // For demo purposes, all brands are active
-        activeRetailPartners: totalRetailPartners, // For demo purposes, all partners are considered active
+        activeBrands,
+        activeRetailPartners
       });
     } catch (error) {
       console.error("Error fetching admin stats:", error);

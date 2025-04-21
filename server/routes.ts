@@ -155,6 +155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       planType: "premium",
       logo: req.body.logo || null,
       parentId: null,
+      active: true,
       createdAt: new Date()
     }, (err) => {
       if (err) {

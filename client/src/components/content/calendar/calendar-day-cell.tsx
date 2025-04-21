@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ContentPost } from "@shared/schema";
 import { Draggable, Droppable } from "react-beautiful-dnd";
-import { Pencil, Trash2, MoreHorizontal } from "lucide-react";
+import { Pencil, Trash2, MoreHorizontal, Leaf } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ContentPostForm } from "../post-form/content-post-form";
 import { Facebook, Instagram, Globe } from "lucide-react";
@@ -164,7 +164,8 @@ export function CalendarDayCell({
                       {...provided.dragHandleProps}
                       className={cn(
                         "text-xs p-1 rounded truncate border-l-2 relative group",
-                        post.status === 'scheduled' && "border-l-green-500 bg-green-50",
+                        post.isEvergreen && "border-l-green-600 bg-green-50",
+                        !post.isEvergreen && post.status === 'scheduled' && "border-l-blue-500 bg-blue-50",
                         post.status === 'draft' && "border-l-yellow-500 bg-yellow-50",
                         post.status === 'automated' && "border-l-blue-500 bg-blue-50",
                         post.status === 'published' && "border-l-gray-500 bg-gray-50",
@@ -173,7 +174,10 @@ export function CalendarDayCell({
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex justify-between">
-                        <span className="truncate">{post.title}</span>
+                        <div className="flex items-center gap-1 truncate">
+                          {post.isEvergreen && <Leaf className="h-3 w-3 text-green-600 flex-shrink-0" />}
+                          <span className="truncate">{post.title}</span>
+                        </div>
                         {renderPlatformIcons(post.platforms)}
                       </div>
                       

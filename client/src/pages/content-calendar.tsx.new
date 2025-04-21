@@ -456,20 +456,18 @@ export default function ContentCalendar() {
                 </DragDropContext>
               ) : (
                 // List view
-                <div>
-                  {isLoading ? (
-                    <div className="py-8 text-center text-gray-500">
-                      Loading content posts...
-                    </div>
-                  ) : (
-                    <PostListView 
-                      posts={currentMonthPosts}
-                      onPostClick={handlePostClick}
-                      getStatusColor={getStatusColor}
-                      renderPlatformIcons={renderPlatformIcons}
-                    />
-                  )}
-                </div>
+                {isLoading ? (
+                  <div className="py-8 text-center text-gray-500">
+                    Loading content posts...
+                  </div>
+                ) : (
+                  <PostListView 
+                    posts={currentMonthPosts}
+                    onPostClick={handlePostClick}
+                    getStatusColor={getStatusColor}
+                    renderPlatformIcons={renderPlatformIcons}
+                  />
+                )}
               )}
             </CardContent>
           </Card>

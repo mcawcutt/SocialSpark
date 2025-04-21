@@ -143,24 +143,24 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       console.log("Login attempt for username:", username);
-      const user = await storage.getUserByUsername(username);
-      
-      if (!user) {
-        console.log("User not found");
-        return done(null, false);
-      }
-      
-      // For demo purposes, if the user is the demo user and password is "password",
-      // allow login regardless of what's stored
-      if (username === "demo" && password === "password") {
-        console.log("Demo user login - bypassing password check");
-        return done(null, user);
-      }
-      
-      // For non-demo users, try regular password comparison
-      console.log("User found, attempting password comparison");
       
       try {
+        const user = await storage.getUserByUsername(username);
+        
+        if (!user) {
+          console.log("User not found");
+          return done(null, false, { message: 'Invalid username or password' });
+        }
+        
+        // Special case for demo user
+        if (username === "demo" && password === "password") {
+          console.log("Demo user login - setting isDemoUser flag");
+          return done(null, { ...user, isDemoUser: true });
+        }
+        
+        // For non-demo users, validate password
+        console.log("User found, attempting password comparison");
+        
         // Check if password has been hashed (contains a dot)
         if (user.password.includes(".")) {
           const isValid = await comparePasswords(password, user.password);
@@ -169,20 +169,21 @@ export function setupAuth(app: Express) {
           if (isValid) {
             return done(null, user);
           } else {
-            return done(null, false);
+            return done(null, false, { message: 'Invalid username or password' });
           }
         } else {
-          // Plain text comparison (only for development)
+          // Plain text comparison (only for development/testing)
+          // In production, all passwords should be hashed
           if (password === user.password) {
             console.log("Plain text password match");
             return done(null, user);
           } else {
             console.log("Plain text password mismatch");
-            return done(null, false);
+            return done(null, false, { message: 'Invalid username or password' });
           }
         }
       } catch (error) {
-        console.error("Error during password comparison:", error);
+        console.error("Error during authentication:", error);
         return done(error);
       }
     }),

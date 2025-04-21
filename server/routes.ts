@@ -338,6 +338,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Special demo route to get a specific retail partner
   app.get("/api/demo/retail-partners/:id", async (req, res) => {
     try {
+      // Check if there's a logged-in user with brandId
+      const brandId = req.user?.brandId || (req.isAuthenticated() ? req.user?.id : 1);
+      console.log(`[DemoGetPartner] Request for partner ID ${req.params.id}, user: ${req.user?.username || 'not authenticated'}, brandId: ${brandId}`);
+      
       // Check if the ID is "tags" which should be handled by the tags endpoint
       if (req.params.id === "tags") {
         return res.status(400).json({ message: "Invalid ID. Use /api/demo/retail-partners/tags to get tags." });
@@ -355,15 +359,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Partner not found" });
       }
       
-      // Only allow access to partners from demo brand (ID 1)
-      if (partner.brandId !== 1) {
+      // Only allow access to partners that belong to the current brand
+      // When not authenticated, only show demo brand (ID 1) partners
+      if (!req.isAuthenticated() && partner.brandId !== 1) {
+        console.log(`[DemoGetPartner] Unauthenticated access attempt to non-demo partner ${partnerId}`);
         return res.status(403).json({ message: "Forbidden" });
       }
       
-      console.log(`Demo route: Fetched partner with ID ${partnerId}`);
+      // If authenticated, must match user's brandId
+      if (req.isAuthenticated() && partner.brandId !== brandId) {
+        console.log(`[DemoGetPartner] Access attempt to partner ${partnerId} belonging to brand ${partner.brandId} by user with brandId ${brandId}`);
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      
+      console.log(`[DemoGetPartner] Successfully fetched partner with ID ${partnerId}`);
       return res.json(partner);
     } catch (error) {
-      console.error("Error fetching demo retail partner:", error);
+      console.error("[DemoGetPartner] Error fetching retail partner:", error);
       return res.status(500).json({ message: "Server error" });
     }
   });
@@ -374,26 +386,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate that id is a number
       const partnerId = parseInt(req.params.id);
       if (isNaN(partnerId)) {
-        console.error(`Invalid partner ID: ${req.params.id}`);
+        console.error(`[DemoPatchPartner] Invalid partner ID: ${req.params.id}`);
         return res.status(400).json({ message: "Invalid partner ID" });
       }
       
-      console.log(`Demo route: Fetching partner with ID ${partnerId}`);
+      // Get the appropriate brand ID based on authentication status
+      let brandId: number;
+      
+      if (req.isAuthenticated()) {
+        // For authenticated users, use their own brandId or respect query param if admin
+        brandId = req.user?.brandId || req.user?.id || 1;
+        
+        // Admin users can override with query param
+        if (req.user?.role === 'admin' && req.query.brandId) {
+          brandId = parseInt(req.query.brandId as string, 10);
+        }
+        
+        console.log(`[DemoPatchPartner] Authenticated request from ${req.user?.username} (${req.user?.role}) with brandId=${brandId}`);
+      } else {
+        // For unauthenticated users, use demo brand or query param
+        brandId = req.query.brandId ? parseInt(req.query.brandId as string, 10) : 1;
+        console.log(`[DemoPatchPartner] Unauthenticated request using brandId=${brandId}`);
+      }
+      
+      console.log(`[DemoPatchPartner] Fetching partner with ID ${partnerId}`);
       const partner = await storage.getRetailPartner(partnerId);
       
       if (!partner) {
-        console.error(`Partner not found with ID: ${partnerId}`);
+        console.error(`[DemoPatchPartner] Partner not found with ID: ${partnerId}`);
         return res.status(404).json({ message: "Partner not found" });
       }
       
-      // Only allow updating partners from demo brand (ID 1)
-      if (partner.brandId !== 1) {
-        console.error(`Forbidden access: Partner ${partnerId} is not from demo brand`);
+      // Only allow updating partners that match the user's brandId or the demo brand for unauthenticated users
+      if ((!req.isAuthenticated() && partner.brandId !== 1) || 
+          (req.isAuthenticated() && partner.brandId !== brandId)) {
+        console.error(`[DemoPatchPartner] Forbidden: Partner ${partnerId} belongs to brand ${partner.brandId}, not ${brandId}`);
         return res.status(403).json({ message: "Forbidden" });
       }
       
       // Log the incoming body for debugging
-      console.log(`Demo route: Updating partner with ID ${partnerId}`, JSON.stringify(req.body));
+      console.log(`[DemoPatchPartner] Updating partner with ID ${partnerId}`, JSON.stringify(req.body));
       
       // Ensure partner ID is preserved
       const dataToUpdate = { ...req.body, id: partnerId };
@@ -401,7 +433,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedPartner = await storage.updateRetailPartner(partnerId, dataToUpdate);
       
       // Log successful update
-      console.log(`Successfully updated partner ${partnerId}`);
+      console.log(`[DemoPatchPartner] Successfully updated partner ${partnerId}`);
       
       // Make sure we're sending a valid JSON response
       return res.status(200).json({
@@ -410,7 +442,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         partner: updatedPartner
       });
     } catch (error) {
-      console.error("Error updating demo retail partner:", error);
+      console.error("[DemoPatchPartner] Error:", error);
       return res.status(500).json({ 
         success: false,
         message: "Server error", 
@@ -419,18 +451,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Special route for demo mode bulk import - no authentication required
+  // Special route for demo mode bulk import - works both when authenticated and not
   app.post("/api/demo/retail-partners/bulk", async (req, res) => {
     try {
-      console.log("Demo bulk import request received");
+      console.log("[DemoBulkImport] Request received");
       const { partners } = req.body;
       
       if (!Array.isArray(partners) || partners.length === 0) {
         return res.status(400).json({ message: "Invalid request: partners must be a non-empty array" });
       }
       
-      // Use brand ID 1 for demo mode
-      const brandId = 1;
+      // Get the appropriate brand ID based on authentication status
+      let brandId: number;
+      
+      if (req.isAuthenticated()) {
+        // For authenticated users, use their own brandId or respect query param if admin
+        brandId = req.user?.brandId || req.user?.id || 1;
+        
+        // Admin users can override with query param
+        if (req.user?.role === 'admin' && req.query.brandId) {
+          brandId = parseInt(req.query.brandId as string, 10);
+        }
+        
+        console.log(`[DemoBulkImport] Authenticated request from ${req.user?.username} (${req.user?.role}) with brandId=${brandId}`);
+      } else {
+        // For unauthenticated users, use demo brand or query param
+        brandId = req.query.brandId ? parseInt(req.query.brandId as string, 10) : 1;
+        console.log(`[DemoBulkImport] Unauthenticated request using brandId=${brandId}`);
+      }
       
       // Process each partner in the array
       const createdPartners = [];
@@ -450,8 +498,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         try {
-          console.log(`Creating demo partner ${i+1}/${partners.length}: ${partner.name}`);
-          // Create the partner with the demo brand ID
+          console.log(`[DemoBulkImport] Creating partner ${i+1}/${partners.length}: ${partner.name} for brandId=${brandId}`);
+          // Create the partner with the appropriate brand ID
           const createdPartner = await storage.createRetailPartner({
             ...partner,
             brandId: brandId,
@@ -460,11 +508,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           createdPartners.push(createdPartner);
         } catch (error) {
-          console.error(`Error creating demo partner ${partner.name}:`, error);
+          console.error(`[DemoBulkImport] Error creating partner ${partner.name}:`, error);
           errors.push({
             index: i,
             partner: partner.name,
-            error: error.message || "Unknown error"
+            error: error instanceof Error ? error.message : String(error)
           });
         }
       }
@@ -476,16 +524,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         errors: errors.length > 0 ? errors : undefined
       };
       
-      console.log(`Demo bulk import completed. Created: ${createdPartners.length}, Errors: ${errors.length}`);
+      console.log(`[DemoBulkImport] Completed. Created ${createdPartners.length} partners, Errors: ${errors.length}`);
       
       // Ensure we're sending JSON content type
       res.setHeader('Content-Type', 'application/json');
       return res.status(201).json(response);
     } catch (error) {
-      console.error("Error in demo bulk import:", error);
+      console.error("[DemoBulkImport] Error:", error);
       // Ensure we're sending JSON content type even on error
       res.setHeader('Content-Type', 'application/json');
-      return res.status(500).json({ message: "Server error", error: error.message });
+      return res.status(500).json({ 
+        message: "Server error", 
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 

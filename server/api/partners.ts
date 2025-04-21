@@ -76,23 +76,40 @@ export function setupPartnerRoutes(app: Express) {
     }
   });
   
-  // Demo endpoint for retail partners (when not authenticated)
+  // Demo endpoint for retail partners (works both when authenticated and not)
   app.get('/api/demo/retail-partners', async (req: Request, res: Response) => {
     try {
-      // If we have a specific demo brand ID in the query, use that
-      const brandId = req.query.brandId ? parseInt(req.query.brandId as string, 10) : 1;
+      // Get the appropriate brand ID based on authentication status
+      let brandId: number;
       
-      // Get all partners for the requested brand
+      if (req.isAuthenticated()) {
+        // For authenticated users, use their own brandId or respect query param if admin
+        brandId = req.user?.brandId || req.user?.id || 1;
+        
+        // Admin users can override with query param
+        if (req.user?.role === 'admin' && req.query.brandId) {
+          brandId = parseInt(req.query.brandId as string, 10);
+        }
+        
+        console.log(`[DemoGetPartners] Authenticated request from ${req.user?.username} (${req.user?.role}) with brandId=${brandId}`);
+      } else {
+        // For unauthenticated users, use demo brand or query param
+        brandId = req.query.brandId ? parseInt(req.query.brandId as string, 10) : 1;
+        console.log(`[DemoGetPartners] Unauthenticated request using brandId=${brandId}`);
+      }
+      
+      // Get all partners for the appropriate brand
       const partners = await storage.getRetailPartnersByBrandId(brandId);
-      console.log(`Found ${partners.length} partners for brand ${brandId} via demo endpoint`);
+      console.log(`[DemoGetPartners] Found ${partners.length} partners for brandId=${brandId}`);
+      
       return res.json(partners);
     } catch (error) {
-      console.error("Error fetching demo retail partners:", error);
+      console.error("[DemoGetPartners] Error:", error);
       return res.status(500).json({ message: "Server error" });
     }
   });
   
-  // Demo endpoint for partner tags (when not authenticated)
+  // Demo endpoint for partner tags (works both when authenticated and not)
   app.get('/api/demo/retail-partners/tags', async (req: Request, res: Response) => {
     try {
       // Default tags for new brands
@@ -101,15 +118,31 @@ export function setupPartnerRoutes(app: Express) {
         "Family", "Summer", "Winter", "Gear"
       ];
       
-      // If we have a specific demo brand ID in the query, use that
-      const brandId = req.query.brandId ? parseInt(req.query.brandId as string, 10) : 1;
+      // Get the appropriate brand ID based on authentication status
+      let brandId: number;
       
-      // Get all partners for the requested brand
+      if (req.isAuthenticated()) {
+        // For authenticated users, use their own brandId or respect query param if admin
+        brandId = req.user?.brandId || req.user?.id || 1;
+        
+        // Admin users can override with query param
+        if (req.user?.role === 'admin' && req.query.brandId) {
+          brandId = parseInt(req.query.brandId as string, 10);
+        }
+        
+        console.log(`[DemoGetTags] Authenticated request from ${req.user?.username} (${req.user?.role}) with brandId=${brandId}`);
+      } else {
+        // For unauthenticated users, use demo brand or query param
+        brandId = req.query.brandId ? parseInt(req.query.brandId as string, 10) : 1;
+        console.log(`[DemoGetTags] Unauthenticated request using brandId=${brandId}`);
+      }
+      
+      // Get all partners for the appropriate brand
       const partners = await storage.getRetailPartnersByBrandId(brandId);
       
       // If no partners found, return default tags
       if (!partners || partners.length === 0) {
-        console.log(`No partners found for brand ${brandId}, returning default tags`);
+        console.log(`[DemoGetTags] No partners found for brandId=${brandId}, returning default tags`);
         return res.json(defaultTags);
       }
       
@@ -125,7 +158,7 @@ export function setupPartnerRoutes(app: Express) {
       
       // Get unique tags only
       const uniqueTags = [...new Set(allTags)];
-      console.log(`Found ${uniqueTags.length} unique tags for brand ${brandId}`);
+      console.log(`[DemoGetTags] Found ${uniqueTags.length} unique tags for brandId=${brandId}`);
       
       // If no tags found, return default tags
       if (uniqueTags.length === 0) {
@@ -134,7 +167,7 @@ export function setupPartnerRoutes(app: Express) {
       
       return res.json(uniqueTags);
     } catch (error) {
-      console.error("Error fetching demo partner tags:", error);
+      console.error("[DemoGetTags] Error:", error);
       return res.status(500).json({ message: "Server error" });
     }
   });

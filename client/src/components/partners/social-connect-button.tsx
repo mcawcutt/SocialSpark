@@ -3,6 +3,7 @@ import { Facebook, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 interface SocialConnectButtonProps {
   partnerId: number;
@@ -12,30 +13,46 @@ interface SocialConnectButtonProps {
 
 // Facebook SDK initialization
 function initFacebookSDK() {
-  return new Promise<void>((resolve) => {
-    // If the SDK is already loaded, resolve immediately
-    if (window.FB) {
-      resolve();
-      return;
+  return new Promise<void>((resolve, reject) => {
+    try {
+      // If the SDK is already loaded, resolve immediately
+      if (window.FB) {
+        resolve();
+        return;
+      }
+
+      // Add the Facebook SDK
+      const script = document.createElement("script");
+      script.src = "https://connect.facebook.net/en_US/sdk.js";
+      script.async = true;
+      script.defer = true;
+      script.onerror = () => reject(new Error("Failed to load Facebook SDK"));
+      document.body.appendChild(script);
+
+      // Once the script loads, initialize the SDK
+      window.fbAsyncInit = function() {
+        try {
+          window.FB.init({
+            appId: "1401999351158118", // This is our Facebook App ID
+            cookie: true,
+            xfbml: true,
+            version: "v18.0"
+          });
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      // Set a timeout in case the script never loads
+      setTimeout(() => {
+        if (!window.FB) {
+          reject(new Error("Timed out waiting for Facebook SDK"));
+        }
+      }, 10000);
+    } catch (error) {
+      reject(error);
     }
-
-    // Add the Facebook SDK
-    const script = document.createElement("script");
-    script.src = "https://connect.facebook.net/en_US/sdk.js";
-    script.async = true;
-    script.defer = true;
-    document.body.appendChild(script);
-
-    // Once the script loads, initialize the SDK
-    window.fbAsyncInit = function() {
-      window.FB.init({
-        appId: "1401999351158118", // This is our Facebook App ID
-        cookie: true,
-        xfbml: true,
-        version: "v18.0"
-      });
-      resolve();
-    };
   });
 }
 
@@ -43,10 +60,18 @@ export function SocialConnectButton({ partnerId, platform, onSuccess }: SocialCo
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isSdkReady, setIsSdkReady] = useState(false);
+  const [isDemoDialogOpen, setIsDemoDialogOpen] = useState(false);
+  const [isDemoConnecting, setIsDemoConnecting] = useState(false);
+  const [isDemo] = useState(() => {
+    // Check if we're in a demo/development environment
+    return window.location.hostname.includes('replit.dev') || 
+           window.location.hostname.includes('localhost') ||
+           window.location.hostname.includes('127.0.0.1');
+  });
 
   // Initialize Facebook SDK on component mount
   useEffect(() => {
-    if (platform === "facebook") {
+    if (platform === "facebook" && !isDemo) {
       initFacebookSDK().then(() => {
         setIsSdkReady(true);
       }).catch(error => {
@@ -57,10 +82,18 @@ export function SocialConnectButton({ partnerId, platform, onSuccess }: SocialCo
           variant: "destructive",
         });
       });
+    } else if (isDemo) {
+      // In demo mode, we'll just pretend the SDK is ready
+      setIsSdkReady(true);
     }
-  }, [platform, toast]);
+  }, [platform, toast, isDemo]);
 
   const handleFacebookConnect = async () => {
+    if (isDemo) {
+      setIsDemoDialogOpen(true);
+      return;
+    }
+
     if (!isSdkReady) {
       toast({
         title: "Facebook integration not ready",
@@ -180,21 +213,112 @@ export function SocialConnectButton({ partnerId, platform, onSuccess }: SocialCo
     }
   };
 
+  // Handler for demo mode connection
+  const handleDemoConnect = async () => {
+    setIsDemoConnecting(true);
+    
+    try {
+      // In demo mode, we create a fake social account
+      setTimeout(async () => {
+        try {
+          const newAccount = await apiRequest('POST', '/api/social-accounts', {
+            partnerId,
+            platform: "facebook",
+            platformId: "123456789012345",
+            platformUsername: "Demo Facebook Page",
+            accessToken: "DEMO_ACCESS_TOKEN_FOR_TESTING",
+            status: "active",
+            metadata: {
+              scope: "pages_show_list,pages_read_engagement,pages_manage_posts",
+              expiresIn: 3600,
+              category: "Retail"
+            }
+          });
+          
+          toast({
+            title: "Facebook page connected",
+            description: "Successfully connected Demo Facebook Page to this partner.",
+          });
+          
+          if (onSuccess) {
+            onSuccess();
+          }
+          
+          setIsDemoDialogOpen(false);
+          setIsDemoConnecting(false);
+        } catch (error) {
+          console.error("Error creating demo account:", error);
+          toast({
+            title: "Connection failed",
+            description: "Failed to create demo social account. Please try again.",
+            variant: "destructive",
+          });
+          setIsDemoConnecting(false);
+        }
+      }, 2000); // Simulate network delay
+    } catch (error) {
+      toast({
+        title: "Connection error",
+        description: "An error occurred while connecting. Please try again.",
+        variant: "destructive",
+      });
+      setIsDemoDialogOpen(false);
+      setIsDemoConnecting(false);
+    }
+  };
+
   if (platform === "facebook") {
     return (
-      <Button 
-        onClick={handleFacebookConnect} 
-        disabled={isLoading || !isSdkReady}
-        variant="outline"
-        className={isLoading ? "bg-gray-100" : ""}
-      >
-        {isLoading ? (
-          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-        ) : (
-          <Facebook className="h-4 w-4 mr-2 text-blue-600" />
-        )}
-        Connect Facebook
-      </Button>
+      <>
+        <Button 
+          onClick={handleFacebookConnect} 
+          disabled={isLoading || !isSdkReady}
+          variant="outline"
+          className={isLoading ? "bg-gray-100" : ""}
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Facebook className="h-4 w-4 mr-2 text-blue-600" />
+          )}
+          Connect Facebook
+        </Button>
+
+        {/* Demo Mode Dialog */}
+        <Dialog open={isDemoDialogOpen} onOpenChange={setIsDemoDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Connect to Facebook</DialogTitle>
+              <DialogDescription>
+                This is a demo environment. In a production environment, this would open a Facebook authorization dialog.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-sm text-gray-500 mb-4">
+                Would you like to simulate connecting a Facebook page to this partner?
+              </p>
+              <p className="text-sm text-gray-500">
+                This will create a demo account for testing purposes.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDemoDialogOpen(false)} disabled={isDemoConnecting}>
+                Cancel
+              </Button>
+              <Button onClick={handleDemoConnect} disabled={isDemoConnecting}>
+                {isDemoConnecting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Connecting...
+                  </>
+                ) : (
+                  'Connect Demo Account'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
     );
   }
 

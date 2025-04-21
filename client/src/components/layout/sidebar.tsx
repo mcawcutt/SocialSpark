@@ -5,7 +5,7 @@ import {
   Calendar,
   Store,
   Image,
-  Flame,
+  Leaf,
   BarChart3,
   Users,
   Settings,
@@ -215,7 +215,7 @@ export function Sidebar() {
               />
               
               <SidebarItem 
-                icon={<Flame />} 
+                icon={<Leaf className="text-green-600" />} 
                 label="Evergreen Content" 
                 href="/evergreen-content" 
                 active={location === '/evergreen-content'}

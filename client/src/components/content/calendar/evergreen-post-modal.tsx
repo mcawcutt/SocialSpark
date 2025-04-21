@@ -23,6 +23,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { HelpCircle } from "lucide-react";
 
 interface EvergreenPostModalProps {
   isOpen: boolean;
@@ -246,7 +248,25 @@ export function EvergreenPostModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Schedule Evergreen Posts</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle>Schedule Evergreen Posts</DialogTitle>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                    <HelpCircle className="h-5 w-5 text-muted-foreground" />
+                    <span className="sr-only">About evergreen posts</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[300px] p-3">
+                  <p className="text-sm">
+                    <strong>What are evergreen posts?</strong><br/>
+                    Evergreen posts are reusable content that stays relevant over time. They're automatically rotated to ensure the same partner doesn't receive identical content in consecutive scheduling cycles.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <DialogDescription>
             Automatically assign random evergreen posts to your retail partners.
             Each partner will receive a different post.
@@ -314,7 +334,24 @@ export function EvergreenPostModal({
             <Label className="text-right pt-2">Partners</Label>
             <div className="col-span-3">
               <div className="space-y-2">
-                <h3 className="text-sm font-medium">Partner Distribution</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-medium">Partner Distribution</h3>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-5 w-5 p-0">
+                          <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                          <span className="sr-only">Partner distribution help</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-[250px] p-3">
+                        <p className="text-sm">
+                          Control which retail partners will receive evergreen content posts at this scheduled time.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 <RadioGroup 
                   defaultValue="all"
                   onValueChange={(value) => {
@@ -334,6 +371,21 @@ export function EvergreenPostModal({
                     <Label htmlFor="all-partners" className="font-normal cursor-pointer">
                       All Retail Partners
                     </Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-5 w-5 p-0">
+                            <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                            <span className="sr-only">All partners help</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-[250px] p-3">
+                          <p className="text-sm">
+                            Distribute evergreen posts to all retail partners. Each partner will receive a randomly selected post from your evergreen content.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                   
                   <div className="flex items-center space-x-2">
@@ -341,13 +393,45 @@ export function EvergreenPostModal({
                     <Label htmlFor="by-tag" className="font-normal cursor-pointer">
                       Target Partners by Tag
                     </Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-5 w-5 p-0">
+                            <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                            <span className="sr-only">Target by tag help</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-[250px] p-3">
+                          <p className="text-sm">
+                            Select specific tags to target only those retail partners that match at least one of the selected tags.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 </RadioGroup>
               </div>
               
               {partnerDistribution === "byTag" && (
                 <div className="mt-4">
-                  <Label className="text-sm">Partner Tags</Label>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm">Partner Tags</Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-5 w-5 p-0">
+                            <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                            <span className="sr-only">Tag selection help</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-[250px] p-3">
+                          <p className="text-sm">
+                            Select one or more tags to filter partners. Only partners with at least one matching tag will receive the evergreen content.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <Select
                     onValueChange={(value) => {
                       const currentTags = selectedPartnerTags;
@@ -424,7 +508,24 @@ export function EvergreenPostModal({
                   {/* Display partners that will receive this post */}
                   {partnerDistribution === "byTag" && selectedPartnerTags.length > 0 && (
                     <div className="mt-4 border rounded-md p-3 bg-muted/30">
-                      <h4 className="text-sm font-medium mb-2">Partners receiving this content:</h4>
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="text-sm font-medium">Partners receiving this content:</h4>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-5 w-5 p-0">
+                                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                                <span className="sr-only">Partners list help</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[250px] p-3">
+                              <p className="text-sm">
+                                This list shows all retail partners that match at least one of your selected tags. Each partner listed will receive an evergreen post.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
                       {selectedPartnerIds.length > 0 ? (
                         <div className="space-y-1 max-h-20 overflow-y-auto">
                           {partners

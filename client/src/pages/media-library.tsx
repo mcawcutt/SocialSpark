@@ -198,7 +198,19 @@ const FileUploadForm = ({ onSuccess, quickUploadMode = false }: { onSuccess: () 
 
   const createMediaMutation = useMutation({
     mutationFn: async (data: MediaUploadFormValues) => {
-      const res = await apiRequest("POST", "/api/media", data);
+      // Use direct fetch with demo mode for API call
+      const res = await fetch("/api/media?demo=true", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (!res.ok) {
+        throw new Error("Failed to add media item");
+      }
+      
       return await res.json();
     },
     onSuccess: () => {
@@ -210,6 +222,7 @@ const FileUploadForm = ({ onSuccess, quickUploadMode = false }: { onSuccess: () 
       onSuccess();
     },
     onError: (error) => {
+      console.error("Error saving media:", error);
       toast({
         title: "Failed to add media",
         description: error.message,
@@ -459,11 +472,24 @@ export default function MediaLibrary() {
 
   const { data: mediaItems, isLoading } = useQuery<MediaLibraryItem[]>({
     queryKey: ["/api/media"],
+    queryFn: async () => {
+      const res = await fetch("/api/media?demo=true");
+      if (!res.ok) {
+        throw new Error("Failed to fetch media items");
+      }
+      return res.json();
+    }
   });
 
   const deleteMediaMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/media/${id}`);
+      const res = await fetch(`/api/media/${id}?demo=true`, {
+        method: "DELETE",
+      });
+      
+      if (!res.ok) {
+        throw new Error("Failed to delete media item");
+      }
     },
     onSuccess: () => {
       toast({
@@ -473,6 +499,7 @@ export default function MediaLibrary() {
       queryClient.invalidateQueries({ queryKey: ["/api/media"] });
     },
     onError: (error) => {
+      console.error("Error deleting media:", error);
       toast({
         title: "Failed to delete media",
         description: error.message,

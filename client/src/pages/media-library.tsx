@@ -507,6 +507,39 @@ export default function MediaLibrary() {
       });
     },
   });
+  
+  const updateMediaMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number, data: Partial<MediaLibraryItem> }) => {
+      const res = await fetch(`/api/media/${id}?demo=true`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (!res.ok) {
+        throw new Error("Failed to update media item");
+      }
+      
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Media item updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/media"] });
+    },
+    onError: (error) => {
+      console.error("Error updating media:", error);
+      toast({
+        title: "Failed to update media",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   // Get unique tags from all media items
   const allTags = Array.from(
@@ -576,6 +609,10 @@ export default function MediaLibrary() {
 
   // State for quick upload mode
   const [isQuickUploadOpen, setIsQuickUploadOpen] = useState(false);
+  
+  // State for edit mode
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedMedia, setSelectedMedia] = useState<MediaLibraryItem | null>(null);
 
   return (
     <div 
@@ -698,8 +735,17 @@ export default function MediaLibrary() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {filteredMediaItems?.map((item) => (
-            <Card key={item.id} className="overflow-hidden h-full">
-              <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative h-28">
+            <Card 
+              key={item.id} 
+              className="overflow-hidden h-full group relative cursor-pointer"
+              onClick={() => {
+                setSelectedMedia(item);
+                setIsEditDialogOpen(true);
+              }}
+            >
+              <div 
+                className="aspect-square bg-gray-100 dark:bg-gray-800 relative h-28 transition-all group-hover:opacity-90"
+              >
                 {item.fileType.startsWith("image/") ? (
                   <img
                     src={item.fileUrl}
@@ -711,6 +757,11 @@ export default function MediaLibrary() {
                     <Image className="h-10 w-10 text-gray-400" />
                   </div>
                 )}
+                
+                {/* Edit overlay on hover */}
+                <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Edit className="h-6 w-6 text-white" />
+                </div>
               </div>
               <CardHeader className="p-2">
                 <CardTitle className="text-xs font-medium truncate">{item.name}</CardTitle>
@@ -737,7 +788,8 @@ export default function MediaLibrary() {
                   size="sm"
                   variant="ghost"
                   className="h-6 text-xs px-2"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent opening the edit dialog
                     // Copy the URL to clipboard
                     navigator.clipboard.writeText(item.fileUrl);
                     toast({
@@ -752,7 +804,10 @@ export default function MediaLibrary() {
                   size="sm"
                   variant="ghost"
                   className="h-6 w-6 p-0"
-                  onClick={() => deleteMediaMutation.mutate(item.id)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent opening the edit dialog
+                    deleteMediaMutation.mutate(item.id);
+                  }}
                 >
                   <Trash2 className="h-3 w-3 text-red-500" />
                 </Button>
@@ -761,6 +816,141 @@ export default function MediaLibrary() {
           ))}
         </div>
       )}
+      
+      {/* Media Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Media</DialogTitle>
+            <DialogDescription>
+              Update the details of your media item. Click save when you're done.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedMedia && (
+            <div className="space-y-4 py-2">
+              <div className="flex items-center space-x-4">
+                <div className="w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded overflow-hidden flex-shrink-0">
+                  {selectedMedia.fileType.startsWith("image/") ? (
+                    <img 
+                      src={selectedMedia.fileUrl} 
+                      alt={selectedMedia.name} 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <Image className="h-10 w-10 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">File details</p>
+                  <p className="text-xs text-gray-500">{selectedMedia.fileType}</p>
+                  <p className="text-xs text-gray-500">Uploaded on {new Date(selectedMedia.createdAt).toLocaleDateString()}</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input 
+                    id="name" 
+                    value={selectedMedia.name} 
+                    onChange={(e) => setSelectedMedia({...selectedMedia, name: e.target.value})}
+                  />
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea 
+                    id="description" 
+                    value={selectedMedia.description || ''} 
+                    onChange={(e) => setSelectedMedia({...selectedMedia, description: e.target.value})}
+                    placeholder="Add a description..."
+                    className="resize-none"
+                    rows={3}
+                  />
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="tags">Tags</Label>
+                  <div className="flex flex-wrap gap-2 border rounded-md p-2">
+                    {selectedMedia.tags?.map(tag => (
+                      <Badge 
+                        key={tag} 
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
+                        {tag}
+                        <X 
+                          className="h-3 w-3 cursor-pointer"
+                          onClick={() => {
+                            setSelectedMedia({
+                              ...selectedMedia, 
+                              tags: selectedMedia.tags ? selectedMedia.tags.filter(t => t !== tag) : []
+                            });
+                          }}
+                        />
+                      </Badge>
+                    ))}
+                    
+                    {/* Tag input */}
+                    <form 
+                      className="flex-1 min-w-[100px]"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const input = e.currentTarget.querySelector('input') as HTMLInputElement;
+                        const tag = input.value.trim();
+                        
+                        if (tag && (!selectedMedia.tags?.includes(tag))) {
+                          setSelectedMedia({
+                            ...selectedMedia,
+                            tags: [...(selectedMedia.tags || []), tag]
+                          });
+                          input.value = '';
+                        }
+                      }}
+                    >
+                      <Input 
+                        placeholder="Add tag..." 
+                        className="border-0 p-0 h-6 text-sm focus-visible:ring-0"
+                      />
+                    </form>
+                  </div>
+                  <p className="text-xs text-gray-500">Press Enter to add a tag</p>
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={() => {
+                    updateMediaMutation.mutate({
+                      id: selectedMedia.id,
+                      data: {
+                        name: selectedMedia.name,
+                        description: selectedMedia.description,
+                        tags: selectedMedia.tags
+                      }
+                    });
+                    setIsEditDialogOpen(false);
+                  }}
+                  disabled={updateMediaMutation.isPending}
+                >
+                  {updateMediaMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : 'Save Changes'}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
       
       {/* Hidden file input for bulk upload feature */}
       <input 

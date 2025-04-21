@@ -190,46 +190,6 @@ export function Sidebar() {
       {/* Navigation items */}
       <div className="flex-1 overflow-auto py-2">
         <nav className="grid gap-1 px-2">
-          <SidebarItem 
-            icon={<LayoutDashboard />} 
-            label="Dashboard" 
-            href="/" 
-            active={location === '/'}
-          />
-          
-          <SidebarItem 
-            icon={<Calendar />} 
-            label="Content Calendar" 
-            href="/content-calendar" 
-            active={location === '/content-calendar'}
-          />
-          
-          {/* Brand only sections */}
-          {isBrand && (
-            <>
-              <SidebarItem 
-                icon={<Store />} 
-                label="Retail Partners" 
-                href="/retail-partners" 
-                active={location === '/retail-partners'}
-              />
-              
-              <SidebarItem 
-                icon={<UserPlus />} 
-                label="Partner Invites" 
-                href="/partner-invites" 
-                active={location === '/partner-invites'}
-              />
-              
-              <SidebarItem 
-                icon={<Leaf className="text-green-600" />} 
-                label="Evergreen Content" 
-                href="/evergreen-content" 
-                active={location === '/evergreen-content'}
-              />
-            </>
-          )}
-          
           {/* Admin-specific sidebar */}
           {isAdmin ? (
             <>
@@ -259,20 +219,55 @@ export function Sidebar() {
               />
             </>
           ) : (
-            /* Regular user sidebar items */
+            /* Regular user sidebar items - not admin */
             <>
+              <SidebarItem 
+                icon={<LayoutDashboard />} 
+                label="Dashboard" 
+                href="/" 
+                active={location === '/'}
+              />
+              
               <SidebarItem 
                 icon={<Calendar />} 
                 label="Content Calendar" 
                 href="/content-calendar" 
                 active={location === '/content-calendar'}
               />
+              
+              {/* Brand only sections */}
+              {isBrand && (
+                <>
+                  <SidebarItem 
+                    icon={<Store />} 
+                    label="Retail Partners" 
+                    href="/retail-partners" 
+                    active={location === '/retail-partners'}
+                  />
+                  
+                  <SidebarItem 
+                    icon={<UserPlus />} 
+                    label="Partner Invites" 
+                    href="/partner-invites" 
+                    active={location === '/partner-invites'}
+                  />
+                  
+                  <SidebarItem 
+                    icon={<Leaf className="text-green-600" />} 
+                    label="Evergreen Content" 
+                    href="/evergreen-content" 
+                    active={location === '/evergreen-content'}
+                  />
+                </>
+              )}
+              
               <SidebarItem 
                 icon={<Image />} 
                 label="Media Library" 
                 href="/media-library" 
                 active={location === '/media-library'}
               />
+              
               <SidebarItem 
                 icon={<BarChart3 />} 
                 label="Analytics" 

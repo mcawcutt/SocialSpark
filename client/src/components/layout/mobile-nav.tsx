@@ -9,11 +9,15 @@ import {
   Calendar, 
   Store, 
   BarChart2, 
+  BarChart3,
   Settings, 
   HelpCircle,
   LogOut,
   Flame,
-  Image
+  Image,
+  Building,
+  Users,
+  UserPlus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -53,7 +57,7 @@ function NavItem({ href, icon: Icon, label, active, onClick }: NavItemProps) {
 export function MobileNav() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [location] = useLocation();
-  const { user, logoutMutation } = useAuth();
+  const { user, isAdmin, isBrand, logoutMutation } = useAuth();
   
   if (!user) return null;
   

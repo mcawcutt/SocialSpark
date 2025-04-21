@@ -675,47 +675,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/content-posts/:id", requireAuth, async (req, res) => {
-    const post = await storage.getContentPost(parseInt(req.params.id));
+    const brandId = req.user!.brandId || req.user!.id;
+    const postId = parseInt(req.params.id);
+    console.log(`[GetContentPost] Getting post ${postId} for brandId=${brandId}, user=${req.user!.username}`);
+    
+    const post = await storage.getContentPost(postId);
     if (!post) {
+      console.log(`[GetContentPost] Post ${postId} not found`);
       return res.status(404).json({ message: "Post not found" });
     }
     
-    if (post.brandId !== req.user!.id) {
+    if (post.brandId !== brandId) {
+      console.log(`[GetContentPost] Forbidden: Post ${postId} belongs to brand ${post.brandId}, not ${brandId}`);
       return res.status(403).json({ message: "Forbidden" });
     }
     
     // Get assignments for this post
     const assignments = await storage.getPostAssignmentsByPostId(post.id);
+    console.log(`[GetContentPost] Found post ${postId} with ${assignments.length} assignments`);
     res.json({ ...post, assignments });
   });
 
   app.patch("/api/content-posts/:id", requireAuth, async (req, res) => {
-    const post = await storage.getContentPost(parseInt(req.params.id));
+    const brandId = req.user!.brandId || req.user!.id;
+    const postId = parseInt(req.params.id);
+    console.log(`[UpdateContentPost] Updating post ${postId} for brandId=${brandId}, user=${req.user!.username}`);
+    
+    const post = await storage.getContentPost(postId);
     if (!post) {
+      console.log(`[UpdateContentPost] Post ${postId} not found`);
       return res.status(404).json({ message: "Post not found" });
     }
     
-    if (post.brandId !== req.user!.id) {
+    if (post.brandId !== brandId) {
+      console.log(`[UpdateContentPost] Forbidden: Post ${postId} belongs to brand ${post.brandId}, not ${brandId}`);
       return res.status(403).json({ message: "Forbidden" });
     }
     
     try {
-      const updatedPost = await storage.updateContentPost(parseInt(req.params.id), req.body);
+      const updatedPost = await storage.updateContentPost(postId, req.body);
+      console.log(`[UpdateContentPost] Successfully updated post ${postId}`);
       res.json(updatedPost);
     } catch (error) {
+      console.error(`[UpdateContentPost] Error updating post ${postId}:`, error);
       res.status(400).json({ message: "Invalid data", error });
     }
   });
 
   // Analytics endpoints
   app.get("/api/analytics", requireAuth, async (req, res) => {
-    const partners = await storage.getRetailPartnersByBrandId(req.user!.id);
+    const brandId = req.user!.brandId || req.user!.id;
+    console.log(`[GetAnalytics] Getting analytics for brandId=${brandId}, user=${req.user!.username}`);
+    
+    const partners = await storage.getRetailPartnersByBrandId(brandId);
     const partnerIds = partners.map(p => p.id);
     
-    const posts = await storage.getContentPostsByBrandId(req.user!.id);
+    const posts = await storage.getContentPostsByBrandId(brandId);
     const postIds = posts.map(p => p.id);
     
     const analytics = await storage.getAnalyticsByPostAndPartnerIds(postIds, partnerIds);
+    console.log(`[GetAnalytics] Found ${analytics.length} analytics items for ${posts.length} posts and ${partners.length} partners`);
     res.json(analytics);
   });
 
@@ -733,26 +752,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.get("/api/dashboard-stats", requireAuth, async (req, res) => {
+    const brandId = req.user!.brandId || req.user!.id;
+    console.log(`[GetDashboardStats] Getting stats for brandId=${brandId}, user=${req.user!.username}`);
+    
     // Get counts for quick stats
-    const activePosts = await storage.getActivePostCount(req.user!.id);
-    const partnerCount = await storage.getRetailPartnerCount(req.user!.id);
-    const scheduledPosts = await storage.getScheduledPostCount(req.user!.id);
-    const totalEngagements = await storage.getTotalEngagements(req.user!.id);
+    const activePosts = await storage.getActivePostCount(brandId);
+    const partnerCount = await storage.getRetailPartnerCount(brandId);
+    const scheduledPosts = await storage.getScheduledPostCount(brandId);
+    const totalEngagements = await storage.getTotalEngagements(brandId);
     
     // Get most recent partners
-    const recentPartners = await storage.getRecentPartners(req.user!.id, 3);
+    const recentPartners = await storage.getRecentPartners(brandId, 3);
     
     // Get partner stats by status
-    const partnerStats = await storage.getPartnerStatsByStatus(req.user!.id);
+    const partnerStats = await storage.getPartnerStatsByStatus(brandId);
     
     // Get performance metrics
-    const performanceMetrics = await storage.getPerformanceMetrics(req.user!.id);
+    const performanceMetrics = await storage.getPerformanceMetrics(brandId);
     
     // Get upcoming posts
-    const upcomingPosts = await storage.getUpcomingPosts(req.user!.id, 3);
+    const upcomingPosts = await storage.getUpcomingPosts(brandId, 3);
     
     // Get recent activity
-    const recentActivity = await storage.getRecentActivity(req.user!.id, 4);
+    const recentActivity = await storage.getRecentActivity(brandId, 4);
+    
+    console.log(`[GetDashboardStats] Found ${partnerCount} partners, ${activePosts} active posts for brandId=${brandId}`);
     
     res.json({
       quickStats: {

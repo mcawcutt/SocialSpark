@@ -425,6 +425,18 @@ export class MemStorage implements IStorage {
     this.postAssignments.set(id, assignment);
     return assignment;
   }
+  
+  async updatePostAssignment(id: number, data: Partial<PostAssignment>): Promise<PostAssignment> {
+    const assignment = await this.getPostAssignment(id);
+    if (!assignment) {
+      throw new Error(`Post assignment with ID ${id} not found`);
+    }
+    
+    const updatedAssignment = { ...assignment, ...data };
+    this.postAssignments.set(id, updatedAssignment);
+    
+    return updatedAssignment;
+  }
 
   // Analytics operations
   async getAnalyticsByPostAndPartnerIds(postIds: number[], partnerIds: number[]): Promise<Analytics[]> {

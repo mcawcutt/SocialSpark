@@ -126,48 +126,100 @@ export function MobileNav() {
           
           {/* Navigation Links */}
           <nav className="flex-1 px-4 space-y-1">
-            <NavItem 
-              href="/" 
-              icon={LayoutDashboard} 
-              label="Dashboard" 
-              active={location === '/'} 
-              onClick={closeMenu}
-            />
-            <NavItem 
-              href="/calendar" 
-              icon={Calendar} 
-              label="Content Calendar" 
-              active={location === '/calendar'} 
-              onClick={closeMenu}
-            />
-            <NavItem 
-              href="/evergreen" 
-              icon={Flame} 
-              label="Evergreen Content" 
-              active={location === '/evergreen'} 
-              onClick={closeMenu}
-            />
-            <NavItem 
-              href="/partners" 
-              icon={Store} 
-              label="Retail Partners" 
-              active={location === '/partners'} 
-              onClick={closeMenu}
-            />
-            <NavItem 
-              href="/media" 
-              icon={Image} 
-              label="Media Library" 
-              active={location === '/media'} 
-              onClick={closeMenu}
-            />
-            <NavItem 
-              href="/analytics" 
-              icon={BarChart2} 
-              label="Analytics" 
-              active={location === '/analytics'} 
-              onClick={closeMenu}
-            />
+            {isAdmin ? (
+              /* Admin-specific navigation */
+              <>
+                <NavItem 
+                  href="/admin/dashboard" 
+                  icon={LayoutDashboard} 
+                  label="Overview" 
+                  active={location === '/admin/dashboard'} 
+                  onClick={closeMenu}
+                />
+                <NavItem 
+                  href="/admin/brands" 
+                  icon={Building} 
+                  label="Brands" 
+                  active={location === '/admin/brands'} 
+                  onClick={closeMenu}
+                />
+                <NavItem 
+                  href="/admin/analytics" 
+                  icon={BarChart3} 
+                  label="Analytics" 
+                  active={location === '/admin/analytics'} 
+                  onClick={closeMenu}
+                />
+                <NavItem 
+                  href="/admin/users" 
+                  icon={Users} 
+                  label="Users" 
+                  active={location === '/admin/users'} 
+                  onClick={closeMenu}
+                />
+              </>
+            ) : (
+              /* Regular user navigation */
+              <>
+                <NavItem 
+                  href="/" 
+                  icon={LayoutDashboard} 
+                  label="Dashboard" 
+                  active={location === '/'} 
+                  onClick={closeMenu}
+                />
+                <NavItem 
+                  href="/content-calendar" 
+                  icon={Calendar} 
+                  label="Content Calendar" 
+                  active={location === '/content-calendar'} 
+                  onClick={closeMenu}
+                />
+                
+                {/* Brand-specific items */}
+                {isBrand && (
+                  <>
+                    <NavItem 
+                      href="/retail-partners" 
+                      icon={Store} 
+                      label="Retail Partners" 
+                      active={location === '/retail-partners'} 
+                      onClick={closeMenu}
+                    />
+                    <NavItem 
+                      href="/partner-invites" 
+                      icon={UserPlus} 
+                      label="Partner Invites" 
+                      active={location === '/partner-invites'} 
+                      onClick={closeMenu}
+                    />
+                    <NavItem 
+                      href="/evergreen-content" 
+                      icon={Flame} 
+                      label="Evergreen Content" 
+                      active={location === '/evergreen-content'} 
+                      onClick={closeMenu}
+                    />
+                  </>
+                )}
+                
+                <NavItem 
+                  href="/media-library" 
+                  icon={Image} 
+                  label="Media Library" 
+                  active={location === '/media-library'} 
+                  onClick={closeMenu}
+                />
+                <NavItem 
+                  href="/analytics" 
+                  icon={BarChart3} 
+                  label="Analytics" 
+                  active={location === '/analytics'} 
+                  onClick={closeMenu}
+                />
+              </>
+            )}
+            
             <NavItem 
               href="/settings" 
               icon={Settings} 

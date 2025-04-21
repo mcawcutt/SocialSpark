@@ -418,6 +418,30 @@ export default function ContentCalendar() {
                     ))}
                   </div>
                   
+                  {/* Evergreen Post Icon */}
+                  <div className="my-4 p-4 border border-dashed border-green-300 rounded-md bg-green-50">
+                    <div className="flex items-center space-x-4">
+                      <Droppable droppableId="evergreen-source" isDropDisabled={false}>
+                        {(provided) => (
+                          <div 
+                            ref={provided.innerRef}
+                            {...provided.droppableProps}
+                            className="flex-shrink-0"
+                          >
+                            <EvergreenPostIcon index={0} />
+                            {provided.placeholder}
+                          </div>
+                        )}
+                      </Droppable>
+                      <div className="flex-1">
+                        <h3 className="text-sm font-medium text-green-800">Evergreen Content</h3>
+                        <p className="text-xs text-green-600">
+                          Drag the tree icon to any date to schedule evergreen posts. Each retail partner will receive a different post from your evergreen content library.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
                   {/* Calendar grid */}
                   <div className="grid grid-cols-7 gap-1">
                     {calendarDays.map((day, index) => {
@@ -439,6 +463,18 @@ export default function ContentCalendar() {
                       );
                     })}
                   </div>
+                  
+                  {/* Evergreen Post Modal */}
+                  {evergreenDate && (
+                    <EvergreenPostModal
+                      isOpen={isEvergreenModalOpen}
+                      onClose={() => {
+                        setIsEvergreenModalOpen(false);
+                        setEvergreenDate(null);
+                      }}
+                      scheduledDate={evergreenDate}
+                    />
+                  )}
                 </DragDropContext>
               ) : (
                 // List view

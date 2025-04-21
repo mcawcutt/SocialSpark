@@ -11,12 +11,27 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface TimePickerProps {
-  time: Date | undefined
-  setTime: (time: Date | undefined) => void
+  time?: Date | undefined
+  setTime?: (time: Date | undefined) => void
+  value?: Date
+  onChange?: (time: Date) => void
   disabled?: boolean
 }
 
-export function TimePicker({ time, setTime, disabled }: TimePickerProps) {
+export function TimePicker({ time, setTime, value, onChange, disabled }: TimePickerProps) {
+  // Use either time/setTime or value/onChange API
+  const currentTime = value || time;
+  
+  const updateTime = (newTime: Date) => {
+    if (onChange) {
+      onChange(newTime);
+    } else if (setTime) {
+      setTime(newTime);
+    } else {
+      // No handler provided, this is a controlled component
+      console.warn('TimePicker: No onChange or setTime handler provided');
+    }
+  };
   // Generate options for hours (0-23)
   const hours = Array.from({ length: 24 }, (_, i) => i)
   
@@ -32,16 +47,16 @@ export function TimePicker({ time, setTime, disabled }: TimePickerProps) {
   
   // Update the time with new hours
   const handleHourChange = (hour: string) => {
-    const newDate = new Date(time || new Date())
+    const newDate = new Date(currentTime || new Date())
     newDate.setHours(parseInt(hour))
-    setTime(newDate)
+    updateTime(newDate)
   }
   
   // Update the time with new minutes
   const handleMinuteChange = (minute: string) => {
-    const newDate = new Date(time || new Date())
+    const newDate = new Date(currentTime || new Date())
     newDate.setMinutes(parseInt(minute))
-    setTime(newDate)
+    updateTime(newDate)
   }
   
   return (
@@ -51,13 +66,13 @@ export function TimePicker({ time, setTime, disabled }: TimePickerProps) {
           variant={"outline"}
           className={cn(
             "w-full justify-start text-left font-normal",
-            !time && "text-muted-foreground",
+            !currentTime && "text-muted-foreground",
             disabled && "cursor-not-allowed opacity-50"
           )}
           disabled={disabled}
         >
           <Clock className="mr-2 h-4 w-4" />
-          {time ? formatTime(time) : <span>Set time</span>}
+          {currentTime ? formatTime(currentTime) : <span>Set time</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-4">
@@ -65,7 +80,7 @@ export function TimePicker({ time, setTime, disabled }: TimePickerProps) {
           <div className="flex-1">
             <label className="text-xs text-muted-foreground mb-1 block">Hour</label>
             <Select
-              value={time ? time.getHours().toString() : undefined}
+              value={currentTime ? currentTime.getHours().toString() : undefined}
               onValueChange={handleHourChange}
               disabled={disabled}
             >
@@ -87,7 +102,7 @@ export function TimePicker({ time, setTime, disabled }: TimePickerProps) {
           <div className="flex-1">
             <label className="text-xs text-muted-foreground mb-1 block">Minute</label>
             <Select
-              value={time ? time.getMinutes().toString() : undefined}
+              value={currentTime ? currentTime.getMinutes().toString() : undefined}
               onValueChange={handleMinuteChange}
               disabled={disabled}
             >

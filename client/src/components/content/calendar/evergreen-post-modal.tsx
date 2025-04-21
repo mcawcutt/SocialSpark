@@ -111,14 +111,17 @@ export function EvergreenPostModal({
   
   // Handle form submission
   const handleSubmit = () => {
-    if (!user?.brandId) {
+    if (!user) {
       toast({
         title: "Error",
-        description: "Unable to determine brand ID.",
+        description: "User not logged in.",
         variant: "destructive",
       });
       return;
     }
+    
+    // For demo purposes, we use user.id as brandId
+    const brandId = user.id;
     
     // Combine date from scheduledDate with time from selectedTime
     const finalDate = new Date(scheduledDate);
@@ -132,7 +135,7 @@ export function EvergreenPostModal({
     createEvergreenScheduleMutation.mutate({
       scheduledDate: finalDate,
       platforms: platformSelection,
-      brandId: user.brandId,
+      brandId,
     });
   };
   

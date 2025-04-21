@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Building, Users, LayoutDashboard, RefreshCw, Plus } from "lucide-react";
+import { Building, Users, LayoutDashboard, RefreshCw, Plus, UserRound } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";

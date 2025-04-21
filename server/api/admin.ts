@@ -143,6 +143,95 @@ export function setupAdminRoutes(app: Express) {
     }
   });
 
+  // Impersonate a brand (admin only)
+  app.post('/api/admin/impersonate/:id', requireAuth, requireRole(['admin']), async (req: Request, res: Response) => {
+    try {
+      const brandId = parseInt(req.params.id);
+      
+      if (isNaN(brandId)) {
+        return res.status(400).json({ message: "Invalid brand ID" });
+      }
+      
+      const brand = await storage.getUser(brandId);
+      
+      if (!brand) {
+        return res.status(404).json({ message: "Brand not found" });
+      }
+      
+      // Only allow impersonating brands
+      if (brand.role !== 'brand') {
+        return res.status(400).json({ message: "Not a brand account" });
+      }
+      
+      // Store the original admin user's ID in the session for returning later
+      const adminUser = req.user;
+      req.session.adminImpersonator = {
+        id: adminUser.id,
+        username: adminUser.username,
+        role: adminUser.role
+      };
+      
+      // Login as the brand
+      req.login(brand, (err) => {
+        if (err) {
+          console.error("Error during impersonation login:", err);
+          return res.status(500).json({ message: "Failed to impersonate brand", error: err.message });
+        }
+        
+        // Set a flag to indicate this is an impersonated session
+        req.session.isImpersonated = true;
+        
+        res.status(200).json({ 
+          success: true, 
+          message: `Now impersonating ${brand.name}`,
+          user: brand
+        });
+      });
+    } catch (error) {
+      console.error("Error impersonating brand:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // Return to admin account after impersonation
+  app.post('/api/admin/end-impersonation', requireAuth, async (req: Request, res: Response) => {
+    try {
+      // Check if this is an impersonated session
+      if (!req.session.isImpersonated || !req.session.adminImpersonator) {
+        return res.status(400).json({ message: "Not in an impersonation session" });
+      }
+      
+      const adminId = req.session.adminImpersonator.id;
+      const adminUser = await storage.getUser(adminId);
+      
+      if (!adminUser) {
+        return res.status(404).json({ message: "Original admin account not found" });
+      }
+      
+      // Login as the original admin
+      req.login(adminUser, (err) => {
+        if (err) {
+          console.error("Error returning to admin account:", err);
+          return res.status(500).json({ message: "Failed to return to admin account", error: err.message });
+        }
+        
+        // Clear impersonation data from session
+        delete req.session.isImpersonated;
+        delete req.session.adminImpersonator;
+        
+        res.status(200).json({ 
+          success: true, 
+          message: "Returned to admin account",
+          user: adminUser
+        });
+      });
+      
+    } catch (error) {
+      console.error("Error ending impersonation:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   // Get a specific brand (admin only)
   app.get('/api/admin/brands/:id', requireAuth, requireRole(['admin']), async (req: Request, res: Response) => {
     try {

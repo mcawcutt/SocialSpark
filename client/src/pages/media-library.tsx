@@ -763,101 +763,132 @@ export default function MediaLibrary() {
           </DialogTrigger>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          {filteredMediaItems?.map((item) => (
-            <Card 
-              key={item.id} 
-              className="overflow-hidden h-full group relative cursor-pointer"
-              onClick={() => {
-                setSelectedMedia(item);
-                setIsEditDialogOpen(true);
-              }}
-            >
+        <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-4 xl:columns-5 gap-4 space-y-4">
+          {filteredMediaItems?.map((item) => {
+            // Determine if the item is a video
+            const isVideo = item.fileType.startsWith("video/");
+            const isImage = item.fileType.startsWith("image/");
+            
+            // Determine a random height for the masonry layout based on item ID for consistency
+            // This creates a visually interesting layout similar to the example image
+            const itemHeight = item.id % 3 === 0 ? "h-64" : item.id % 2 === 0 ? "h-48" : "h-56";
+            
+            return (
               <div 
-                className="aspect-square bg-gray-100 dark:bg-gray-800 relative h-28 transition-all group-hover:opacity-90"
+                key={item.id}
+                className="break-inside-avoid mb-4 group relative cursor-pointer transition-all duration-200 hover:shadow-lg rounded-md overflow-hidden"
+                onClick={() => {
+                  setSelectedMedia(item);
+                  setIsEditDialogOpen(true);
+                }}
               >
-                {item.fileType.startsWith("image/") ? (
-                  <img
-                    src={item.fileUrl}
-                    alt={item.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <Image className="h-10 w-10 text-gray-400" />
+                <div className={`relative bg-gray-100 dark:bg-gray-800 w-full ${isImage ? itemHeight : "h-40"} transition-all`}>
+                  {isImage ? (
+                    <img
+                      src={item.fileUrl}
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                      onLoad={(e) => {
+                        // This will record dimensions for already loaded images
+                        const img = e.target as HTMLImageElement;
+                        if (img.naturalWidth && img.naturalHeight) {
+                          setImageDimensions(prev => ({
+                            ...prev,
+                            [item.id]: { width: img.naturalWidth, height: img.naturalHeight }
+                          }));
+                        }
+                      }}
+                    />
+                  ) : isVideo ? (
+                    <div className="relative flex items-center justify-center h-full bg-gray-900">
+                      {/* Video thumbnail would go here - using placeholder for now */}
+                      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/60"></div>
+                      {/* Video play button indicator */}
+                      <div className="absolute w-12 h-12 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
+                          <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[12px] border-l-[#e03eb6] border-b-[6px] border-b-transparent ml-1"></div>
+                        </div>
+                      </div>
+                      <span className="absolute top-2 right-2 text-white text-xs bg-black/50 px-2 py-0.5 rounded backdrop-blur-sm">
+                        0:15
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <Image className="h-12 w-12 text-gray-400" />
+                    </div>
+                  )}
+                  
+                  {/* Hover details overlay - shows information on hover */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-3">
+                    <div className="text-white text-sm font-medium truncate">{item.name}</div>
+                    
+                    {/* Description on hover */}
+                    {item.description && (
+                      <p className="text-white/80 text-xs line-clamp-2 mt-1">{item.description}</p>
+                    )}
+                    
+                    {/* Image dimensions and date */}
+                    <div className="flex items-center mt-2 text-[10px] text-white/80">
+                      {isVideo && (
+                        <span className="bg-black/30 rounded-sm px-1 py-0.5 backdrop-blur-sm">
+                          Video
+                        </span>
+                      )}
+                      {isImage && imageDimensions[item.id] && (
+                        <span className="bg-black/30 rounded-sm px-1 py-0.5 backdrop-blur-sm">
+                          {imageDimensions[item.id].width} × {imageDimensions[item.id].height}px
+                        </span>
+                      )}
+                      <span className="mx-1 text-white/60">•</span>
+                      <span className="text-[10px] text-white/80">
+                        {new Date(item.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    
+                    {/* Tags */}
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {item.tags?.slice(0, 3).map((tag) => (
+                        <span key={tag} className="bg-black/30 text-white/90 text-[10px] rounded-sm px-1 py-0.5 backdrop-blur-sm">
+                          #{tag}
+                        </span>
+                      ))}
+                      {(item.tags?.length || 0) > 3 && (
+                        <span className="bg-black/30 text-white/90 text-[10px] rounded-sm px-1 py-0.5 backdrop-blur-sm">
+                          +{item.tags!.length - 3}
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* Quick actions on hover */}
+                    <div className="absolute top-2 right-2 flex gap-2">
+                      <button 
+                        className="bg-black/50 text-white p-1.5 rounded-full backdrop-blur-sm hover:bg-black/70 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(item.fileUrl);
+                          toast({
+                            title: "URL Copied",
+                            description: "URL copied to clipboard",
+                          });
+                        }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                      </button>
+                      <button 
+                        className="bg-black/50 text-white p-1.5 rounded-full backdrop-blur-sm hover:bg-black/70 transition-colors"
+                      >
+                        <Edit className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
-                )}
-                
-                {/* Edit overlay on hover */}
-                <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Edit className="h-6 w-6 text-white" />
                 </div>
               </div>
-              <CardHeader className="p-2">
-                <CardTitle className="text-xs font-medium truncate">{item.name}</CardTitle>
-              </CardHeader>
-              <CardContent className="p-2 pt-0">
-                {item.description && (
-                  <p className="text-xs text-gray-500 line-clamp-1">{item.description}</p>
-                )}
-                
-                {/* Image dimensions display */}
-                {item.fileType.startsWith("image/") && imageDimensions[item.id] && (
-                  <p className="text-[10px] text-gray-500 flex items-center mt-1">
-                    <span className="inline-flex items-center bg-gray-100 dark:bg-gray-800 rounded px-1 py-0.5">
-                      {imageDimensions[item.id].width} × {imageDimensions[item.id].height}px
-                    </span>
-                    <span className="mx-1">•</span>
-                    <span className="text-[10px]">
-                      {new Date(item.createdAt).toLocaleDateString()}
-                    </span>
-                  </p>
-                )}
-                
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {item.tags?.slice(0, 2).map((tag) => (
-                    <Badge key={tag} variant="secondary" className="text-[10px] px-1 py-0">
-                      {tag}
-                    </Badge>
-                  ))}
-                  {(item.tags?.length || 0) > 2 && (
-                    <Badge variant="outline" className="text-[10px] px-1 py-0">
-                      +{(item.tags?.length || 0) - 2}
-                    </Badge>
-                  )}
-                </div>
-              </CardContent>
-              <CardFooter className="p-2 pt-0 flex justify-between items-center">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 text-xs px-2"
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent opening the edit dialog
-                    // Copy the URL to clipboard
-                    navigator.clipboard.writeText(item.fileUrl);
-                    toast({
-                      title: "URL Copied",
-                      description: "URL copied to clipboard",
-                    });
-                  }}
-                >
-                  Copy URL
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 w-6 p-0"
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent opening the edit dialog
-                    deleteMediaMutation.mutate(item.id);
-                  }}
-                >
-                  <Trash2 className="h-3 w-3 text-red-500" />
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
+            );
+          })}
         </div>
       )}
       

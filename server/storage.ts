@@ -623,6 +623,24 @@ export class MemStorage implements IStorage {
     } else {
       console.log(`Demo user already exists with name: ${existingDemoUser.name}`);
     }
+    
+    // Check if admin user already exists
+    const existingAdminUser = await this.getUserByUsername("admin");
+    
+    if (!existingAdminUser) {
+      // Create the admin user if it doesn't exist
+      console.log("Creating new admin user...");
+      this.createUser({
+        username: "admin",
+        password: "admin123", // Will be hashed by our auth.ts hashPassword function
+        name: "Ignyt Admin",
+        email: "admin@ignyt.com",
+        role: "admin",
+        planType: "premium"
+      });
+    } else {
+      console.log(`Admin user already exists with name: ${existingAdminUser.name}`);
+    }
   }
   
   // Only seed demo data for the demo user, and only if there are no existing partners

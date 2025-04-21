@@ -240,12 +240,20 @@ export function Sidebar() {
           
           {/* Admin only sections */}
           {isAdmin && (
-            <SidebarItem 
-              icon={<Users />} 
-              label="User Management" 
-              href="/admin/users" 
-              active={location === '/admin/users'}
-            />
+            <>
+              <SidebarItem 
+                icon={<Building />} 
+                label="Admin Dashboard" 
+                href="/admin/dashboard" 
+                active={location === '/admin/dashboard'}
+              />
+              <SidebarItem 
+                icon={<Users />} 
+                label="User Management" 
+                href="/admin/users" 
+                active={location === '/admin/users'}
+              />
+            </>
           )}
           
           <SidebarItem 

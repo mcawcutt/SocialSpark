@@ -28,13 +28,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, X, Upload, Edit, Trash2, Image, FolderPlus, Search } from "lucide-react";
+import { Loader2, X, Upload, Edit, Trash2, Image, FolderPlus, Search, CheckCircle, XCircle, Zap } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { MediaLibraryItem } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().optional(),
   fileUrl: z.string().min(1, "File URL is required"),
   fileType: z.string().min(1, "File type is required"),
   description: z.string().optional(),
@@ -43,13 +44,14 @@ const formSchema = z.object({
 
 type MediaUploadFormValues = z.infer<typeof formSchema>;
 
-const FileUploadForm = ({ onSuccess }: { onSuccess: () => void }) => {
+const FileUploadForm = ({ onSuccess, quickUploadMode = false }: { onSuccess: () => void, quickUploadMode?: boolean }) => {
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [uploadedFileType, setUploadedFileType] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [tagInput, setTagInput] = useState("");
   const [isDragging, setIsDragging] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const { toast } = useToast();
 
   const form = useForm<MediaUploadFormValues>({
@@ -83,6 +85,8 @@ const FileUploadForm = ({ onSuccess }: { onSuccess: () => void }) => {
 
   const processFile = async (file: File) => {
     setIsUploading(true);
+    const fileId = Date.now().toString();
+    setUploadProgress(prev => ({ ...prev, [fileId]: 0 }));
     
     try {
       const formData = new FormData();
@@ -99,6 +103,24 @@ const FileUploadForm = ({ onSuccess }: { onSuccess: () => void }) => {
       }
 
       const data = await response.json();
+      setUploadProgress(prev => ({ ...prev, [fileId]: 100 }));
+      
+      // If in quick upload mode, save the file immediately with auto-generated name
+      if (quickUploadMode) {
+        const fileName = data.file.originalname.split('.')[0].replace(/[^\w\s]/gi, '');
+        const mediaItem = {
+          name: fileName || `Media ${new Date().toISOString()}`,
+          fileUrl: data.file.url,
+          fileType: data.file.mimetype,
+          description: "",
+          tags: []
+        };
+        
+        await createMediaMutation.mutateAsync(mediaItem);
+        return;
+      }
+      
+      // Otherwise continue with normal upload flow
       setUploadedFileUrl(data.file.url);
       setUploadedFileName(data.file.originalname);
       setUploadedFileType(data.file.mimetype);
@@ -122,8 +144,11 @@ const FileUploadForm = ({ onSuccess }: { onSuccess: () => void }) => {
         description: error instanceof Error ? error.message : "Failed to upload file",
         variant: "destructive",
       });
+      setUploadProgress(prev => ({ ...prev, [fileId]: -1 })); // Mark as failed
     } finally {
-      setIsUploading(false);
+      if (!quickUploadMode) {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -201,43 +226,8 @@ const FileUploadForm = ({ onSuccess }: { onSuccess: () => void }) => {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="space-y-4">
-          <div className="border rounded-md p-4">
-            {uploadedFileUrl ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Image className="h-5 w-5" />
-                    <span className="text-sm font-medium">{uploadedFileName}</span>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setUploadedFileUrl(null);
-                      setUploadedFileName(null);
-                      setUploadedFileType(null);
-                      form.setValue("fileUrl", "");
-                      form.setValue("fileType", "");
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-                {uploadedFileUrl.endsWith(".jpg") || 
-                 uploadedFileUrl.endsWith(".jpeg") || 
-                 uploadedFileUrl.endsWith(".png") || 
-                 uploadedFileUrl.endsWith(".gif") ? (
-                  <div className="mt-2 relative aspect-video rounded-md overflow-hidden border">
-                    <img
-                      src={uploadedFileUrl}
-                      alt="Preview"
-                      className="object-cover w-full h-full"
-                    />
-                  </div>
-                ) : null}
-              </div>
-            ) : (
+          {quickUploadMode ? (
+            <div className="border rounded-md p-6 text-center">
               <div 
                 className={`flex flex-col items-center justify-center py-4 ${isDragging ? 'bg-primary/10' : ''}`}
                 onDragEnter={handleDragEnter}
@@ -246,26 +236,30 @@ const FileUploadForm = ({ onSuccess }: { onSuccess: () => void }) => {
                 onDrop={handleDrop}
               >
                 <Label
-                  htmlFor="file-upload"
-                  className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-md cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 ${isDragging ? 'border-primary' : ''}`}
+                  htmlFor="file-upload-quick"
+                  className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-md cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 ${isDragging ? 'border-primary' : ''}`}
                 >
                   {isUploading ? (
-                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <div className="flex flex-col items-center">
+                      <Loader2 className="h-8 w-8 animate-spin mb-4" />
+                      <span className="text-sm font-medium">Uploading files...</span>
+                      <span className="text-xs text-gray-500 mt-1">Files will be added automatically with generated names</span>
+                    </div>
                   ) : (
                     <>
-                      <Upload className="h-6 w-6 mb-2" />
-                      <span className="text-sm">{isDragging ? 'Drop files here' : 'Click or drag to upload'}</span>
-                      <span className="text-xs text-gray-500">
-                        SVG, PNG, JPG, GIF or MP4 (max. 20MB)
+                      <Upload className="h-10 w-10 mb-3" />
+                      <span className="text-lg font-medium">{isDragging ? 'Drop files here' : 'Quick Upload'}</span>
+                      <span className="text-sm text-gray-500 my-1">
+                        Files will be added automatically
                       </span>
                       <span className="text-xs text-blue-500 font-medium">
-                        Multiple files supported
+                        Drop multiple files or click to select
                       </span>
                     </>
                   )}
                 </Label>
                 <Input
-                  id="file-upload"
+                  id="file-upload-quick"
                   type="file"
                   accept="image/*,video/*"
                   className="hidden"
@@ -274,84 +268,182 @@ const FileUploadForm = ({ onSuccess }: { onSuccess: () => void }) => {
                   multiple
                 />
               </div>
-            )}
-          </div>
-
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter a name for this media" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Description</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Enter a description (optional)"
-                    {...field}
-                    value={field.value || ""}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <div className="space-y-2">
-            <FormLabel>Tags</FormLabel>
-            <div className="flex gap-2 flex-wrap mb-2">
-              {form.watch("tags")?.map((tag) => (
-                <Badge key={tag} className="flex items-center gap-1">
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => removeTag(tag)}
-                    className="text-xs"
+              
+              {/* Show progress when uploading in quick mode */}
+              {Object.keys(uploadProgress).length > 0 && (
+                <div className="mt-4 text-left space-y-2">
+                  <h4 className="text-sm font-medium">Upload Progress</h4>
+                  {Object.entries(uploadProgress).map(([id, progress]) => (
+                    <div key={id} className="flex items-center gap-2">
+                      {progress === 100 ? (
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      ) : progress === -1 ? (
+                        <XCircle className="h-4 w-4 text-red-500" />
+                      ) : (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      )}
+                      <Progress value={progress > 0 ? progress : 0} className="flex-1 h-2" />
+                      <span className="text-xs">{progress === 100 ? 'Complete' : progress === -1 ? 'Failed' : `${progress}%`}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="border rounded-md p-4">
+                {uploadedFileUrl ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Image className="h-5 w-5" />
+                        <span className="text-sm font-medium">{uploadedFileName}</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setUploadedFileUrl(null);
+                          setUploadedFileName(null);
+                          setUploadedFileType(null);
+                          form.setValue("fileUrl", "");
+                          form.setValue("fileType", "");
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {uploadedFileUrl.endsWith(".jpg") || 
+                     uploadedFileUrl.endsWith(".jpeg") || 
+                     uploadedFileUrl.endsWith(".png") || 
+                     uploadedFileUrl.endsWith(".gif") ? (
+                      <div className="mt-2 relative aspect-video rounded-md overflow-hidden border">
+                        <img
+                          src={uploadedFileUrl}
+                          alt="Preview"
+                          className="object-cover w-full h-full"
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div 
+                    className={`flex flex-col items-center justify-center py-4 ${isDragging ? 'bg-primary/10' : ''}`}
+                    onDragEnter={handleDragEnter}
+                    onDragLeave={handleDragLeave}
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
                   >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Add tags"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addTag();
-                  }
-                }}
-              />
-              <Button type="button" onClick={addTag} variant="outline">
-                Add
-              </Button>
-            </div>
-          </div>
-        </div>
+                    <Label
+                      htmlFor="file-upload"
+                      className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-md cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 ${isDragging ? 'border-primary' : ''}`}
+                    >
+                      {isUploading ? (
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      ) : (
+                        <>
+                          <Upload className="h-6 w-6 mb-2" />
+                          <span className="text-sm">{isDragging ? 'Drop files here' : 'Click or drag to upload'}</span>
+                          <span className="text-xs text-gray-500">
+                            SVG, PNG, JPG, GIF or MP4 (max. 20MB)
+                          </span>
+                          <span className="text-xs text-blue-500 font-medium">
+                            Multiple files supported
+                          </span>
+                        </>
+                      )}
+                    </Label>
+                    <Input
+                      id="file-upload"
+                      type="file"
+                      accept="image/*,video/*"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                      disabled={isUploading}
+                      multiple
+                    />
+                  </div>
+                )}
+              </div>
 
-        <DialogFooter>
-          <Button type="submit" disabled={createMediaMutation.isPending}>
-            {createMediaMutation.isPending && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            )}
-            Save to Library
-          </Button>
-        </DialogFooter>
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter a name for this media" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Enter a description (optional)"
+                        {...field}
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="space-y-2">
+                <FormLabel>Tags</FormLabel>
+                <div className="flex gap-2 flex-wrap mb-2">
+                  {form.watch("tags")?.map((tag) => (
+                    <Badge key={tag} className="flex items-center gap-1">
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => removeTag(tag)}
+                        className="text-xs"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Add tags"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addTag();
+                      }
+                    }}
+                  />
+                  <Button type="button" onClick={addTag} variant="outline">
+                    Add
+                  </Button>
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button type="submit" disabled={createMediaMutation.isPending}>
+                  {createMediaMutation.isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Save to Library
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </div>
       </form>
     </Form>
   );
@@ -445,10 +537,18 @@ export default function MediaLibrary() {
     setIsDragging(false);
     
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      // Open the dialog automatically when files are dropped
-      setIsAddDialogOpen(true);
+      // If user holds Shift key when dropping, do quick upload
+      if (e.shiftKey) {
+        setIsQuickUploadOpen(true);
+      } else {
+        // Otherwise open normal dialog
+        setIsAddDialogOpen(true);
+      }
     }
   };
+
+  // State for quick upload mode
+  const [isQuickUploadOpen, setIsQuickUploadOpen] = useState(false);
 
   return (
     <div 
@@ -464,31 +564,58 @@ export default function MediaLibrary() {
             <Upload className="h-12 w-12 mx-auto mb-4 text-primary" />
             <h3 className="text-xl font-bold">Drop Files to Upload</h3>
             <p className="text-gray-500">Drop your media files here to add them to the library</p>
-            <p className="text-blue-500 text-sm mt-2">Multiple files supported!</p>
+            <p className="text-blue-500 text-sm mt-1">Multiple files supported!</p>
+            <div className="mt-4 text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded">
+              <p className="font-medium text-primary">Pro Tip</p>
+              <p className="text-gray-600 dark:text-gray-400">Hold <kbd className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">Shift</kbd> while dropping to use quick upload mode</p>
+            </div>
           </div>
         </div>
       )}
 
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Media Library</h1>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <FolderPlus className="mr-2 h-4 w-4" />
-              Add to Library
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Add to Media Library</DialogTitle>
-              <DialogDescription>
-                Upload new images or videos to your media library. Multiple files are supported.
-                All uploaded media will be available for use in your content posts.
-              </DialogDescription>
-            </DialogHeader>
-            <FileUploadForm onSuccess={() => setIsAddDialogOpen(false)} />
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+          {/* Quick Upload Button */}
+          <Dialog open={isQuickUploadOpen} onOpenChange={setIsQuickUploadOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Zap className="mr-2 h-4 w-4 text-yellow-500" />
+                Quick Upload
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Quick Upload</DialogTitle>
+                <DialogDescription>
+                  Upload files with automatically generated names. Perfect for bulk uploads. 
+                  Names will be based on filenames.
+                </DialogDescription>
+              </DialogHeader>
+              <FileUploadForm onSuccess={() => setIsQuickUploadOpen(false)} quickUploadMode={true} />
+            </DialogContent>
+          </Dialog>
+          
+          {/* Regular Upload Button */}
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <FolderPlus className="mr-2 h-4 w-4" />
+                Add to Library
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Add to Media Library</DialogTitle>
+                <DialogDescription>
+                  Upload new images or videos to your media library. Multiple files are supported.
+                  All uploaded media will be available for use in your content posts.
+                </DialogDescription>
+              </DialogHeader>
+              <FileUploadForm onSuccess={() => setIsAddDialogOpen(false)} />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="mb-6 space-y-4">

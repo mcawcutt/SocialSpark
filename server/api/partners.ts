@@ -24,7 +24,21 @@ export function setupPartnerRoutes(app: Express) {
       console.log("Getting partner tags for user:", req.user?.id, "Role:", req.user?.role);
       
       // For brand users, only show their own partners' tags
-      const brandId = req.user?.role === 'brand' ? req.user.id : 1; // Use actual user ID for real users, brand ID 1 for demo mode
+      let brandId = req.user?.id;
+      
+      // If admin, use the demo brand ID only if explicitly requested
+      if (req.user?.role === 'admin') {
+        // Only use demo brand (1) if specifically requesting it
+        brandId = req.query.brandId ? parseInt(req.query.brandId as string, 10) : null;
+        
+        // If no brandId specified and admin role, return default tags
+        if (!brandId) {
+          return res.json([
+            "Urban", "Outdoor", "Premium", "Sale", 
+            "Family", "Summer", "Winter", "Gear"
+          ]);
+        }
+      }
       
       // Get all partners for the brand
       const partners = await storage.getRetailPartnersByBrandId(brandId);
@@ -42,6 +56,14 @@ export function setupPartnerRoutes(app: Express) {
       // Get unique tags only
       const uniqueTags = [...new Set(allTags)];
       console.log(`Found ${uniqueTags.length} unique tags for brand ${brandId}`);
+      
+      // If there are no tags, return some defaults
+      if (uniqueTags.length === 0) {
+        return res.json([
+          "Urban", "Outdoor", "Premium", "Sale", 
+          "Family", "Summer", "Winter", "Gear"
+        ]);
+      }
       
       return res.json(uniqueTags);
     } catch (error) {
@@ -107,8 +129,11 @@ export function setupPartnerRoutes(app: Express) {
         const brandIds = userBrands.map(brand => brand.id);
         
         if (brandIds.length === 0) {
+          // Brand users should only see their own partners
+          // Don't use demo data for newly created brands
           console.log("No brands found for user. Using user's own ID as brandId");
-          // Use the user's ID directly when no brands are found - ensures data isolation
+          
+          // Safely get only partners associated with this specific user ID
           const partners = await storage.getRetailPartnersByBrandId(req.user.id);
           console.log(`Found ${partners.length} partners for user ${req.user.id}`);
           return res.json(partners);
@@ -139,10 +164,8 @@ export function setupPartnerRoutes(app: Express) {
           return res.json(allPartners);
         } catch (dbError) {
           console.error("Error querying database for partners:", dbError);
-          // Fallback to in-memory partners
-          const memPartners = await storage.getRetailPartnersByBrandId(1);
-          console.log(`Falling back to in-memory partners. Found ${memPartners.length} partners.`);
-          return res.json(memPartners);
+          // Don't use partners from demo brand (brandId 1) for other brands
+          return res.json([]); // Return empty array instead of demo partners
         }
       }
     } catch (error) {

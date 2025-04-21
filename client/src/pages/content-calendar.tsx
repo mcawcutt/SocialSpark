@@ -6,6 +6,7 @@ import { CreatePostButton } from "@/components/content/post-form/create-post-but
 import { ContentPostForm } from "@/components/content/post-form/content-post-form";
 import { EvergreenPostIcon } from "@/components/content/calendar/evergreen-post-icon";
 import { EvergreenPostModal } from "@/components/content/calendar/evergreen-post-modal";
+import { PostListView } from "@/components/content/calendar/post-list-view";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { 

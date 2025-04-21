@@ -195,6 +195,11 @@ export function setupAdminRoutes(app: Express) {
       }
       
       // Store the original admin user's ID in the session for returning later
+      if (!req.user) {
+        console.log(`[AdminImpersonation] ERROR: User not available in request!`);
+        return res.status(500).json({ message: "User not available in request" });
+      }
+
       const adminUser = req.user;
       console.log(`[AdminImpersonation] Storing admin user in session: ${adminUser.id} (${adminUser.username})`);
       
@@ -204,14 +209,31 @@ export function setupAdminRoutes(app: Express) {
         return res.status(500).json({ message: "Session not initialized" });
       }
       
+      console.log(`[AdminImpersonation] Current session info:`, {
+        sessionID: req.sessionID,
+        hasSession: !!req.session,
+        sessionSize: JSON.stringify(req.session).length
+      });
+      
       req.session.adminImpersonator = {
         id: adminUser.id,
         username: adminUser.username,
         role: adminUser.role
       };
       
+      console.log(`[AdminImpersonation] After setting adminImpersonator:`, req.session.adminImpersonator);
+      
+      // For brand users, set the brandId as their own id for convenience
+      // This is important after our data isolation changes
+      const brandWithBrandId = {
+        ...brand,
+        brandId: brand.id // Set brandId to their own id for brand users
+      };
+      
+      console.log(`[AdminImpersonation] Added brandId=${brandWithBrandId.brandId} to impersonated brand user`);
+      
       // Login as the brand
-      req.login(brand, (err) => {
+      req.login(brandWithBrandId, (err) => {
         if (err) {
           console.error("Error during impersonation login:", err);
           return res.status(500).json({ message: "Failed to impersonate brand", error: err.message });

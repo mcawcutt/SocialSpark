@@ -74,44 +74,31 @@ export default function AdminBrands() {
   // Handle brand impersonation
   const handleImpersonate = async (id: number, username?: string) => {
     try {
-      // If username is provided, use the demo-brand-login endpoint instead
-      if (username) {
-        const res = await apiRequest("POST", `/api/demo-brand-login`, { brandUsername: username });
-        
-        if (!res.ok) throw new Error('Failed to login as brand');
-        
-        const data = await res.json();
-        
-        // Invalidate user data and redirect
-        queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-        
-        // Redirect to brand dashboard
-        window.location.href = '/';
-        
-        toast({
-          title: "Logged in as Brand",
-          description: `Successfully logged in as ${data.user.name}`
-        });
-      } else {
-        // Use the regular impersonation endpoint
-        const res = await apiRequest("POST", `/api/admin/impersonate/${id}`, {});
-        
-        if (!res.ok) throw new Error('Failed to impersonate brand');
-        
-        const data = await res.json();
-        
-        // Invalidate user data and redirect
-        queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-        
-        // Redirect to brand dashboard
-        window.location.href = '/';
-        
-        toast({
-          title: "Impersonating Brand",
-          description: data.message
-        });
+      console.log(`Impersonating brand ${id} with username ${username || "N/A"}`);
+      // Always use the admin impersonation endpoint from the admin brands page
+      const res = await apiRequest("POST", `/api/admin/impersonate/${id}`, {});
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("Impersonation failed:", errorData);
+        throw new Error(`Failed to impersonate brand: ${errorData.message || "Unknown error"}`);
       }
+      
+      const data = await res.json();
+      console.log("Impersonation successful:", data);
+      
+      // Invalidate user data and redirect
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      
+      // Redirect to brand dashboard
+      window.location.href = '/';
+      
+      toast({
+        title: "Impersonating Brand",
+        description: data.message || `Successfully impersonating brand`
+      });
     } catch (error) {
+      console.error("Error during impersonation:", error);
       toast({
         title: "Error",
         description: "Failed to impersonate brand.",

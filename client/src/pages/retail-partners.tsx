@@ -51,6 +51,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 // Form schema for adding a new retail partner
 const newPartnerSchema = z.object({
@@ -96,23 +97,45 @@ export default function RetailPartners() {
   const [isUploading, setIsUploading] = useState(false);
   const [previewData, setPreviewData] = useState<any[]>([]);
 
+  // Import useAuth hook to check if user is authenticated
+  const { user } = useAuth();
+  
+  // Determine which endpoint to use based on authentication status
+  const partnersEndpoint = user ? "/api/retail-partners" : "/api/demo/retail-partners";
+  const tagsEndpoint = user ? "/api/retail-partners/tags" : "/api/demo/retail-partners/tags";
+  
+  console.log(`[RetailPartners] Using endpoint: ${partnersEndpoint}, user: ${user?.username || 'not authenticated'}`);
+  
   // Fetch retail partners
   const { data: partners, isLoading } = useQuery({
-    queryKey: ["/api/demo/retail-partners"],
+    queryKey: [partnersEndpoint],
   });
   
   // Fetch all available tags
   const { data: availableTags = [] } = useQuery({
-    queryKey: ["/api/demo/retail-partners/tags"],
+    queryKey: [tagsEndpoint],
   });
 
   // Create a new retail partner
   const createPartnerMutation = useMutation({
     mutationFn: async (data: NewPartnerFormValues) => {
-      // In demo mode, we use the bulk import endpoint to create a single partner
-      const res = await apiRequest("POST", "/api/demo/retail-partners/bulk", { 
-        partners: [data]
-      });
+      // Determine which endpoint to use based on authentication
+      const endpoint = user 
+        ? "/api/retail-partners" 
+        : "/api/demo/retail-partners/bulk";
+      
+      // Format data differently based on endpoint
+      const requestData = user
+        ? { 
+            ...data, 
+            brandId: user.brandId || user.id,
+            metadata: { tags: data.tags || [] } 
+          }
+        : { partners: [{ ...data, metadata: { tags: data.tags || [] } }] };
+      
+      console.log(`[CreatePartner] Using endpoint: ${endpoint}, user: ${user?.username || 'not authenticated'}`);
+      
+      const res = await apiRequest("POST", endpoint, requestData);
       
       // Check if the response is ok before parsing as JSON
       if (!res.ok) {
@@ -129,8 +152,9 @@ export default function RetailPartners() {
       }
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({queryKey: ["/api/demo/retail-partners"]});
-      queryClient.invalidateQueries({queryKey: ["/api/demo/retail-partners/tags"]});
+      // Invalidate both query keys to ensure data is fresh
+      queryClient.invalidateQueries({queryKey: [partnersEndpoint]});
+      queryClient.invalidateQueries({queryKey: [tagsEndpoint]});
       toast({
         title: "Partner added",
         description: "The retail partner has been added successfully.",
@@ -150,7 +174,14 @@ export default function RetailPartners() {
   // Update a retail partner status
   const updatePartnerStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      const res = await apiRequest("PATCH", `/api/demo/retail-partners/${id}`, { status });
+      // Determine endpoint based on authentication status
+      const baseEndpoint = user 
+        ? "/api/retail-partners" 
+        : "/api/demo/retail-partners";
+      
+      console.log(`[UpdateStatus] Using endpoint: ${baseEndpoint}/${id}, user: ${user?.username || 'not authenticated'}`);
+      
+      const res = await apiRequest("PATCH", `${baseEndpoint}/${id}`, { status });
       
       // Check if the response is ok before parsing as JSON
       if (!res.ok) {
@@ -167,8 +198,9 @@ export default function RetailPartners() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: ["/api/demo/retail-partners"]});
-      queryClient.invalidateQueries({queryKey: ["/api/demo/retail-partners/tags"]});
+      // Invalidate both query keys to ensure data is fresh
+      queryClient.invalidateQueries({queryKey: [partnersEndpoint]});
+      queryClient.invalidateQueries({queryKey: [tagsEndpoint]});
       toast({
         title: "Status updated",
         description: "The partner status has been updated successfully.",
@@ -186,7 +218,14 @@ export default function RetailPartners() {
   // Update a retail partner
   const updatePartnerMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<EditPartnerFormValues> }) => {
-      const res = await apiRequest("PATCH", `/api/demo/retail-partners/${id}`, data);
+      // Determine endpoint based on authentication status
+      const baseEndpoint = user 
+        ? "/api/retail-partners" 
+        : "/api/demo/retail-partners";
+      
+      console.log(`[UpdatePartner] Using endpoint: ${baseEndpoint}/${id}, user: ${user?.username || 'not authenticated'}`);
+      
+      const res = await apiRequest("PATCH", `${baseEndpoint}/${id}`, data);
       
       // Check if the response is ok before parsing as JSON
       if (!res.ok) {
@@ -203,8 +242,9 @@ export default function RetailPartners() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: ["/api/demo/retail-partners"]});
-      queryClient.invalidateQueries({queryKey: ["/api/demo/retail-partners/tags"]});
+      // Invalidate both query keys to ensure data is fresh
+      queryClient.invalidateQueries({queryKey: [partnersEndpoint]});
+      queryClient.invalidateQueries({queryKey: [tagsEndpoint]});
       toast({
         title: "Partner updated",
         description: "The retail partner has been updated successfully.",

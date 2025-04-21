@@ -50,11 +50,15 @@ export function setupMediaRoutes(app: Express) {
   
   // Get all media items for the current brand
   app.get('/api/media', async (req: Request, res: Response) => {
-    if (!req.isAuthenticated()) {
+    // Allow demo access with query parameter
+    const isDemoMode = req.query.demo === 'true';
+    
+    if (!isDemoMode && !req.isAuthenticated()) {
       return res.status(401).send("Not authenticated");
     }
     
-    const brandId = req.user.id;
+    // Use demo brand ID for demo mode, otherwise use authenticated user's brand ID
+    const brandId = isDemoMode ? 1 : (req.user?.id || 1);
     const media = await storage.getMediaByBrandId(brandId);
     res.json(media);
   });
@@ -97,13 +101,17 @@ export function setupMediaRoutes(app: Express) {
   
   // Create a new media item
   app.post('/api/media', async (req: Request, res: Response) => {
-    if (!req.isAuthenticated()) {
+    // Allow demo access with query parameter
+    const isDemoMode = req.query.demo === 'true';
+    
+    if (!isDemoMode && !req.isAuthenticated()) {
       return res.status(401).send("Not authenticated");
     }
     
     try {
       // Validate the request body
-      const brandId = req.user.id;
+      // Use demo brand ID for demo mode, otherwise use authenticated user's brand ID
+      const brandId = isDemoMode ? 1 : (req.user?.id || 1);
       const mediaData = insertMediaLibrarySchema.parse({
         ...req.body,
         brandId
@@ -159,7 +167,10 @@ export function setupMediaRoutes(app: Express) {
   
   // Delete a media item
   app.delete('/api/media/:id', async (req: Request, res: Response) => {
-    if (!req.isAuthenticated()) {
+    // Allow demo access with query parameter
+    const isDemoMode = req.query.demo === 'true';
+    
+    if (!isDemoMode && !req.isAuthenticated()) {
       return res.status(401).send("Not authenticated");
     }
     
@@ -174,8 +185,9 @@ export function setupMediaRoutes(app: Express) {
       return res.status(404).send("Media item not found");
     }
     
-    // Check if the media item belongs to the current brand
-    if (mediaItem.brandId !== req.user.id) {
+    // In demo mode, allow deletion of any media with brandId=1
+    // Otherwise check if media belongs to the current brand
+    if (!isDemoMode && mediaItem.brandId !== req.user?.id) {
       return res.status(403).send("Unauthorized access");
     }
     

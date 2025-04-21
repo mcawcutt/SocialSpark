@@ -21,6 +21,12 @@ declare global {
         accessToken: string;
         refreshToken?: string;
       };
+      isImpersonated?: boolean;
+      adminImpersonator?: {
+        id: number;
+        username: string;
+        role: string;
+      };
     }
   }
 }

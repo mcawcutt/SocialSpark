@@ -1,8 +1,9 @@
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Sidebar } from "./sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { DemoBanner } from "@/components/ui/demo-banner";
+import { ImpersonationBanner } from "@/components/ui/impersonation-banner";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -11,6 +12,24 @@ interface MainLayoutProps {
 export function MainLayout({ children }: MainLayoutProps) {
   const { user, isLoading } = useAuth();
   const [location, setLocation] = useLocation();
+  const [isImpersonating, setIsImpersonating] = useState(false);
+  
+  // Check if user is being impersonated
+  useEffect(() => {
+    const checkImpersonation = async () => {
+      try {
+        const response = await fetch('/api/debug');
+        const data = await response.json();
+        setIsImpersonating(!!data.session?.isImpersonated);
+      } catch (error) {
+        console.error('Failed to check impersonation status:', error);
+      }
+    };
+    
+    if (user) {
+      checkImpersonation();
+    }
+  }, [user]);
   
   // Handle redirects based on auth state
   useEffect(() => {
@@ -35,6 +54,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       <Sidebar />
       <main className="flex-1 overflow-auto">
         <div className="container mx-auto py-6">
+          {isImpersonating && <ImpersonationBanner />}
           <DemoBanner />
           {children}
         </div>

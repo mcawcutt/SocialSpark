@@ -152,6 +152,37 @@ export default function AdminDashboard() {
       });
     },
   });
+  
+  // Impersonate brand mutation
+  const impersonateBrandMutation = useMutation({
+    mutationFn: async (brandId: number) => {
+      const res = await apiRequest("POST", `/api/admin/impersonate/${brandId}`);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to impersonate brand");
+      }
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Impersonation started",
+        description: `You are now logged in as ${data.user.name}.`,
+      });
+      
+      // Update user data in the auth context
+      queryClient.setQueryData(["/api/user"], data.user);
+      
+      // Redirect to the brand dashboard
+      window.location.href = '/'; // Redirect to the home/dashboard page
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Impersonation failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   // Brand form
   const form = useForm<BrandFormValues>({
@@ -194,6 +225,10 @@ export default function AdminDashboard() {
       id: brand.id,
       active: !brand.active
     });
+  };
+  
+  const handleImpersonateBrand = (brandId: number) => {
+    impersonateBrandMutation.mutate(brandId);
   };
 
   return (
@@ -378,6 +413,15 @@ export default function AdminDashboard() {
                                 size="sm"
                               >
                                 View
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => handleImpersonateBrand(brand.id)}
+                                disabled={impersonateBrandMutation.isPending}
+                              >
+                                <UserRound className="h-4 w-4 mr-1" />
+                                Login as Brand
                               </Button>
                             </div>
                           </TableCell>

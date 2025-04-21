@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ContentPost } from "@shared/schema";
+import type { ContentPost as ContentPostType } from "@shared/schema";
 import { CalendarDayCell } from "@/components/content/calendar/calendar-day-cell";
 
 // Reset server context for drag and drop
@@ -250,12 +251,36 @@ export default function ContentCalendar() {
     
     if (isNaN(destYear) || isNaN(destMonth) || isNaN(destDay)) return;
     
-    // Create new date for the post
-    const newDate = new Date(destYear, destMonth, destDay);
+    // Find the original post to preserve its time
+    const post = posts?.find((p: ContentPostType) => p.id === postId);
+    
+    // Create new date for the post that preserves the original time
+    let newDate: Date;
+    
+    if (post?.scheduledDate) {
+      // Get the original scheduled date
+      const originalDate = new Date(post.scheduledDate);
+      
+      // Create a new date with the destination day but original time
+      newDate = new Date(destYear, destMonth, destDay);
+      newDate.setHours(originalDate.getHours());
+      newDate.setMinutes(originalDate.getMinutes());
+      newDate.setSeconds(originalDate.getSeconds());
+      
+      console.log('Rescheduling post:', {
+        postId,
+        originalDate: originalDate.toISOString(),
+        newDate: newDate.toISOString(),
+        preservedTime: `${originalDate.getHours()}:${originalDate.getMinutes()}`
+      });
+    } else {
+      // If no original date (shouldn't happen), use today's date with current time
+      newDate = new Date(destYear, destMonth, destDay);
+    }
     
     // Reschedule the post
     reschedulePostMutation.mutate({ postId, newDate });
-  }, [reschedulePostMutation]);
+  }, [reschedulePostMutation, posts]);
 
   return (
     <div className="min-h-screen flex flex-col">

@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -477,7 +477,11 @@ export default function MediaLibrary() {
       if (!res.ok) {
         throw new Error("Failed to fetch media items");
       }
-      return res.json();
+      // Sort by createdAt date, most recent first
+      const items = await res.json();
+      return items.sort((a: MediaLibraryItem, b: MediaLibraryItem) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
     }
   });
 
@@ -613,6 +617,32 @@ export default function MediaLibrary() {
   // State for edit mode
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaLibraryItem | null>(null);
+  
+  // Track image dimensions
+  const [imageDimensions, setImageDimensions] = useState<Record<number, { width: number, height: number }>>({});
+  
+  // Function to get image dimensions
+  const getImageDimensions = (url: string, id: number) => {
+    const img = document.createElement('img');
+    img.onload = () => {
+      setImageDimensions(prev => ({
+        ...prev,
+        [id]: { width: img.naturalWidth, height: img.naturalHeight }
+      }));
+    };
+    img.src = url;
+  };
+  
+  // Fetch dimensions for all images after they load
+  useEffect(() => {
+    if (mediaItems) {
+      mediaItems.forEach(item => {
+        if (item.fileType.startsWith('image/') && !imageDimensions[item.id]) {
+          getImageDimensions(item.fileUrl, item.id);
+        }
+      });
+    }
+  }, [mediaItems, imageDimensions]);
 
   return (
     <div 
@@ -770,6 +800,20 @@ export default function MediaLibrary() {
                 {item.description && (
                   <p className="text-xs text-gray-500 line-clamp-1">{item.description}</p>
                 )}
+                
+                {/* Image dimensions display */}
+                {item.fileType.startsWith("image/") && imageDimensions[item.id] && (
+                  <p className="text-[10px] text-gray-500 flex items-center mt-1">
+                    <span className="inline-flex items-center bg-gray-100 dark:bg-gray-800 rounded px-1 py-0.5">
+                      {imageDimensions[item.id].width} × {imageDimensions[item.id].height}px
+                    </span>
+                    <span className="mx-1">•</span>
+                    <span className="text-[10px]">
+                      {new Date(item.createdAt).toLocaleDateString()}
+                    </span>
+                  </p>
+                )}
+                
                 <div className="flex flex-wrap gap-1 mt-1">
                   {item.tags?.slice(0, 2).map((tag) => (
                     <Badge key={tag} variant="secondary" className="text-[10px] px-1 py-0">

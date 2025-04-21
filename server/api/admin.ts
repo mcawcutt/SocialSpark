@@ -242,10 +242,11 @@ export function setupAdminRoutes(app: Express) {
         // Set a flag to indicate this is an impersonated session
         req.session.isImpersonated = true;
         
+        console.log(`[AdminImpersonation] Responding with impersonated brand user:`, JSON.stringify(brandWithBrandId));
         res.status(200).json({ 
           success: true, 
           message: `Now impersonating ${brand.name}`,
-          user: brand
+          user: brandWithBrandId
         });
       });
     } catch (error) {
@@ -258,32 +259,48 @@ export function setupAdminRoutes(app: Express) {
   app.post('/api/admin/end-impersonation', (req: Request, res: Response, next: NextFunction) => {
     // Special middleware for end-impersonation - we just need to check if authenticated
     if (!req.isAuthenticated()) {
+      console.log("[EndImpersonation] Not authenticated");
       return res.status(401).json({ 
         message: "Unauthorized", 
         detail: "You must be logged in to access this resource." 
       });
     }
+    console.log("[EndImpersonation] User is authenticated, proceeding with middleware");
     next();
   }, async (req: Request, res: Response) => {
     try {
+      console.log("[EndImpersonation] Session data:", {
+        sessionID: req.sessionID,
+        isImpersonated: req.session.isImpersonated,
+        hasAdminImpersonator: !!req.session.adminImpersonator,
+        adminImpersonator: req.session.adminImpersonator
+      });
+      
       // Check if this is an impersonated session
       if (!req.session.isImpersonated || !req.session.adminImpersonator) {
+        console.log("[EndImpersonation] Not in an impersonation session");
         return res.status(400).json({ message: "Not in an impersonation session" });
       }
       
+      console.log("[EndImpersonation] Found admin impersonator:", req.session.adminImpersonator);
       const adminId = req.session.adminImpersonator.id;
       const adminUser = await storage.getUser(adminId);
       
       if (!adminUser) {
+        console.log("[EndImpersonation] Admin user not found:", adminId);
         return res.status(404).json({ message: "Original admin account not found" });
       }
+      
+      console.log("[EndImpersonation] Found admin user:", adminUser.username);
       
       // Login as the original admin
       req.login(adminUser, (err) => {
         if (err) {
-          console.error("Error returning to admin account:", err);
+          console.error("[EndImpersonation] Error returning to admin account:", err);
           return res.status(500).json({ message: "Failed to return to admin account", error: err.message });
         }
+        
+        console.log("[EndImpersonation] Successfully switched back to admin user");
         
         // Clear impersonation data from session
         delete req.session.isImpersonated;

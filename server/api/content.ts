@@ -218,7 +218,7 @@ export function setupContentRoutes(app: Express) {
   });
   
   // Schedule an evergreen post for a specific date
-  app.post('/api/content-posts/evergreen/schedule', async (req: Request, res: Response) => {
+  app.post('/api/content-posts/evergreen-schedule', async (req: Request, res: Response) => {
     try {
       const { brandId, scheduledDate, partnerIds, platforms } = req.body;
       

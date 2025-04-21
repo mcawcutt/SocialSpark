@@ -51,13 +51,19 @@ export function EvergreenPostModal({
   ]);
   
   // Get retail partners
-  const { data: partners } = useQuery({
-    queryKey: ["/api/retail-partners"],
-    enabled: isOpen,
+  const { data: partners = [] } = useQuery<any[]>({
+    queryKey: ["/api/retail-partners", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const res = await fetch(`/api/retail-partners?brandId=${user.id}`);
+      if (!res.ok) throw new Error("Failed to fetch partners");
+      return res.json();
+    },
+    enabled: isOpen && !!user,
   });
   
   // Get evergreen posts
-  const { data: evergreenPosts, isLoading: isLoadingPosts } = useQuery({
+  const { data: evergreenPosts = [], isLoading: isLoadingPosts } = useQuery<any[]>({
     queryKey: ["/api/content-posts/evergreen"],
     enabled: isOpen,
   });

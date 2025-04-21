@@ -1,28 +1,38 @@
 // Test script for authentication and impersonation
-const axios = require('axios');
-const fs = require('fs');
+import axios from 'axios';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const baseUrl = 'http://localhost:5000';
 const cookieFile = './cookies.txt';
 
 // Helper for storing cookies between requests
-let cookies = '';
+let cookies = null;
 
 // Save cookies to file
 const saveCookies = () => {
-  fs.writeFileSync(cookieFile, cookies);
-  console.log('Cookies saved to file');
+  if (cookies) {
+    fs.writeFileSync(cookieFile, JSON.stringify(cookies));
+    console.log('Cookies saved to file');
+  }
 };
 
 // Read cookies from file
 const loadCookies = () => {
   try {
     if (fs.existsSync(cookieFile)) {
-      cookies = fs.readFileSync(cookieFile, 'utf8');
+      const cookieData = fs.readFileSync(cookieFile, 'utf8');
+      cookies = JSON.parse(cookieData);
       console.log('Cookies loaded from file');
     }
   } catch (error) {
     console.error('Error loading cookies:', error);
+    // Reset cookies if there was an error
+    cookies = null;
   }
 };
 

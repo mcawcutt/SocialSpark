@@ -107,10 +107,10 @@ export function setupPartnerRoutes(app: Express) {
         const brandIds = userBrands.map(brand => brand.id);
         
         if (brandIds.length === 0) {
-          console.log("No brands found for user. Using demo brandId: 1");
-          // Special case for demo mode - just use brand ID 1
-          const partners = await storage.getRetailPartnersByBrandId(1);
-          console.log(`Found ${partners.length} partners for demo brand 1`);
+          console.log("No brands found for user. Using user's own ID as brandId");
+          // Use the user's ID directly when no brands are found - ensures data isolation
+          const partners = await storage.getRetailPartnersByBrandId(req.user.id);
+          console.log(`Found ${partners.length} partners for user ${req.user.id}`);
           return res.json(partners);
         }
         
@@ -370,9 +370,9 @@ export function setupPartnerRoutes(app: Express) {
         });
         
         if (userBrands.length === 0) {
-          console.log("No brands found for user. Using demo brandId: 1");
-          // Special case for demo mode - just use brand ID 1
-          brandId = 1;
+          console.log("No brands found for user. Using user's own ID as brandId");
+          // Use the user's ID directly when no brands are found - ensures data isolation
+          brandId = req.user.id;
         } else {
           // Verify this user owns the brand
           const userBrandIds = userBrands.map(brand => brand.id);

@@ -57,9 +57,25 @@ export function setupMediaRoutes(app: Express) {
       return res.status(401).send("Not authenticated");
     }
     
-    // Use demo brand ID for demo mode, otherwise use authenticated user's brand ID
-    const brandId = isDemoMode ? 1 : (req.user?.id || 1);
+    // Special case for brand users to ensure data isolation
+    // Each brand should only see their own media items
+    if (req.isAuthenticated() && req.user?.role === 'brand') {
+      const media = await storage.getMediaByBrandId(req.user.id);
+      console.log(`Found ${media.length} media items for brand user ${req.user.id}`);
+      return res.json(media);
+    }
+    
+    // Use demo brand ID for demo mode, or for unauthenticated users
+    if (isDemoMode || !req.isAuthenticated()) {
+      const media = await storage.getMediaByBrandId(1);
+      console.log(`Found ${media.length} media items in demo mode`);
+      return res.json(media);
+    }
+    
+    // For other users (admin), you could show all or a specific subset
+    const brandId = req.query.brandId ? parseInt(req.query.brandId as string, 10) : 1;
     const media = await storage.getMediaByBrandId(brandId);
+    console.log(`Found ${media.length} media items for brandId ${brandId} in admin mode`);
     res.json(media);
   });
   

@@ -473,7 +473,8 @@ export default function MediaLibrary() {
   const { data: mediaItems, isLoading } = useQuery<MediaLibraryItem[]>({
     queryKey: ["/api/media"],
     queryFn: async () => {
-      const res = await fetch("/api/media?demo=true");
+      // Don't use demo=true parameter to ensure brand-specific media isolation
+      const res = await fetch("/api/media");
       if (!res.ok) {
         throw new Error("Failed to fetch media items");
       }
@@ -487,7 +488,8 @@ export default function MediaLibrary() {
 
   const deleteMediaMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/media/${id}?demo=true`, {
+      // Don't use demo=true to ensure proper authentication and brand isolation
+      const res = await fetch(`/api/media/${id}`, {
         method: "DELETE",
       });
       
@@ -514,7 +516,8 @@ export default function MediaLibrary() {
   
   const updateMediaMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number, data: Partial<MediaLibraryItem> }) => {
-      const res = await fetch(`/api/media/${id}?demo=true`, {
+      // Don't use demo=true to ensure proper authentication and brand isolation
+      const res = await fetch(`/api/media/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

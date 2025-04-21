@@ -75,9 +75,12 @@ export function setupPartnerRoutes(app: Express) {
   // Demo endpoint for retail partners (when not authenticated)
   app.get('/api/demo/retail-partners', async (req: Request, res: Response) => {
     try {
-      // Get all partners for demo brand
-      const partners = await storage.getRetailPartnersByBrandId(1);
-      console.log(`Found ${partners.length} partners for demo brand 1`);
+      // If we have a specific demo brand ID in the query, use that
+      const brandId = req.query.brandId ? parseInt(req.query.brandId as string, 10) : 1;
+      
+      // Get all partners for the requested brand
+      const partners = await storage.getRetailPartnersByBrandId(brandId);
+      console.log(`Found ${partners.length} partners for brand ${brandId} via demo endpoint`);
       return res.json(partners);
     } catch (error) {
       console.error("Error fetching demo retail partners:", error);
@@ -88,25 +91,42 @@ export function setupPartnerRoutes(app: Express) {
   // Demo endpoint for partner tags (when not authenticated)
   app.get('/api/demo/retail-partners/tags', async (req: Request, res: Response) => {
     try {
-      // Get all partners for demo brand
-      const partners = await storage.getRetailPartnersByBrandId(1);
+      // Default tags for new brands
+      const defaultTags = [
+        "Urban", "Outdoor", "Premium", "Sale", 
+        "Family", "Summer", "Winter", "Gear"
+      ];
+      
+      // If we have a specific demo brand ID in the query, use that
+      const brandId = req.query.brandId ? parseInt(req.query.brandId as string, 10) : 1;
+      
+      // Get all partners for the requested brand
+      const partners = await storage.getRetailPartnersByBrandId(brandId);
+      
+      // If no partners found, return default tags
+      if (!partners || partners.length === 0) {
+        console.log(`No partners found for brand ${brandId}, returning default tags`);
+        return res.json(defaultTags);
+      }
       
       // Extract all unique tags from partners
       const allTags: string[] = [];
       partners.forEach(partner => {
-        console.log("DEBUG - Partner", partner.name, "metadata:", partner.metadata);
         if (partner.metadata && typeof partner.metadata === 'object') {
           if ('tags' in partner.metadata && Array.isArray(partner.metadata.tags)) {
             allTags.push(...partner.metadata.tags.filter(tag => typeof tag === 'string'));
           }
-        } else {
-          console.log(`Partner ${partner.name} has no metadata object`);
         }
       });
       
       // Get unique tags only
       const uniqueTags = [...new Set(allTags)];
-      console.log(`Found ${uniqueTags.length} unique tags for demo brand`);
+      console.log(`Found ${uniqueTags.length} unique tags for brand ${brandId}`);
+      
+      // If no tags found, return default tags
+      if (uniqueTags.length === 0) {
+        return res.json(defaultTags);
+      }
       
       return res.json(uniqueTags);
     } catch (error) {

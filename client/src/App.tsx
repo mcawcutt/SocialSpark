@@ -18,7 +18,7 @@ import Settings from "@/pages/settings";
 import AuthPage from "@/pages/auth-page";
 import EvergreenContent from "@/pages/evergreen-content";
 import MediaLibrary from "@/pages/media-library";
-import AdminDashboard from "@/pages/admin-dashboard";
+import AdminDashboard from "@/pages/admin/dashboard";
 import TestUpload from "@/pages/test-upload";
 import { AuthProvider } from "@/hooks/use-auth";
 import { MainLayout } from "@/components/layout/main-layout";

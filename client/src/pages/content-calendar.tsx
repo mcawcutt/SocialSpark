@@ -543,6 +543,41 @@ export default function ContentCalendar() {
           </Card>
         </div>
       </main>
+      
+      {/* New Post Dialog */}
+      {isNewPostDialogOpen && selectedDate && (
+        <ContentPostForm
+          isOpen={isNewPostDialogOpen}
+          onClose={handleCloseNewPostDialog}
+          initialData={{
+            scheduledDate: selectedDate,
+            title: "",
+            description: "",
+            platforms: ["facebook", "instagram"]
+          }}
+        />
+      )}
+      
+      {/* Edit Post Dialog */}
+      {editingPost && (
+        <ContentPostForm
+          isOpen={!!editingPost}
+          onClose={handleCloseEditDialog}
+          initialData={editingPost}
+        />
+      )}
+      
+      {/* Evergreen Post Modal */}
+      {evergreenDate && (
+        <EvergreenPostModal
+          isOpen={isEvergreenModalOpen}
+          onClose={() => {
+            setIsEvergreenModalOpen(false);
+            setEvergreenDate(null);
+          }}
+          scheduledDate={evergreenDate}
+        />
+      )}
     </div>
   );
 }

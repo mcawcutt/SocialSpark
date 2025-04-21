@@ -18,33 +18,16 @@ export function setupAdminRoutes(app: Express) {
   // Get all brands (admin only)
   app.get('/api/admin/brands', requireAuth, requireRole(['admin']), async (req: Request, res: Response) => {
     try {
-      // We can't directly access private users map, so we need to get users another way
-      // Since we don't have a direct method to get all users, we'll create a workaround
-      const allUsers = [];
-      let userFound = true;
-      let userId = 1;
+      // Use our new method to get all brand users directly
+      const brands = await storage.getUsersByRole('brand');
       
-      // Fetch users one by one until we don't find any more
-      while (userFound && userId < 100) { // Limit to prevent infinite loops
-        const user = await storage.getUser(userId);
-        if (user) {
-          allUsers.push(user);
-          userId++;
-        } else {
-          userFound = false;
-        }
-      }
+      // Add active property for any brands where it might be undefined
+      const brandsWithActive = brands.map(user => ({
+        ...user,
+        active: user.active !== undefined ? user.active : true
+      }));
       
-      // Filter to get only brand users
-      const brands = allUsers
-        .filter(user => user?.role === 'brand')
-        .map(user => ({
-          ...user,
-          // Add active property (all brands are active by default)
-          active: user.active !== undefined ? user.active : true
-        }));
-      
-      return res.json(brands);
+      return res.json(brandsWithActive);
     } catch (error) {
       console.error("Error fetching brands:", error);
       return res.status(500).json({ message: "Server error" });
@@ -268,24 +251,8 @@ export function setupAdminRoutes(app: Express) {
   // Get platform stats (admin only)
   app.get('/api/admin/stats', requireAuth, requireRole(['admin']), async (req: Request, res: Response) => {
     try {
-      // Get all users to count brands
-      const allUsers = [];
-      let userId = 1;
-      let userFound = true;
-      
-      // Fetch users one by one
-      while (userFound && userId < 100) {
-        const user = await storage.getUser(userId);
-        if (user) {
-          allUsers.push(user);
-          userId++;
-        } else {
-          userFound = false;
-        }
-      }
-      
-      // Count brands
-      const brandUsers = allUsers.filter(user => user.role === 'brand');
+      // Get all brand users directly using our new method
+      const brandUsers = await storage.getUsersByRole('brand');
       const totalBrands = brandUsers.length;
       const activeBrands = brandUsers.filter(user => user.active !== false).length;
       

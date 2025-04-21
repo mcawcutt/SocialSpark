@@ -258,7 +258,7 @@ export class MemStorage implements IStorage {
   
   async getSocialAccountByPlatformId(platform: string, platformId: string): Promise<SocialAccount | undefined> {
     return Array.from(this.socialAccounts.values()).find(
-      (account) => account.platform === platform && account.accountId === platformId
+      (account) => account.platform === platform && account.platformId === platformId
     );
   }
   

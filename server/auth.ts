@@ -6,12 +6,21 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser } from "@shared/schema";
+import { User as SelectUser, SocialAccount } from "@shared/schema";
+import { Profile } from "passport-facebook";
 
 declare global {
   namespace Express {
     interface User extends SelectUser {
       brandId?: number;
+    }
+
+    interface Session {
+      facebookAuth?: {
+        profile: Profile;
+        accessToken: string;
+        refreshToken?: string;
+      };
     }
   }
 }
@@ -414,6 +423,129 @@ export function setupAuth(app: Express) {
     }
   });
   
+  // Facebook authentication routes
+  app.get("/auth/facebook", passport.authenticate("facebook", { 
+    scope: ["email", "public_profile", "pages_show_list", "pages_read_engagement", "pages_manage_posts"] 
+  }));
+
+  app.get("/auth/facebook/callback", 
+    (req: Request, res: Response, next: NextFunction) => {
+      passport.authenticate("facebook", { 
+        failureRedirect: "/retail-partner/login" 
+      }, (err: any, user: any, info: any) => {
+        if (err) {
+          console.error("Facebook auth error:", err);
+          return next(err);
+        }
+        
+        if (!user) {
+          // No user account linked to this Facebook account
+          // Store the Facebook info in the session temporarily
+          req.session.facebookAuth = {
+            profile: info.facebookProfile,
+            accessToken: info.accessToken,
+            refreshToken: info.refreshToken
+          };
+          
+          // Redirect to a page that will let the user link their Facebook account
+          return res.redirect("/retail-partner/link-account");
+        }
+        
+        // User found - log them in
+        req.login(user, (loginErr) => {
+          if (loginErr) {
+            console.error("Login error:", loginErr);
+            return next(loginErr);
+          }
+          
+          // Redirect based on user role
+          if (user.role === 'partner') {
+            return res.redirect("/retail-partner/dashboard");
+          } else {
+            return res.redirect("/dashboard");
+          }
+        });
+      })(req, res, next);
+    }
+  );
+
+  // Link a Facebook account to an existing retail partner
+  app.post("/api/link-facebook-account", async (req, res) => {
+    try {
+      if (!req.session.facebookAuth) {
+        return res.status(400).json({ message: "No Facebook authentication data found" });
+      }
+      
+      const { partnerId } = req.body;
+      if (!partnerId) {
+        return res.status(400).json({ message: "Partner ID is required" });
+      }
+      
+      const retailPartner = await storage.getRetailPartner(partnerId);
+      if (!retailPartner) {
+        return res.status(404).json({ message: "Retail partner not found" });
+      }
+      
+      const { profile, accessToken, refreshToken } = req.session.facebookAuth;
+      
+      // Create social account linked to this retail partner
+      const socialAccount = await storage.createSocialAccount({
+        partnerId,
+        platform: "facebook",
+        platformId: profile.id,
+        platformUsername: profile.displayName,
+        accessToken,
+        refreshToken: refreshToken || null,
+        metadata: {
+          email: profile.emails?.[0]?.value,
+          profilePicture: profile.photos?.[0]?.value,
+          linkedAt: new Date().toISOString()
+        }
+      });
+      
+      // Clear the temporary Facebook auth data
+      delete req.session.facebookAuth;
+      
+      // If the user is already authenticated, we're done
+      if (req.isAuthenticated()) {
+        return res.status(201).json({ message: "Facebook account linked successfully", socialAccount });
+      }
+      
+      // Otherwise, log in as the user associated with this retail partner
+      if (retailPartner.userId) {
+        const user = await storage.getUser(retailPartner.userId);
+        if (user) {
+          req.login(user, (err) => {
+            if (err) {
+              return res.status(500).json({ message: "Error logging in", error: err.message });
+            }
+            return res.status(201).json({ 
+              message: "Facebook account linked and logged in successfully", 
+              socialAccount, 
+              redirectUrl: "/retail-partner/dashboard" 
+            });
+          });
+        } else {
+          return res.status(201).json({ 
+            message: "Facebook account linked successfully, but no user account found", 
+            socialAccount 
+          });
+        }
+      } else {
+        return res.status(201).json({ 
+          message: "Facebook account linked successfully, but no user account associated with this partner", 
+          socialAccount 
+        });
+      }
+    } catch (error) {
+      console.error("Error linking Facebook account:", error);
+      return res.status(500).json({ 
+        message: "Failed to link Facebook account", 
+        error: error.message || "Unknown error" 
+      });
+    }
+  });
+
   // Special endpoint to get the demo user data directly (bypassing authentication)
   app.get("/api/demo-user", async (req, res) => {
     try {

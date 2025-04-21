@@ -119,12 +119,13 @@ export const socialAccounts = pgTable("social_accounts", {
   id: serial("id").primaryKey(),
   partnerId: integer("partner_id").notNull(),
   platform: text("platform").notNull(), // "facebook", "instagram", "google"
-  accountId: text("account_id").notNull(),
-  accountName: text("account_name").notNull(),
+  platformId: text("platform_id").notNull(), // External platform ID (e.g. Facebook account ID)
+  platformUsername: text("platform_username").notNull(), // Username or display name on the platform
   accessToken: text("access_token").notNull(),
   refreshToken: text("refresh_token"),
   tokenExpiry: timestamp("token_expiry"),
   status: text("status").notNull().default("active"), // "active", "expired", "revoked"
+  metadata: jsonb("metadata"), // Store additional data like profile picture, email, etc.
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -140,11 +141,12 @@ export const socialAccountsRelations = relations(socialAccounts, ({ one }) => ({
 export const insertSocialAccountSchema = createInsertSchema(socialAccounts).pick({
   partnerId: true,
   platform: true,
-  accountId: true,
-  accountName: true,
+  platformId: true,
+  platformUsername: true,
   accessToken: true,
   refreshToken: true,
   tokenExpiry: true,
+  metadata: true,
 });
 
 // Content posts schema

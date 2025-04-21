@@ -40,6 +40,9 @@ function useUserQuery() {
   // Check if we're in the preview environment
   const isPreviewMode = window.location.host.includes('replit.dev') || window.location.search.includes('demo=true');
   
+  // Check if explicitly requested demo mode (only via URL parameter)
+  const explicitDemoMode = window.location.search.includes('demo=true');
+  
   // Check if there was a recent logout to prevent immediate demo user login
   const recentlyLoggedOut = (() => {
     const logoutTime = sessionStorage.getItem('last_logout_time');
@@ -50,10 +53,10 @@ function useUserQuery() {
   })();
   
   // Fallback query for demo user (useful for preview pane) 
-  // Only enable when in preview mode AND user not logged in AND not recently logged out
+  // Only enable when EXPLICITLY requested via URL parameter AND user not logged in AND not recently logged out
   const demoUserQuery = useQuery<User>({
     queryKey: ["/api/demo-user"],
-    enabled: isPreviewMode && !userQuery.data && !userQuery.isSuccess && !recentlyLoggedOut,
+    enabled: explicitDemoMode && !userQuery.data && !userQuery.isSuccess && !recentlyLoggedOut,
     refetchOnWindowFocus: false, // Don't automatically refetch
     refetchOnMount: false,
     staleTime: Infinity, // Keep the data forever until explicitly invalidated
@@ -100,10 +103,10 @@ function useUserQuery() {
     }
   });
   
-  // Use the demo user data if the main query fails and we're in the preview pane
+  // Use the demo user data only if explicitly requested via URL parameter
   return {
     ...userQuery,
-    data: userQuery.data || demoUserQuery.data || null,
+    data: userQuery.data || (explicitDemoMode ? demoUserQuery.data : null) || null,
   };
 }
 

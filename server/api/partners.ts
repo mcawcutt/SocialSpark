@@ -419,48 +419,55 @@ export function setupPartnerRoutes(app: Express) {
         return res.status(400).json({ message: "Invalid request: partners must be a non-empty array" });
       }
       
-      // IMPORTANT: Use the brandId from the user object if it exists (for impersonation)
-      // This ensures retail partners are created under the correct brand, especially for impersonated brands
-      let brandId = req.user?.brandId || partners[0].brandId;
+      // IMPORTANT: Always use the correct brandId based on user context
+      let brandId: number;
       
-      console.log(`[BulkImport] Initial brandId=${brandId} for user ${req.user?.username} (${req.user?.id}, role=${req.user?.role})`);
-      
-      if (req.user?.role === 'brand') {
-        console.log("Processing bulk import for brand user:", req.user.id);
-        // If the user is impersonated (has brandId property), use that directly
-        if (req.user.brandId) {
-          console.log(`Using impersonated brandId=${req.user.brandId} for user ${req.user.username}`);
-          brandId = req.user.brandId;
-        } else {
-          // Otherwise use normal logic
-          // Get all brands owned by this user
-          const userBrands = await db.query.brands.findMany({
-            where: eq(brands.ownerId, req.user.id)
-          });
-          
-          if (userBrands.length === 0) {
-            console.log("No brands found for user. Using user's own ID as brandId");
-            // Use the user's ID directly when no brands are found - ensures data isolation
-            brandId = req.user.id;
-          } else {
-            // Verify this user owns the brand
-            const userBrandIds = userBrands.map(brand => brand.id);
-            if (!userBrandIds.includes(brandId)) {
-              // If the user provided a brand they don't own, use their first brand
-              brandId = userBrands[0].id;
-            }
-          }
-        }
-      } else {
-        console.log("Processing bulk import for admin user");
-        // For admin users, verify that the brand exists
-        const brand = await db.query.brands.findFirst({
-          where: eq(brands.id, brandId)
+      if (req.user?.brandId) {
+        // User is impersonating a brand - use the impersonated brandId
+        brandId = req.user.brandId;
+        console.log(`[BulkImport] Using impersonated brandId=${brandId} for user ${req.user.username}`);
+      } else if (req.user?.role === 'brand') {
+        // Brand user - use their ID directly as the brandId
+        brandId = req.user.id;
+        console.log(`[BulkImport] Using brand user's ID as brandId=${brandId} for user ${req.user.username}`);
+        
+        // For brand users, verify they own the brand if they have brands
+        const userBrands = await db.query.brands.findMany({
+          where: eq(brands.ownerId, req.user.id)
         });
         
-        if (!brand) {
-          return res.status(404).json({ message: "Brand not found" });
+        if (userBrands.length > 0) {
+          // User has brands, verify they're using one of their own
+          const userBrandIds = userBrands.map(brand => brand.id);
+          if (!userBrandIds.includes(brandId)) {
+            // If the user provided a brand they don't own, use their first brand
+            brandId = userBrands[0].id;
+            console.log(`[BulkImport] Brand user tried to use incorrect brandId, using their first brand instead: ${brandId}`);
+          }
         }
+      } else if (req.user?.role === 'admin' && req.query.brandId) {
+        // Admin user with query param
+        brandId = parseInt(req.query.brandId as string, 10);
+        console.log(`[BulkImport] Admin user specified brandId=${brandId} via query param`);
+      } else if (partners[0]?.brandId) {
+        // Fall back to data in request
+        brandId = partners[0].brandId;
+        console.log(`[BulkImport] Using brandId=${brandId} from first partner in request`);
+      } else {
+        // Default to demo brand ID as absolute last resort
+        brandId = 1;
+        console.log(`[BulkImport] No brandId found, defaulting to demo brandId=1`);
+      }
+      
+      // For any role, verify that the brand exists
+      console.log(`[BulkImport] Verifying brand exists for brandId=${brandId}`);
+      const brand = await db.query.brands.findFirst({
+        where: eq(brands.id, brandId)
+      });
+      
+      if (!brand) {
+        console.log(`[BulkImport] Brand not found for brandId=${brandId}`);
+        return res.status(404).json({ message: "Brand not found" });
       }
       
       // Process each partner in the array

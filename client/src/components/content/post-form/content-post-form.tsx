@@ -60,15 +60,21 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
 
-  // Fetch retail partners (using demo endpoint since we're in demo mode)
+  // Determine which endpoint to use based on authentication status
+  const partnersEndpoint = user ? "/api/retail-partners" : "/api/demo/retail-partners";
+  const tagsEndpoint = user ? "/api/retail-partners/tags" : "/api/demo/retail-partners/tags";
+  
+  console.log(`[ContentPostForm] Using endpoints: ${partnersEndpoint}, ${tagsEndpoint}, user: ${user?.username || 'not authenticated'}`);
+
+  // Fetch retail partners
   const { data: partners } = useQuery<RetailPartner[]>({
-    queryKey: ['/api/demo/retail-partners'],
+    queryKey: [partnersEndpoint],
     enabled: isOpen && !isEvergreen
   });
 
   // Fetch partner tags from the dedicated endpoint
   const { data: tagData } = useQuery<string[]>({
-    queryKey: ['/api/demo/retail-partners/tags'],
+    queryKey: [tagsEndpoint],
     enabled: isOpen && !isEvergreen
   });
   
@@ -195,9 +201,9 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
   // Create content post mutation
   const createPostMutation = useMutation({
     mutationFn: async (data: ContentPostFormValues) => {
-      // Prepare the data for the API
+      // Prepare the data for the API with the proper brandId (from user.brandId if impersonated)
       const contentPost: Partial<InsertContentPost> = {
-        brandId: user!.id,
+        brandId: user?.brandId || user!.id,
         title: data.title,
         description: data.description,
         imageUrl: data.imageUrl,

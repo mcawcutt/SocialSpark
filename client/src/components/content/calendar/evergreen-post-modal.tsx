@@ -59,36 +59,21 @@ export function EvergreenPostModal({
   const [selectedPartnerTags, setSelectedPartnerTags] = useState<string[]>([]);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   
-  // Get retail partners
+  // Determine which endpoint to use based on authentication status
+  const partnersEndpoint = user ? "/api/retail-partners" : "/api/demo/retail-partners";
+  const tagsEndpoint = user ? "/api/retail-partners/tags" : "/api/demo/retail-partners/tags";
+  
+  console.log(`[EvergreenPostModal] Using endpoints: ${partnersEndpoint}, ${tagsEndpoint}, user: ${user?.username || 'not authenticated'}`);
+
+  // Get retail partners with proper endpoint based on auth status  
   const { data: partners = [] } = useQuery<any[]>({
-    queryKey: ["/api/retail-partners", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      // First try the regular API endpoint
-      try {
-        const res = await fetch(`/api/retail-partners?brandId=${user.id}`);
-        if (res.ok) return res.json();
-      } catch (e) {
-        console.error("Error fetching from regular API:", e);
-      }
-      
-      // Fall back to demo data for the demo user
-      try {
-        const demoRes = await fetch('/api/demo/retail-partners');
-        if (demoRes.ok) return demoRes.json();
-      } catch (e) {
-        console.error("Error fetching from demo API:", e);
-      }
-      
-      // If both fail, return empty array
-      return [];
-    },
+    queryKey: [partnersEndpoint],
     enabled: isOpen && !!user,
   });
   
-  // Fetch partner tags from the dedicated endpoint
+  // Fetch partner tags from the proper endpoint
   const { data: tagData } = useQuery<string[]>({
-    queryKey: ['/api/demo/retail-partners/tags'],
+    queryKey: [tagsEndpoint],
     enabled: isOpen
   });
   
@@ -127,26 +112,30 @@ export function EvergreenPostModal({
     }
   }, [partners, partnerDistribution]);
   
+  // Determine proper evergreen posts endpoint
+  const evergreenPostsEndpoint = user ? "/api/content-posts/evergreen" : "/api/demo/content-posts/evergreen";
+  
   // Get evergreen posts
   const { data: evergreenPosts = [], isLoading: isLoadingPosts } = useQuery<any[]>({
-    queryKey: ["/api/content-posts/evergreen", user?.id],
+    queryKey: [evergreenPostsEndpoint],
     queryFn: async () => {
-      if (!user?.id) return [];
+      console.log(`[EvergreenPostModal] Fetching evergreen posts from: ${evergreenPostsEndpoint}, user: ${user?.username || 'not authenticated'}`);
       
+      // Make the request to the appropriate endpoint
       try {
-        const res = await fetch(`/api/content-posts/evergreen?brandId=${user.id}`);
-        if (res.ok) return res.json();
+        // Include brandId in the request if authenticated
+        const url = user ? `${evergreenPostsEndpoint}?brandId=${user.brandId || user.id}` : evergreenPostsEndpoint;
+        const res = await fetch(url);
+        
+        if (!res.ok) {
+          throw new Error(`Failed to fetch evergreen posts: ${res.status} ${res.statusText}`);
+        }
+        
+        return res.json();
       } catch (e) {
         console.error("Error fetching evergreen posts:", e);
+        return [];
       }
-      
-      // Always default to the demo evergreen posts
-      return fetch('/api/content-posts/evergreen')
-        .then(res => res.json())
-        .catch(err => {
-          console.error("Failed to fetch even demo evergreen posts:", err);
-          return [];
-        });
     },
     enabled: isOpen && !!user,
   });
@@ -210,8 +199,9 @@ export function EvergreenPostModal({
       return;
     }
     
-    // For demo purposes, we use user.id as brandId
-    const brandId = user.id;
+    // Use brandId from user if available (for impersonation), otherwise fallback to user.id
+    const brandId = user.brandId || user.id;
+    console.log(`[EvergreenPostModal] Submitting with brandId: ${brandId}, user: ${user.username}`);
     
     // Combine date from scheduledDate with time from selectedTime
     const finalDate = new Date(scheduledDate);

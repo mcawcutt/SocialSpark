@@ -236,7 +236,7 @@ export function EvergreenPostModal({
   
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle>Schedule Evergreen Posts</DialogTitle>
@@ -263,7 +263,7 @@ export function EvergreenPostModal({
           </DialogDescription>
         </DialogHeader>
         
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label className="text-right" htmlFor="scheduledDate">
               Date
@@ -592,7 +592,7 @@ export function EvergreenPostModal({
           )}
         </div>
         
-        <DialogFooter>
+        <DialogFooter className="sticky bottom-0 bg-white pt-2">
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>

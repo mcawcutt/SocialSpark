@@ -564,7 +564,14 @@ export default function RetailPartners() {
   // Create bulk import mutation
   const bulkImportMutation = useMutation({
     mutationFn: async (partners: any[]) => {
-      const res = await apiRequest("POST", "/api/demo/retail-partners/bulk", { partners });
+      // Determine endpoint based on authentication status
+      const bulkEndpoint = user 
+        ? "/api/retail-partners/bulk" 
+        : "/api/demo/retail-partners/bulk";
+      
+      console.log(`[BulkImport] Using endpoint: ${bulkEndpoint}, user: ${user?.username || 'not authenticated'}`);
+      
+      const res = await apiRequest("POST", bulkEndpoint, { partners });
       
       // Check if the response is ok before parsing as JSON
       if (!res.ok) {
@@ -581,8 +588,9 @@ export default function RetailPartners() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: ["/api/demo/retail-partners"]});
-      queryClient.invalidateQueries({queryKey: ["/api/demo/retail-partners/tags"]});
+      // Invalidate the correct queries based on authentication
+      queryClient.invalidateQueries({queryKey: [partnersEndpoint]});
+      queryClient.invalidateQueries({queryKey: [tagsEndpoint]});
       toast({
         title: "Partners imported",
         description: `${previewData.length} retail partners have been imported successfully.`,

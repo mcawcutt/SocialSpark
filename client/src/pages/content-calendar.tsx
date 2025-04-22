@@ -103,23 +103,22 @@ export default function ContentCalendar() {
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   // Filter posts for current month
-  // Only show scheduled posts and evergreen posts that have been explicitly scheduled
-  // Don't show evergreen posts that were just created (have creation date but not scheduled date)
+  // For evergreen posts, only show those that have been explicitly scheduled with retail partners
   const currentMonthPosts = posts?.filter((post: ContentPost) => {
     // Skip posts with no scheduled date
     if (!post.scheduledDate) return false;
     
-    // Skip evergreen posts that have a creation date matching their scheduled date
-    // This means they were just created as evergreen templates but not actually scheduled
-    if (post.isEvergreen && post.createdAt) {
-      const createdDate = new Date(post.createdAt);
-      const scheduledDate = new Date(post.scheduledDate);
+    // For evergreen posts, only include them if they have partner assignments
+    // This means they were explicitly scheduled as part of an evergreen schedule
+    if (post.isEvergreen) {
+      // If it has metadata with partnerCount, it was scheduled for partners
+      // If it doesn't have this metadata, it's just a template and shouldn't show in calendar
+      const hasPartnerAssignments = post.metadata && 
+                                  typeof post.metadata === 'object' && 
+                                  'partnerCount' in post.metadata;
       
-      // If created and scheduled on the same day (within 5 minutes), this is just template creation
-      if (Math.abs(createdDate.getTime() - scheduledDate.getTime()) < 5 * 60 * 1000 && 
-          // Also check if it has no partner assignments - unscheduled templates won't have assignments
-          post.metadata?.partnerCount === undefined) {
-        console.log(`Filtering out unscheduled evergreen post: ${post.title}`);
+      if (!hasPartnerAssignments) {
+        // This is just a template evergreen post, not actually scheduled
         return false;
       }
     }

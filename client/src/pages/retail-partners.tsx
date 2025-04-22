@@ -571,7 +571,19 @@ export default function RetailPartners() {
       
       console.log(`[BulkImport] Using endpoint: ${bulkEndpoint}, user: ${user?.username || 'not authenticated'}`);
       
-      const res = await apiRequest("POST", bulkEndpoint, { partners });
+      // Add brandId to each partner if authenticated to ensure they're assigned to the right brand
+      const partnersWithBrandId = partners.map(partner => {
+        if (user) {
+          // Use either the impersonated brandId or the user's id as the brand
+          return {
+            ...partner,
+            brandId: user.brandId || user.id
+          };
+        }
+        return partner;
+      });
+      
+      const res = await apiRequest("POST", bulkEndpoint, { partners: partnersWithBrandId });
       
       // Check if the response is ok before parsing as JSON
       if (!res.ok) {

@@ -419,48 +419,36 @@ export function setupPartnerRoutes(app: Express) {
         return res.status(400).json({ message: "Invalid request: partners must be a non-empty array" });
       }
       
-      // IMPORTANT: Always use the correct brandId based on user context
+      // Determine the correct brandId to use
       let brandId: number;
       
+      // Priority 1: Use the brandId from the impersonated user
       if (req.user?.brandId) {
-        // User is impersonating a brand - use the impersonated brandId
         brandId = req.user.brandId;
-        console.log(`[BulkImport] Using impersonated brandId=${brandId} for user ${req.user.username}`);
-      } else if (req.user?.role === 'brand') {
-        // Brand user - use their ID directly as the brandId
+        console.log(`[BulkImport] Using brandId=${brandId} from impersonated user`);
+      } 
+      // Priority 2: For brand users, use their own ID
+      else if (req.user?.role === 'brand') {
         brandId = req.user.id;
-        console.log(`[BulkImport] Using brand user's ID as brandId=${brandId} for user ${req.user.username}`);
-        
-        // For brand users, verify they own the brand if they have brands
-        const userBrands = await db.query.brands.findMany({
-          where: eq(brands.ownerId, req.user.id)
-        });
-        
-        if (userBrands.length > 0) {
-          // User has brands, verify they're using one of their own
-          const userBrandIds = userBrands.map(brand => brand.id);
-          if (!userBrandIds.includes(brandId)) {
-            // If the user provided a brand they don't own, use their first brand
-            brandId = userBrands[0].id;
-            console.log(`[BulkImport] Brand user tried to use incorrect brandId, using their first brand instead: ${brandId}`);
-          }
-        }
-      } else if (req.user?.role === 'admin' && req.query.brandId) {
-        // Admin user with query param
+        console.log(`[BulkImport] Using brand user's ID (${brandId}) as brandId`);
+      }
+      // Priority 3: For admin users, check for query param
+      else if (req.user?.role === 'admin' && req.query.brandId) {
         brandId = parseInt(req.query.brandId as string, 10);
-        console.log(`[BulkImport] Admin user specified brandId=${brandId} via query param`);
-      } else if (partners[0]?.brandId) {
-        // Fall back to data in request
+        console.log(`[BulkImport] Admin specified brandId=${brandId} in query parameter`);
+      }
+      // Priority 4: Look for brandId in the first partner
+      else if (partners[0]?.brandId) {
         brandId = partners[0].brandId;
         console.log(`[BulkImport] Using brandId=${brandId} from first partner in request`);
-      } else {
-        // Default to demo brand ID as absolute last resort
+      }
+      // Priority 5: Default to brand ID 1
+      else {
         brandId = 1;
         console.log(`[BulkImport] No brandId found, defaulting to demo brandId=1`);
       }
       
-      // For any role, verify that the brand exists
-      console.log(`[BulkImport] Verifying brand exists for brandId=${brandId}`);
+      // Verify the brand exists
       const brand = await db.query.brands.findFirst({
         where: eq(brands.id, brandId)
       });
@@ -469,6 +457,9 @@ export function setupPartnerRoutes(app: Express) {
         console.log(`[BulkImport] Brand not found for brandId=${brandId}`);
         return res.status(404).json({ message: "Brand not found" });
       }
+      
+      console.log(`[BulkImport] Confirmed brand exists: ${brand.name} (ID: ${brandId})`);
+      
       
       // Process each partner in the array
       const createdPartners = [];

@@ -419,26 +419,36 @@ export function setupPartnerRoutes(app: Express) {
         return res.status(400).json({ message: "Invalid request: partners must be a non-empty array" });
       }
       
-      // Get brand ID for brand users (use the first partner's brandId for admin users)
-      let brandId = partners[0].brandId;
+      // IMPORTANT: Use the brandId from the user object if it exists (for impersonation)
+      // This ensures retail partners are created under the correct brand, especially for impersonated brands
+      let brandId = req.user?.brandId || partners[0].brandId;
+      
+      console.log(`[BulkImport] Initial brandId=${brandId} for user ${req.user?.username} (${req.user?.id}, role=${req.user?.role})`);
       
       if (req.user?.role === 'brand') {
         console.log("Processing bulk import for brand user:", req.user.id);
-        // Get all brands owned by this user
-        const userBrands = await db.query.brands.findMany({
-          where: eq(brands.ownerId, req.user.id)
-        });
-        
-        if (userBrands.length === 0) {
-          console.log("No brands found for user. Using user's own ID as brandId");
-          // Use the user's ID directly when no brands are found - ensures data isolation
-          brandId = req.user.id;
+        // If the user is impersonated (has brandId property), use that directly
+        if (req.user.brandId) {
+          console.log(`Using impersonated brandId=${req.user.brandId} for user ${req.user.username}`);
+          brandId = req.user.brandId;
         } else {
-          // Verify this user owns the brand
-          const userBrandIds = userBrands.map(brand => brand.id);
-          if (!userBrandIds.includes(brandId)) {
-            // If the user provided a brand they don't own, use their first brand
-            brandId = userBrands[0].id;
+          // Otherwise use normal logic
+          // Get all brands owned by this user
+          const userBrands = await db.query.brands.findMany({
+            where: eq(brands.ownerId, req.user.id)
+          });
+          
+          if (userBrands.length === 0) {
+            console.log("No brands found for user. Using user's own ID as brandId");
+            // Use the user's ID directly when no brands are found - ensures data isolation
+            brandId = req.user.id;
+          } else {
+            // Verify this user owns the brand
+            const userBrandIds = userBrands.map(brand => brand.id);
+            if (!userBrandIds.includes(brandId)) {
+              // If the user provided a brand they don't own, use their first brand
+              brandId = userBrands[0].id;
+            }
           }
         }
       } else {

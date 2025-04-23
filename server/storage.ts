@@ -737,7 +737,7 @@ export class MemStorage implements IStorage {
     }
   }
   
-  // Only seed demo data for the demo user, and only if there are no existing partners
+  // Seed demo data for the demo and Dulux users
   private async seedDemoDataIfNeeded() {
     // Get the demo user
     const demoUser = await this.getUserByUsername("demo");
@@ -748,14 +748,45 @@ export class MemStorage implements IStorage {
     }
     
     // Check if we already have retail partners for the demo user
-    const existingPartners = Array.from(this.retailPartners.values())
+    const existingDemoPartners = Array.from(this.retailPartners.values())
       .filter(partner => partner.brandId === demoUser.id);
     
-    if (existingPartners.length === 0) {
+    if (existingDemoPartners.length === 0) {
       console.log("No existing partners found for demo user, seeding demo data...");
       this.seedDemoData(demoUser.id);
     } else {
-      console.log(`Found ${existingPartners.length} existing partners for demo user, skipping demo data seeding.`);
+      console.log(`Found ${existingDemoPartners.length} existing partners for demo user, skipping demo data seeding.`);
+    }
+    
+    // Get the Dulux user and seed data for them as well
+    const duluxUser = await this.getUserByUsername("dulux");
+    
+    if (!duluxUser) {
+      console.log("Dulux user not found, skipping Dulux data seeding.");
+      return;
+    }
+    
+    // Check for existing Dulux evergreen posts
+    const duluxPosts = Array.from(this.contentPosts.values())
+      .filter(post => post.brandId === duluxUser.id && post.isEvergreen);
+    
+    if (duluxPosts.length === 0) {
+      console.log("No existing evergreen posts found for Dulux brand, seeding Dulux data...");
+      
+      // Check if we already have retail partners for Dulux
+      const existingDuluxPartners = Array.from(this.retailPartners.values())
+        .filter(partner => partner.brandId === duluxUser.id);
+      
+      if (existingDuluxPartners.length === 0) {
+        console.log("No existing partners found for Dulux brand, creating partners first...");
+        // Create a few partners for Dulux
+        this.seedDuluxPartners(duluxUser.id);
+      }
+      
+      // Create evergreen posts for Dulux
+      this.seedDuluxEvergreen(duluxUser.id);
+    } else {
+      console.log(`Found ${duluxPosts.length} existing evergreen posts for Dulux brand, skipping Dulux data seeding.`);
     }
   }
 
@@ -1186,6 +1217,190 @@ export class MemStorage implements IStorage {
           this.analytics.set(analyticsId, analytics);
         });
       }
+    }
+  }
+  // Seed retail partners for Dulux brand
+  private seedDuluxPartners(brandId: number) {
+    console.log(`Creating retail partners for Dulux brand (ID: ${brandId})...`);
+    const duluxPartners = [
+      { 
+        name: "Dulux Design Studio", 
+        status: "active", 
+        contactEmail: "design@duluxstudio.com", 
+        connectionDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+        metadata: { tags: ["Premium", "Design", "Urban"] }
+      },
+      { 
+        name: "Color Zone Paint Shop", 
+        status: "active", 
+        contactEmail: "info@colorzone.com", 
+        connectionDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+        metadata: { tags: ["Retail", "Paint", "Home"] }
+      },
+      { 
+        name: "Paint Perfection", 
+        status: "active", 
+        contactEmail: "hello@paintperfection.com", 
+        connectionDate: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
+        metadata: { tags: ["Premium", "Paint", "Professional"] }
+      },
+      { 
+        name: "Designer Paints", 
+        status: "pending", 
+        contactEmail: "sales@designerpaints.com",
+        metadata: { tags: ["Designer", "Premium", "Specialty"] }
+      },
+      { 
+        name: "Urban Home Supplies", 
+        status: "pending", 
+        contactEmail: "support@urbanhome.com",
+        metadata: { tags: ["Urban", "Home", "Retail"] }
+      }
+    ];
+    
+    // Create the partners
+    duluxPartners.forEach(partner => {
+      const { metadata, ...partnerData } = partner;
+      
+      this.createRetailPartner({
+        ...partnerData,
+        brandId,
+        contactPhone: "555-987-6543",
+        address: "456 Design Blvd, Paintsville, USA",
+        metadata: metadata
+      });
+    });
+    
+    // Create social accounts for active partners
+    const platforms = ["facebook", "instagram", "google"];
+    
+    // Active partner indices are 0, 1, 2
+    for (let partnerId = 1; partnerId <= 3; partnerId++) {
+      platforms.forEach(platform => {
+        this.createSocialAccount({
+          partnerId: this.partnerIdCounter - (5 - partnerId + 1), // Calculate correct partner ID
+          platform,
+          platformId: `dulux_${platform}_${partnerId}`,
+          platformUsername: `${duluxPartners[partnerId-1].name} ${platform.charAt(0).toUpperCase() + platform.slice(1)}`,
+          accessToken: "mock_access_token",
+          refreshToken: "mock_refresh_token",
+          tokenExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        });
+      });
+    }
+  }
+  
+  // Seed evergreen posts for Dulux brand
+  private seedDuluxEvergreen(brandId: number) {
+    console.log(`Creating evergreen posts for Dulux brand (ID: ${brandId})...`);
+    const duluxEvergreen = [
+      {
+        title: "Paint Color of the Month",
+        description: "Each month we feature a different color from our collection. This month we're showcasing Aquamarine Breeze, perfect for creating a calming atmosphere in any room.",
+        platforms: ["facebook", "instagram", "google"],
+        status: "draft",
+        isEvergreen: true,
+        metadata: {
+          tags: ["color", "inspiration", "monthly"],
+          category: "Product Highlights"
+        }
+      },
+      {
+        title: "Weekend DIY Painting Project",
+        description: "Transform your space with this simple weekend DIY project. Our step-by-step guide makes it easy to achieve professional results.",
+        platforms: ["facebook", "instagram"],
+        status: "draft",
+        isEvergreen: true,
+        metadata: {
+          tags: ["DIY", "weekend", "project"],
+          category: "Tips & Advice"
+        }
+      },
+      {
+        title: "Seasonal Color Trends",
+        description: "Discover this season's hottest color trends from Dulux. From bold statement walls to subtle accents, find the perfect colors for your home refresh.",
+        platforms: ["facebook", "instagram", "google"],
+        status: "draft",
+        isEvergreen: true,
+        metadata: {
+          tags: ["trends", "seasonal", "color"],
+          category: "Seasonal"
+        }
+      },
+      {
+        title: "Pro Painting Tips",
+        description: "Get professional results with these expert tips from our color consultants. Learn the secrets to perfect edges, even coverage, and flawless finishes.",
+        platforms: ["facebook", "instagram"],
+        status: "draft",
+        isEvergreen: true,
+        metadata: {
+          tags: ["tips", "professional", "painting"],
+          category: "Tips & Advice"
+        }
+      },
+      {
+        title: "Color Matching Services",
+        description: "Did you know we can match any color? Bring in your fabric, tile, or inspiration photo and we'll create the perfect custom color for your project.",
+        platforms: ["facebook", "instagram", "google"],
+        status: "draft",
+        isEvergreen: true,
+        metadata: {
+          tags: ["service", "custom", "matching"],
+          category: "Product Highlights"
+        }
+      },
+      {
+        title: "Introducing Dulux Weathershield",
+        description: "Our premium exterior paint is designed to withstand the harshest weather conditions while maintaining its vibrant color and finish for years.",
+        platforms: ["facebook", "instagram", "google"],
+        status: "draft",
+        isEvergreen: true,
+        metadata: {
+          tags: ["exterior", "weatherproof", "premium"],
+          category: "Product Highlights"
+        }
+      },
+      {
+        title: "Transform Your Space in a Day",
+        description: "You don't need a full renovation to refresh your space. A new coat of paint can transform any room in just one day with these quick techniques.",
+        platforms: ["facebook", "instagram"],
+        status: "draft",
+        isEvergreen: true,
+        metadata: {
+          tags: ["transformation", "quick", "refresh"],
+          category: "Tips & Advice"
+        }
+      }
+    ];
+    
+    // Create the evergreen posts
+    for (const post of duluxEvergreen) {
+      const { metadata, ...postData } = post;
+      
+      // Create the post
+      const id = this.postIdCounter++;
+      const now = new Date();
+      
+      const createdPost: ContentPost = { 
+        ...postData,
+        brandId,
+        creatorId: brandId, // Set the creator as the brand owner
+        imageUrl: "/uploads/demo-logo.png", 
+        id,
+        createdAt: now,
+        updatedAt: now,
+        publishedDate: null,
+        metadata: metadata || null,
+        scheduledDate: null,
+        isEvergreen: true,
+        status: "draft"
+      };
+      
+      // Save the post
+      this.contentPosts.set(id, createdPost);
+      
+      // Log it
+      console.log(`Created evergreen post '${post.title}' for Dulux brand`);
     }
   }
 }

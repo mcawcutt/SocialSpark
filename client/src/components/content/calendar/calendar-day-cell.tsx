@@ -176,9 +176,15 @@ export function CalendarDayCell({
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex justify-between">
-                        <div className="flex items-center gap-1 truncate">
+                        <div 
+                          className="flex items-center gap-1 truncate cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onPostClick) onPostClick(post);
+                          }}
+                        >
                           {post.isEvergreen && <Leaf className="h-3 w-3 text-green-600 flex-shrink-0" />}
-                          <span className="truncate">{post.title}</span>
+                          <span className="truncate hover:text-primary">{post.title}</span>
                         </div>
                         {renderPlatformIcons(post.platforms)}
                       </div>

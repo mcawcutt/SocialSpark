@@ -266,35 +266,51 @@ export default function ContentCalendar() {
 
   // Handle drag end event
   const handleDragEnd = useCallback((result: DropResult) => {
+    console.log("[handleDragEnd] Drag result:", result);
     const { draggableId, destination, source } = result;
     
     // If dropped outside a droppable area, or dropped in the same spot, do nothing
-    if (!destination || 
-        (destination.droppableId === source.droppableId && destination.index === source.index)) {
+    if (!destination) {
+      console.log("[handleDragEnd] No destination, cancelling");
+      return;
+    }
+    
+    if (destination.droppableId === source.droppableId && destination.index === source.index) {
+      console.log("[handleDragEnd] Same destination as source, cancelling");
       return;
     }
     
     // Extract date from destination droppable ID
     // Format: day-YYYY-MM-DD
+    console.log("[handleDragEnd] Destination droppableId:", destination.droppableId);
     const destParts = destination.droppableId.split('-');
-    if (destParts.length !== 4) return;
+    if (destParts.length !== 4) {
+      console.log("[handleDragEnd] Invalid destination format, expected day-YYYY-MM-DD but got:", destination.droppableId);
+      return;
+    }
     
     const destYear = parseInt(destParts[1]);
     const destMonth = parseInt(destParts[2]);
     const destDay = parseInt(destParts[3]);
     
-    if (isNaN(destYear) || isNaN(destMonth) || isNaN(destDay)) return;
+    if (isNaN(destYear) || isNaN(destMonth) || isNaN(destDay)) {
+      console.log("[handleDragEnd] Invalid date components:", { destYear, destMonth, destDay });
+      return;
+    }
     
     // Check if this is an evergreen post icon being dropped
     if (draggableId === "evergreen-post") {
+      console.log("[handleDragEnd] Handling evergreen post drop");
       // Set the date for the evergreen post modal
       const targetDate = new Date(destYear, destMonth, destDay);
+      console.log("[handleDragEnd] Target date:", targetDate);
       
       // Don't allow scheduling in the past
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
       if (targetDate < today) {
+        console.log("[handleDragEnd] Cannot schedule in the past:", targetDate);
         toast({
           title: "Cannot schedule in the past",
           description: "Please select today or a future date for scheduling posts.",
@@ -303,6 +319,7 @@ export default function ContentCalendar() {
         return;
       }
       
+      console.log("[handleDragEnd] Setting evergreen date and opening modal");
       setEvergreenDate(targetDate);
       setIsEvergreenModalOpen(true);
       return;

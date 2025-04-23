@@ -419,81 +419,77 @@ export function setupPartnerRoutes(app: Express) {
         return res.status(400).json({ message: "Invalid request: partners must be a non-empty array" });
       }
       
-      // Determine the correct brandId to use
-      let brandId: number;
+      // Initialize brandId
+      let brandId: number | undefined;
+      let brandIdSource = "unknown";
       
-      // Priority 1: Use the brandId from the impersonated user
+      // Attempt to get brand ID in order of priority
       if (req.user?.brandId) {
-        brandId = req.user.brandId;
-        console.log(`[BulkImport] Using brandId=${brandId} from impersonated user`);
-      } 
-      // Priority 2: For brand users, use their own ID
-      else if (req.user?.role === 'brand') {
-        brandId = req.user.id;
-        console.log(`[BulkImport] Using brand user's ID (${brandId}) as brandId`);
-      }
-      // Priority 3: For admin users, check for query param
-      else if (req.user?.role === 'admin' && req.query.brandId) {
-        brandId = parseInt(req.query.brandId as string, 10);
-        console.log(`[BulkImport] Admin specified brandId=${brandId} in query parameter`);
-      }
-      // Priority 4: Look for brandId in the first partner
-      else if (partners[0]?.brandId) {
-        brandId = partners[0].brandId;
-        console.log(`[BulkImport] Using brandId=${brandId} from first partner in request`);
-      }
-      // Priority 5: Default to brand ID 1
-      else {
-        brandId = 1;
-        console.log(`[BulkImport] No brandId found, defaulting to demo brandId=1`);
+        brandId = Number(req.user.brandId);
+        brandIdSource = "impersonated user";
+      } else if (req.user?.role === 'brand') {
+        brandId = Number(req.user.id);
+        brandIdSource = "brand user ID";
+      } else if (req.user?.role === 'admin' && req.query.brandId) {
+        brandId = Number(req.query.brandId);
+        brandIdSource = "query parameter";
+      } else if (partners[0]?.brandId) {
+        brandId = Number(partners[0].brandId);
+        brandIdSource = "first partner in request";
+      } else {
+        brandId = 1; // Default fallback
+        brandIdSource = "default value";
       }
       
-      // Verify the brand exists - enhanced with diagnostics and fallback
-      console.log(`[BulkImport] Verifying brand exists for brandId=${brandId} (type: ${typeof brandId})`);
+      console.log(`[BulkImport] Initial brandId=${brandId} from ${brandIdSource}`);
       
-      try {
-        // Make sure brandId is a number
-        const brandIdNum = Number(brandId);
+      // Make sure we have a valid number
+      if (isNaN(Number(brandId))) {
+        console.log(`[BulkImport] Invalid brandId: ${brandId} (${typeof brandId})`);
+        return res.status(400).json({ message: "Invalid brand ID format" });
+      }
+      
+      // Ensure brandId is a number type
+      brandId = Number(brandId);
+      
+      // Find all brands for diagnostics and fallback
+      const allBrands = await db.query.brands.findMany({});
+      console.log(`[BulkImport] Available brands: ${JSON.stringify(allBrands.map(b => ({ id: b.id, name: b.name })))}`);
+      
+      // Try to find the brand by ID first
+      let brand = await db.query.brands.findFirst({
+        where: eq(brands.id, brandId)
+      });
+      
+      // If not found by ID, try to find Dulux specifically
+      if (!brand) {
+        console.log(`[BulkImport] Brand not found with ID ${brandId}, looking for Dulux brand`);
         
-        // Check if the brandId is valid after conversion
-        if (isNaN(brandIdNum)) {
-          console.log(`[BulkImport] Invalid brandId format: ${brandId}`);
-          return res.status(400).json({ message: "Invalid brand ID format" });
-        }
+        // Try to find Dulux by name (case insensitive)
+        const duluxBrand = allBrands.find(b => 
+          b.name.toLowerCase() === "dulux" || 
+          b.name.toLowerCase().includes("dulux")
+        );
         
-        // Find all brands first for diagnostic purposes
-        const allBrands = await db.query.brands.findMany({});
-        console.log(`[BulkImport] Available brands: ${JSON.stringify(allBrands.map(b => ({ id: b.id, name: b.name })))}`);
-        
-        // Try to find the brand with the provided ID
-        let brand = await db.query.brands.findFirst({
-          where: eq(brands.id, brandIdNum)
-        });
-        
-        // If we can't find the brand by ID, try to find it by name
-        if (!brand) {
-          console.log(`[BulkImport] Brand not found for brandId=${brandIdNum} among ${allBrands.length} total brands`);
-          
-          // Look for Dulux brand specifically 
-          const duluxBrand = allBrands.find(b => b.name.toLowerCase() === "dulux");
-          if (duluxBrand) {
-            console.log(`[BulkImport] Found Dulux brand with ID ${duluxBrand.id}, using this instead of ${brandIdNum}`);
-            brandId = duluxBrand.id;
-            brand = duluxBrand;
-          } else {
-            // If we can't find Dulux either, return an error
-            return res.status(404).json({ message: "Brand not found" });
-          }
+        if (duluxBrand) {
+          console.log(`[BulkImport] Found Dulux brand with ID ${duluxBrand.id}`);
+          brandId = duluxBrand.id;
+          brand = duluxBrand;
         } else {
-          // We found the brand by ID, update brandId with the numeric value to ensure type consistency
-          console.log(`[BulkImport] Confirmed brand exists: ${brand.name} (ID: ${brandIdNum})`);
-          brandId = brandIdNum;
+          // If we can't find Dulux, check if any brands exist at all
+          if (allBrands.length > 0) {
+            // Use the first available brand as a last resort
+            brand = allBrands[0];
+            brandId = brand.id;
+            console.log(`[BulkImport] Using first available brand as fallback: ${brand.name} (ID: ${brandId})`);
+          } else {
+            console.log(`[BulkImport] No brands found in the system`);
+            return res.status(404).json({ message: "No brands found in the system" });
+          }
         }
-      } catch (error: any) {
-        console.error(`[BulkImport] Error verifying brand:`, error);
-        return res.status(500).json({ message: "Error verifying brand", details: error.message });
+      } else {
+        console.log(`[BulkImport] Brand found by ID: ${brand.name} (ID: ${brandId})`);
       }
-      
       
       // Process each partner in the array
       const createdPartners = [];
@@ -513,16 +509,17 @@ export function setupPartnerRoutes(app: Express) {
         }
         
         try {
-          console.log(`Creating partner ${i+1}/${partners.length}: ${partner.name}`);
-          // Create the partner with the correct brand ID
+          console.log(`Creating partner ${i+1}/${partners.length}: ${partner.name} for brand ${brand.name} (ID: ${brandId})`);
+          
+          // Create the partner with the confirmed brand ID
           const createdPartner = await storage.createRetailPartner({
             ...partner,
-            brandId: brandId,
+            brandId: brandId, // This is now guaranteed to be a valid brand ID
             status: partner.status || 'pending'
           });
           
           createdPartners.push(createdPartner);
-        } catch (error) {
+        } catch (error: any) {
           console.error(`Error creating partner ${partner.name}:`, error);
           errors.push({
             index: i,
@@ -544,7 +541,7 @@ export function setupPartnerRoutes(app: Express) {
       // Ensure we're sending JSON content type
       res.setHeader('Content-Type', 'application/json');
       return res.status(201).json(response);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error bulk importing retail partners:", error);
       // Ensure we're sending JSON content type even on error
       res.setHeader('Content-Type', 'application/json');

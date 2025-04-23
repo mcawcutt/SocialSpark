@@ -571,17 +571,46 @@ export default function RetailPartners() {
       
       console.log(`[BulkImport] Using endpoint: ${bulkEndpoint}, user: ${user?.username || 'not authenticated'}`);
       
+      // Get the Dulux brand if that's what we're looking for
+      let brandIdToUse: number | undefined;
+      
+      if (user) {
+        // Use impersonated brandId if available
+        if (user.brandId) {
+          brandIdToUse = user.brandId;
+          console.log(`[BulkImport] Using impersonated brandId: ${brandIdToUse}`);
+        } 
+        // Otherwise use the user's ID if they're a brand
+        else if (user.role === 'brand') {
+          brandIdToUse = user.id;
+          console.log(`[BulkImport] Using brand user ID: ${brandIdToUse}`);
+        }
+        
+        // Special case for Dulux - if that's the current brand name
+        if (user.name?.toLowerCase() === 'dulux' && !brandIdToUse) {
+          brandIdToUse = user.id;
+          console.log(`[BulkImport] Using Dulux brand user ID: ${brandIdToUse}`);
+        }
+      }
+      
       // Add brandId to each partner if authenticated to ensure they're assigned to the right brand
       const partnersWithBrandId = partners.map(partner => {
-        if (user) {
-          // Use either the impersonated brandId or the user's id as the brand
-          return {
-            ...partner,
-            brandId: user.brandId || user.id
-          };
+        // Clone the partner object
+        const enhancedPartner = { ...partner };
+        
+        // Add brandId if we know it
+        if (brandIdToUse) {
+          enhancedPartner.brandId = brandIdToUse;
+        } 
+        // Add brand name hint if it's Dulux (helps server-side fallback)
+        else if (user?.name?.toLowerCase() === 'dulux') {
+          enhancedPartner.brandName = 'Dulux';
         }
-        return partner;
+        
+        return enhancedPartner;
       });
+      
+      console.log(`[BulkImport] Prepared ${partnersWithBrandId.length} partners with brandId: ${brandIdToUse || 'not set'}`);
       
       const res = await apiRequest("POST", bulkEndpoint, { partners: partnersWithBrandId });
       

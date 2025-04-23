@@ -1,20 +1,6 @@
 
 import { createBackup } from '../backup';
-
-// Add backup endpoint
-app.get('/api/admin/backup', async (req, res) => {
-  try {
-    const backupFile = await createBackup();
-    res.download(backupFile, () => {
-      // Clean up backup file after download
-      fs.unlinkSync(backupFile);
-    });
-  } catch (error) {
-    console.error('Backup creation failed:', error);
-    res.status(500).json({ error: 'Failed to create backup' });
-  }
-});
-
+import fs from 'fs';
 import { Express, Request, Response, NextFunction } from "express";
 import { storage } from "../storage";
 import { z } from "zod";
@@ -53,6 +39,19 @@ const createBrandSchema = z.object({
 });
 
 export function setupAdminRoutes(app: Express) {
+  // Add backup endpoint
+  app.get('/api/admin/backup', adminOnly, async (req: Request, res: Response) => {
+    try {
+      const backupFile = await createBackup();
+      res.download(backupFile, () => {
+        // Clean up backup file after download
+        fs.unlinkSync(backupFile);
+      });
+    } catch (error) {
+      console.error('Backup creation failed:', error);
+      res.status(500).json({ error: 'Failed to create backup' });
+    }
+  });
   // Debug route to get brands without auth - FOR TESTING ONLY
   app.get('/api/debug/brands', async (_req: Request, res: Response) => {
     try {

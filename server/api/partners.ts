@@ -452,43 +452,38 @@ export function setupPartnerRoutes(app: Express) {
       // Ensure brandId is a number type
       brandId = Number(brandId);
       
-      // Find all brands for diagnostics and fallback
-      const allBrands = await db.query.brands.findMany({});
-      console.log(`[BulkImport] Available brands: ${JSON.stringify(allBrands.map(b => ({ id: b.id, name: b.name })))}`);
+      // Find brand users for diagnostics and fallback
+      const allBrandUsers = await storage.getUsersByRole('brand');
+      console.log(`[BulkImport] Available brand users: ${JSON.stringify(allBrandUsers.map(b => ({ id: b.id, name: b.name })))}`);
       
       // Try to find the brand by ID first
-      let brand = await db.query.brands.findFirst({
-        where: eq(brands.id, brandId)
-      });
+      let brandUser = await storage.getUser(brandId);
       
       // If not found by ID, try to find Dulux specifically
-      if (!brand) {
+      if (!brandUser || brandUser.role !== 'brand') {
         console.log(`[BulkImport] Brand not found with ID ${brandId}, looking for Dulux brand`);
         
-        // Try to find Dulux by name (case insensitive)
-        const duluxBrand = allBrands.find(b => 
-          b.name.toLowerCase() === "dulux" || 
-          b.name.toLowerCase().includes("dulux")
-        );
+        // Try to find Dulux by username
+        const duluxBrand = await storage.getUserByUsername('dulux');
         
-        if (duluxBrand) {
+        if (duluxBrand && duluxBrand.role === 'brand') {
           console.log(`[BulkImport] Found Dulux brand with ID ${duluxBrand.id}`);
           brandId = duluxBrand.id;
-          brand = duluxBrand;
+          brandUser = duluxBrand;
         } else {
           // If we can't find Dulux, check if any brands exist at all
-          if (allBrands.length > 0) {
+          if (allBrandUsers.length > 0) {
             // Use the first available brand as a last resort
-            brand = allBrands[0];
-            brandId = brand.id;
-            console.log(`[BulkImport] Using first available brand as fallback: ${brand.name} (ID: ${brandId})`);
+            brandUser = allBrandUsers[0];
+            brandId = brandUser.id;
+            console.log(`[BulkImport] Using first available brand as fallback: ${brandUser.name} (ID: ${brandId})`);
           } else {
             console.log(`[BulkImport] No brands found in the system`);
             return res.status(404).json({ message: "No brands found in the system" });
           }
         }
       } else {
-        console.log(`[BulkImport] Brand found by ID: ${brand.name} (ID: ${brandId})`);
+        console.log(`[BulkImport] Brand found by ID: ${brandUser.name} (ID: ${brandId})`);
       }
       
       // Process each partner in the array

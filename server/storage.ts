@@ -1743,13 +1743,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPerformanceMetrics(brandId: number): Promise<any> {
-    // This would be a complex query in a real implementation
-    // For now, return some dummy metrics
+    // This would calculate performance metrics based on analytics data
+    // For demo purposes, return mock data in the format expected by dashboard
     return {
-      impressions: 1000,
-      engagements: 250,
-      clicks: 150,
-      engagementRate: 0.25
+      engagementRate: {
+        current: 4.2,
+        previous: 3.4,
+        change: 0.8
+      },
+      clickThroughRate: {
+        current: 2.8,
+        previous: 2.5,
+        change: 0.3
+      },
+      audienceGrowth: {
+        current: 5.7,
+        previous: 4.5,
+        change: 1.2
+      }
     };
   }
 

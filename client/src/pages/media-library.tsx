@@ -54,6 +54,9 @@ const FileUploadForm = ({ onSuccess, quickUploadMode = false }: { onSuccess: () 
   const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const { toast } = useToast();
+  const { user } = useAuth();
+  // Get the refetch function from the parent component
+  const { refetch } = useQuery({ queryKey: ["/api/media"] });
 
   const form = useForm<MediaUploadFormValues>({
     resolver: zodResolver(formSchema),
@@ -93,8 +96,9 @@ const FileUploadForm = ({ onSuccess, quickUploadMode = false }: { onSuccess: () 
       const formData = new FormData();
       formData.append("media", file);
 
-      // Use the demo mode to bypass authentication
-      const response = await fetch("/api/upload?demo=true", {
+      // Use the demo mode to bypass authentication or use authenticated upload
+      const uploadUrl = user ? "/api/upload" : "/api/upload?demo=true";
+      const response = await fetch(uploadUrl, {
         method: "POST",
         body: formData,
       });
@@ -117,7 +121,14 @@ const FileUploadForm = ({ onSuccess, quickUploadMode = false }: { onSuccess: () 
           tags: []
         };
         
+        console.log("Quick upload: Creating media item with data:", mediaItem);
         await createMediaMutation.mutateAsync(mediaItem);
+        
+        // Force a refetch to update the UI with new media
+        setTimeout(() => {
+          refetch();
+        }, 500);
+        
         return;
       }
       
@@ -199,8 +210,15 @@ const FileUploadForm = ({ onSuccess, quickUploadMode = false }: { onSuccess: () 
 
   const createMediaMutation = useMutation({
     mutationFn: async (data: MediaUploadFormValues) => {
-      // Use direct fetch with demo mode for API call
-      const res = await fetch("/api/media?demo=true", {
+      // Get proper URL based on auth status
+      const url = user 
+        ? "/api/media" 
+        : "/api/media?demo=true&brand=dulux";
+      
+      console.log(`Creating media item, posting to: ${url}`);
+      
+      // Use authenticated URL when possible, otherwise fallback to demo mode
+      const res = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -209,17 +227,22 @@ const FileUploadForm = ({ onSuccess, quickUploadMode = false }: { onSuccess: () 
       });
       
       if (!res.ok) {
-        throw new Error("Failed to add media item");
+        console.error(`Failed to create media item: ${res.status} ${res.statusText}`);
+        throw new Error(`Failed to add media item: ${res.statusText}`);
       }
       
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Successfully created media item:", data);
       toast({
         title: "Success",
         description: "Media item added to library",
       });
+      // Explicitly invalidate the cache AND force a refetch
       queryClient.invalidateQueries({ queryKey: ["/api/media"] });
+      // Manually refetch to ensure we get the latest data
+      refetch();
       onSuccess();
     },
     onError: (error) => {
@@ -472,7 +495,7 @@ export default function MediaLibrary() {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const { data: mediaItems, isLoading } = useQuery<MediaLibraryItem[]>({
+  const { data: mediaItems, isLoading, refetch } = useQuery<MediaLibraryItem[]>({
     queryKey: ["/api/media"],
     queryFn: async () => {
       // For authenticated users, use their brand data

@@ -796,9 +796,20 @@ export default function MediaLibrary() {
       ) : filteredMediaItems?.length === 0 ? (
         <div className="text-center py-12 border rounded-lg">
           <p className="text-gray-500 mb-4">No media items found</p>
-          <DialogTrigger asChild>
-            <Button variant="outline">Add your first media item</Button>
-          </DialogTrigger>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">Add your first media item</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Add to Media Library</DialogTitle>
+                <DialogDescription>
+                  Upload new images or videos to your media library.
+                </DialogDescription>
+              </DialogHeader>
+              <FileUploadForm onSuccess={() => setIsAddDialogOpen(false)} />
+            </DialogContent>
+          </Dialog>
         </div>
       ) : (
         <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-4 xl:columns-5 gap-4 space-y-4">

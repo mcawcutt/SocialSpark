@@ -31,6 +31,7 @@ interface CalendarDayCellProps {
   currentYear: number;
   posts: ContentPost[];
   onDayClick: (day: number) => void;
+  onPostClick?: (post: ContentPost) => void;
 }
 
 export function CalendarDayCell({ 
@@ -38,7 +39,8 @@ export function CalendarDayCell({
   currentMonth, 
   currentYear, 
   posts, 
-  onDayClick 
+  onDayClick,
+  onPostClick 
 }: CalendarDayCellProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();

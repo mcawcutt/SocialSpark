@@ -112,8 +112,19 @@ export function setupContentRoutes(app: Express) {
     try {
       const contentData = req.body;
       
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      
       // Extract metadata if it exists
       const { metadata, ...contentPostData } = contentData;
+      
+      // Get user ID for creator
+      const creatorId = req.user!.id;
+      const brandId = contentData.brandId || req.user!.brandId || req.user!.id;
+      
+      console.log(`[ContentAPI] Creating post for user ${req.user!.username} (${creatorId}), brandId=${brandId}`);
       
       // Validate basic content post data
       const result = z.object({
@@ -121,14 +132,21 @@ export function setupContentRoutes(app: Express) {
         title: z.string(),
         description: z.string(),
         platforms: z.array(z.string()),
-      }).safeParse(contentPostData);
+      }).safeParse({ ...contentPostData, brandId });
       
       if (!result.success) {
+        console.error('[ContentAPI] Validation error:', result.error);
         return res.status(400).json({ error: 'Invalid content post data', details: result.error });
       }
       
-      // Create the content post
-      const post = await storage.createContentPost(contentPostData as InsertContentPost);
+      // Create the content post with creator ID
+      const post = await storage.createContentPost({
+        ...contentPostData,
+        brandId,
+        creatorId
+      } as InsertContentPost);
+      
+      console.log(`[ContentAPI] Created post ${post.id} for brand ${brandId}`);
       
       // If we have metadata, add it to the post
       if (metadata) {

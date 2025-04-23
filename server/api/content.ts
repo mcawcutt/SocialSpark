@@ -79,22 +79,34 @@ export function setupContentRoutes(app: Express) {
       
       // Filter posts to only include true evergreen template posts:
       // - Must have isEvergreen flag
-      // - Should not have been scheduled (status should be 'draft')
-      // - Should not have metadata.isScheduledEvergreen flag set (which indicates it's a scheduled parent post)
+      // - If it's a scheduled evergreen parent post (has isScheduledEvergreen flag), exclude it
+      console.log(`[API] All posts for brandId ${brandIdNum}:`, allPosts.map(p => ({
+        id: p.id,
+        title: p.title,
+        isEvergreen: p.isEvergreen,
+        status: p.status,
+        metadata: p.metadata
+      })));
+      
       const evergreenPosts = allPosts.filter(post => {
         // Must be marked as evergreen
-        if (!post.isEvergreen) return false;
-        
-        // Exclude scheduled posts
-        if (post.status === 'scheduled' || post.status === 'published') return false;
+        if (!post.isEvergreen) {
+          console.log(`[API] Filtering out post ${post.id} - not evergreen`);
+          return false;
+        }
         
         // Check metadata for scheduled evergreen flag
         if (post.metadata && typeof post.metadata === 'object') {
           const metadata = post.metadata as any;
-          // If it has the isScheduledEvergreen flag, it's a scheduled evergreen post
-          if (metadata.isScheduledEvergreen) return false;
+          // If it has the isScheduledEvergreen flag, it's a scheduled evergreen parent post
+          if (metadata.isScheduledEvergreen) {
+            console.log(`[API] Filtering out post ${post.id} - has isScheduledEvergreen flag`);
+            return false;
+          }
         }
         
+        // Allow all other evergreen posts, regardless of status
+        console.log(`[API] Including post ${post.id} - is evergreen template`);
         return true;
       });
       

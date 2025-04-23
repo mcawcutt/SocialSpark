@@ -115,15 +115,10 @@ async function main() {
             .values({
               partnerId: partner.id,
               platform: 'facebook',
-              platformId: `fb_${1000000 + partner.id}`,
-              platformUsername: `paintsupply${i}`,
+              accountId: `fb_${1000000 + partner.id}`,
+              accountName: `paintsupply${i}`,
               accessToken: 'mock-token-for-demo',
-              status: 'active',
-              metadata: { 
-                profilePicture: '/uploads/demo-logo.png',
-                followers: 500 + (i * 100),
-                pageName: `Paint Supply ${i}`
-              }
+              status: 'active'
             })
             .returning();
           

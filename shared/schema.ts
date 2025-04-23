@@ -14,7 +14,6 @@ export const users = pgTable("users", {
   planType: text("plan_type").default("standard"), // "standard" or "premium"
   logo: text("logo"), // Brand logo URL
   parentId: integer("parent_id"), // For multi-brand management (child brands under a parent)
-  active: boolean("active").default(true), // Whether the user account is active
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -61,7 +60,6 @@ export const insertUserSchema = createInsertSchema(users).pick({
   planType: true,
   logo: true,
   parentId: true,
-  active: true,
 });
 
 export const insertBrandSchema = createInsertSchema(brands).pick({
@@ -121,13 +119,12 @@ export const socialAccounts = pgTable("social_accounts", {
   id: serial("id").primaryKey(),
   partnerId: integer("partner_id").notNull(),
   platform: text("platform").notNull(), // "facebook", "instagram", "google"
-  platformId: text("platform_id").notNull(), // External platform ID (e.g. Facebook account ID)
-  platformUsername: text("platform_username").notNull(), // Username or display name on the platform
+  accountId: text("account_id").notNull(), // External platform ID (e.g. Facebook account ID)
+  accountName: text("account_name").notNull(), // Username or display name on the platform
   accessToken: text("access_token").notNull(),
   refreshToken: text("refresh_token"),
   tokenExpiry: timestamp("token_expiry"),
   status: text("status").notNull().default("active"), // "active", "expired", "revoked"
-  metadata: jsonb("metadata"), // Store additional data like profile picture, email, etc.
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -143,12 +140,12 @@ export const socialAccountsRelations = relations(socialAccounts, ({ one }) => ({
 export const insertSocialAccountSchema = createInsertSchema(socialAccounts).pick({
   partnerId: true,
   platform: true,
-  platformId: true,
-  platformUsername: true,
+  accountId: true,
+  accountName: true,
   accessToken: true,
   refreshToken: true,
   tokenExpiry: true,
-  metadata: true,
+  status: true,
 });
 
 // Content posts schema

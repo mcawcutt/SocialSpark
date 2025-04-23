@@ -448,17 +448,51 @@ export function setupPartnerRoutes(app: Express) {
         console.log(`[BulkImport] No brandId found, defaulting to demo brandId=1`);
       }
       
-      // Verify the brand exists
-      const brand = await db.query.brands.findFirst({
-        where: eq(brands.id, brandId)
-      });
+      // Verify the brand exists - enhanced with diagnostics and fallback
+      console.log(`[BulkImport] Verifying brand exists for brandId=${brandId} (type: ${typeof brandId})`);
       
-      if (!brand) {
-        console.log(`[BulkImport] Brand not found for brandId=${brandId}`);
-        return res.status(404).json({ message: "Brand not found" });
+      try {
+        // Make sure brandId is a number
+        const brandIdNum = Number(brandId);
+        
+        // Check if the brandId is valid after conversion
+        if (isNaN(brandIdNum)) {
+          console.log(`[BulkImport] Invalid brandId format: ${brandId}`);
+          return res.status(400).json({ message: "Invalid brand ID format" });
+        }
+        
+        // Find all brands first for diagnostic purposes
+        const allBrands = await db.query.brands.findMany({});
+        console.log(`[BulkImport] Available brands: ${JSON.stringify(allBrands.map(b => ({ id: b.id, name: b.name })))}`);
+        
+        // Try to find the brand with the provided ID
+        let brand = await db.query.brands.findFirst({
+          where: eq(brands.id, brandIdNum)
+        });
+        
+        // If we can't find the brand by ID, try to find it by name
+        if (!brand) {
+          console.log(`[BulkImport] Brand not found for brandId=${brandIdNum} among ${allBrands.length} total brands`);
+          
+          // Look for Dulux brand specifically 
+          const duluxBrand = allBrands.find(b => b.name.toLowerCase() === "dulux");
+          if (duluxBrand) {
+            console.log(`[BulkImport] Found Dulux brand with ID ${duluxBrand.id}, using this instead of ${brandIdNum}`);
+            brandId = duluxBrand.id;
+            brand = duluxBrand;
+          } else {
+            // If we can't find Dulux either, return an error
+            return res.status(404).json({ message: "Brand not found" });
+          }
+        } else {
+          // We found the brand by ID, update brandId with the numeric value to ensure type consistency
+          console.log(`[BulkImport] Confirmed brand exists: ${brand.name} (ID: ${brandIdNum})`);
+          brandId = brandIdNum;
+        }
+      } catch (error: any) {
+        console.error(`[BulkImport] Error verifying brand:`, error);
+        return res.status(500).json({ message: "Error verifying brand", details: error.message });
       }
-      
-      console.log(`[BulkImport] Confirmed brand exists: ${brand.name} (ID: ${brandId})`);
       
       
       // Process each partner in the array

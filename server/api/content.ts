@@ -139,12 +139,21 @@ export function setupContentRoutes(app: Express) {
         return res.status(400).json({ error: 'Invalid content post data', details: result.error });
       }
       
-      // Create the content post with creator ID
-      const post = await storage.createContentPost({
+      // Ensure proper date formatting for scheduledDate if it exists
+      let postData = {
         ...contentPostData,
         brandId,
         creatorId
-      } as InsertContentPost);
+      };
+
+      // Convert scheduledDate string to Date object if it exists
+      if (postData.scheduledDate && typeof postData.scheduledDate === 'string') {
+        postData.scheduledDate = new Date(postData.scheduledDate);
+        console.log(`[ContentAPI] Converted scheduledDate string to Date: ${postData.scheduledDate}`);
+      }
+      
+      // Create the content post with creator ID
+      const post = await storage.createContentPost(postData as InsertContentPost);
       
       console.log(`[ContentAPI] Created post ${post.id} for brand ${brandId}`);
       
@@ -178,6 +187,12 @@ export function setupContentRoutes(app: Express) {
       }
       
       const { metadata, ...updateData } = req.body;
+      
+      // Ensure proper date formatting for scheduledDate if it exists
+      if (updateData.scheduledDate && typeof updateData.scheduledDate === 'string') {
+        updateData.scheduledDate = new Date(updateData.scheduledDate);
+        console.log(`[ContentAPI] Converted update scheduledDate string to Date: ${updateData.scheduledDate}`);
+      }
       
       // Update the content post
       const updatedPost = await storage.updateContentPost(id, updateData);

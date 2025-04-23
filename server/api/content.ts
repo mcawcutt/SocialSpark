@@ -297,15 +297,23 @@ export function setupContentRoutes(app: Express) {
       }
       
       // Create a scheduled parent post for the evergreen content
+      // Generate a more descriptive title based on date and platform
+      const dateStr = new Date(scheduledDate).toLocaleDateString();
+      const platformStr = platforms.join(', ');
+      
       const parentPost = await storage.createContentPost({
         brandId,
         creatorId: brandId, // Use brandId as creatorId for demo purposes
-        title: `Evergreen Schedule - ${new Date(scheduledDate).toLocaleDateString()}`,
-        description: "Automatically scheduled evergreen posts for partners",
+        title: `Evergreen Content - ${dateStr}`,
+        description: `Automated evergreen content for ${selectedPartners.length} partners on ${platformStr}`,
         platforms,
         status: 'scheduled',
         scheduledDate: new Date(scheduledDate),
-        isEvergreen: true
+        isEvergreen: true,
+        metadata: {
+          partnerCount: selectedPartners.length,
+          isScheduledEvergreen: true
+        }
       });
       
       // Store the results

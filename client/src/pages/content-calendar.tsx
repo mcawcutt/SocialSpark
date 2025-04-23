@@ -111,16 +111,19 @@ export default function ContentCalendar() {
     // For evergreen posts, only include them if they have partner assignments
     // This means they were explicitly scheduled as part of an evergreen schedule
     if (post.isEvergreen) {
-      // If it has metadata with partnerCount, it was scheduled for partners
-      // If it doesn't have this metadata, it's just a template and shouldn't show in calendar
-      const hasPartnerAssignments = post.metadata && 
-                                  typeof post.metadata === 'object' && 
-                                  'partnerCount' in post.metadata;
+      // Check if this is a scheduled evergreen post
+      const isScheduled = post.metadata && 
+                          typeof post.metadata === 'object' && 
+                          ('partnerCount' in post.metadata || 
+                           'isScheduledEvergreen' in post.metadata);
       
-      if (!hasPartnerAssignments) {
+      if (!isScheduled) {
         // This is just a template evergreen post, not actually scheduled
+        console.log('Filtering out template evergreen post:', post.title);
         return false;
       }
+      
+      console.log('Including scheduled evergreen post:', post.title, post.metadata);
     }
     
     // Keep posts for current month

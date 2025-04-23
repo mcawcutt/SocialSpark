@@ -1293,6 +1293,9 @@ export class MemStorage implements IStorage {
   // Seed evergreen posts for Dulux brand
   private seedDuluxEvergreen(brandId: number) {
     console.log(`Creating evergreen posts for Dulux brand (ID: ${brandId})...`);
+    
+    // First, create some media items for Dulux
+    this.seedDuluxMedia(brandId);
     const duluxEvergreen = [
       {
         title: "Paint Color of the Month",
@@ -1402,6 +1405,85 @@ export class MemStorage implements IStorage {
       // Log it
       console.log(`Created evergreen post '${post.title}' for Dulux brand`);
     }
+  }
+  
+  // Seed media items for Dulux brand
+  private seedDuluxMedia(brandId: number) {
+    console.log(`Creating media library items for Dulux brand (ID: ${brandId})...`);
+    
+    // Create media items specific to Dulux's paint business
+    const duluxMediaItems = [
+      {
+        name: "Color Chart - Spring Collection",
+        description: "Complete color chart for our Spring 2025 collection",
+        fileUrl: "/uploads/demo-logo.png", 
+        fileType: "image/png",
+        tags: ["Color Chart", "Spring", "Collection"]
+      },
+      {
+        name: "Interior Inspiration - Modern Living Room",
+        description: "Modern living room design using our premium paints",
+        fileUrl: "/uploads/demo-outdoor.png",
+        fileType: "image/png",
+        tags: ["Interior", "Living Room", "Modern"]
+      },
+      {
+        name: "Exterior House Showcase",
+        description: "Beautiful exterior finish with our weatherproof paint",
+        fileUrl: "/uploads/demo-biking.png",
+        fileType: "image/png",
+        tags: ["Exterior", "House", "Weatherproof"]
+      },
+      {
+        name: "Dulux Brand Logo",
+        description: "Official Dulux brand logo for marketing materials",
+        fileUrl: "/uploads/demo-logo.png",
+        fileType: "image/png",
+        tags: ["Logo", "Brand", "Marketing"]
+      },
+      {
+        name: "Kitchen Transformation",
+        description: "Before and after kitchen transformation using Dulux products",
+        fileUrl: "/uploads/demo-outdoor.png",
+        fileType: "image/png",
+        tags: ["Kitchen", "Transformation", "Before After"]
+      },
+      {
+        name: "Commercial Project Showcase",
+        description: "Large commercial office space painted with Dulux commercial line",
+        fileUrl: "/uploads/demo-biking.png",
+        fileType: "image/png",
+        tags: ["Commercial", "Office", "Project"]
+      },
+      {
+        name: "How-to Application Guide",
+        description: "Step-by-step guide on proper paint application techniques",
+        fileUrl: "/uploads/demo-logo.png",
+        fileType: "image/png",
+        tags: ["Guide", "Application", "How-to"]
+      },
+      {
+        name: "Color Psychology Infographic",
+        description: "Infographic explaining color psychology for interior design",
+        fileUrl: "/uploads/demo-outdoor.png",
+        fileType: "image/png",
+        tags: ["Infographic", "Psychology", "Design"]
+      }
+    ];
+    
+    // Add the media items to storage
+    duluxMediaItems.forEach((item, index) => {
+      this.createMediaItem({
+        brandId,
+        name: item.name,
+        description: item.description,
+        fileUrl: item.fileUrl,
+        fileType: item.fileType,
+        tags: item.tags
+      });
+      
+      console.log(`Creating Dulux media item for "${item.name.substring(0, 30)}${item.name.length > 30 ? '...' : ''}" with URL: ${item.fileUrl}`);
+    });
   }
 }
 

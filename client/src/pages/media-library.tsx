@@ -475,16 +475,23 @@ export default function MediaLibrary() {
   const { data: mediaItems, isLoading } = useQuery<MediaLibraryItem[]>({
     queryKey: ["/api/media"],
     queryFn: async () => {
-      // Use demo=true if not authenticated
-      const url = user ? "/api/media" : "/api/media?demo=true";
+      // For authenticated users, use their brand data
+      // For unauthenticated users, use Dulux brand data for testing
+      const url = user 
+        ? "/api/media" 
+        : "/api/media?demo=true&brand=dulux";
+      
+      console.log(`Fetching media items from: ${url}`);
       const res = await fetch(url);
       
       if (!res.ok) {
+        console.error(`Failed to fetch media items: ${res.status} ${res.statusText}`);
         throw new Error("Failed to fetch media items");
       }
       
       // Sort by createdAt date, most recent first
       const items = await res.json();
+      console.log(`Received ${items.length} media items`);
       return items.sort((a: MediaLibraryItem, b: MediaLibraryItem) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );

@@ -67,6 +67,25 @@ export function setupMediaRoutes(app: Express) {
     
     // Use demo brand ID for demo mode, or for unauthenticated users
     if (isDemoMode || !req.isAuthenticated()) {
+      // Check if we want to specifically use Dulux brand by checking for a query param
+      const useSpecificBrand = req.query.brand === 'dulux';
+      
+      if (useSpecificBrand) {
+        // Get the Dulux brand (usually ID 3)
+        console.log('Demo mode requested for Dulux brand media');
+        const duluxBrand = await storage.getUserByUsername('dulux');
+        
+        if (duluxBrand) {
+          console.log(`Found Dulux brand with ID: ${duluxBrand.id}`);
+          const media = await storage.getMediaByBrandId(duluxBrand.id);
+          console.log(`Found ${media.length} media items for Dulux brand in demo mode`);
+          return res.json(media);
+        } else {
+          console.log('Could not find Dulux brand, falling back to default demo brand');
+        }
+      }
+      
+      // Default demo brand (usually ID 1)
       const media = await storage.getMediaByBrandId(1);
       console.log(`Found ${media.length} media items in demo mode`);
       return res.json(media);

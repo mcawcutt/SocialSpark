@@ -76,7 +76,27 @@ export function setupContentRoutes(app: Express) {
       
       console.log(`[API] Fetching evergreen posts for brandId: ${brandIdNum}`);
       const allPosts = await storage.getContentPostsByBrandId(brandIdNum);
-      const evergreenPosts = allPosts.filter(post => post.isEvergreen);
+      
+      // Filter posts to only include true evergreen template posts:
+      // - Must have isEvergreen flag
+      // - Should not have been scheduled (status should be 'draft')
+      // - Should not have metadata.isScheduledEvergreen flag set (which indicates it's a scheduled parent post)
+      const evergreenPosts = allPosts.filter(post => {
+        // Must be marked as evergreen
+        if (!post.isEvergreen) return false;
+        
+        // Exclude scheduled posts
+        if (post.status === 'scheduled' || post.status === 'published') return false;
+        
+        // Check metadata for scheduled evergreen flag
+        if (post.metadata && typeof post.metadata === 'object') {
+          const metadata = post.metadata as any;
+          // If it has the isScheduledEvergreen flag, it's a scheduled evergreen post
+          if (metadata.isScheduledEvergreen) return false;
+        }
+        
+        return true;
+      });
       
       console.log(`[API] Found ${evergreenPosts.length} evergreen posts for brandId: ${brandIdNum}`);
       

@@ -204,6 +204,7 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
       // Prepare the data for the API with the proper brandId (from user.brandId if impersonated)
       const contentPost: Partial<InsertContentPost> = {
         brandId: user?.brandId || user!.id,
+        creatorId: user!.id, // Set creator ID to current user's ID
         title: data.title,
         description: data.description,
         imageUrl: data.imageUrl,

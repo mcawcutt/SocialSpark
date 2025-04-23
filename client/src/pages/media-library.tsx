@@ -33,6 +33,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { MediaLibraryItem } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 const formSchema = z.object({
   name: z.string().optional(),
@@ -469,15 +470,19 @@ export default function MediaLibrary() {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const { data: mediaItems, isLoading } = useQuery<MediaLibraryItem[]>({
     queryKey: ["/api/media"],
     queryFn: async () => {
-      // Don't use demo=true parameter to ensure brand-specific media isolation
-      const res = await fetch("/api/media");
+      // Use demo=true if not authenticated
+      const url = user ? "/api/media" : "/api/media?demo=true";
+      const res = await fetch(url);
+      
       if (!res.ok) {
         throw new Error("Failed to fetch media items");
       }
+      
       // Sort by createdAt date, most recent first
       const items = await res.json();
       return items.sort((a: MediaLibraryItem, b: MediaLibraryItem) => 

@@ -504,7 +504,7 @@ export function setupPartnerRoutes(app: Express) {
         }
         
         try {
-          console.log(`Creating partner ${i+1}/${partners.length}: ${partner.name} for brand ${brand.name} (ID: ${brandId})`);
+          console.log(`Creating partner ${i+1}/${partners.length}: ${partner.name} for brand ${brandUser.name} (ID: ${brandId})`);
           
           // Create the partner with the confirmed brand ID
           const createdPartner = await storage.createRetailPartner({

@@ -461,23 +461,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid request: partners must be a non-empty array" });
       }
       
-      // Get the appropriate brand ID based on authentication status
-      let brandId: number;
+      // Initialize brandId
+      let brandId: number | undefined;
+      let brandIdSource = "unknown";
       
+      // Attempt to get brand ID in order of priority
       if (req.isAuthenticated()) {
-        // For authenticated users, use their own brandId or respect query param if admin
-        brandId = req.user?.brandId || req.user?.id || 1;
-        
-        // Admin users can override with query param
-        if (req.user?.role === 'admin' && req.query.brandId) {
-          brandId = parseInt(req.query.brandId as string, 10);
+        // For authenticated users, use their own brandId or respect query param
+        if (req.user?.brandId) {
+          brandId = Number(req.user.brandId);
+          brandIdSource = "impersonated user";
+        } else if (req.user?.role === 'brand') {
+          brandId = Number(req.user.id);
+          brandIdSource = "brand user ID";
+        } else if (req.user?.role === 'admin' && req.query.brandId) {
+          brandId = Number(req.query.brandId);
+          brandIdSource = "query parameter";
         }
         
-        console.log(`[DemoBulkImport] Authenticated request from ${req.user?.username} (${req.user?.role}) with brandId=${brandId}`);
+        console.log(`[DemoBulkImport] Authenticated request from ${req.user?.username} (${req.user?.role})`);
       } else {
-        // For unauthenticated users, use demo brand or query param
-        brandId = req.query.brandId ? parseInt(req.query.brandId as string, 10) : 1;
-        console.log(`[DemoBulkImport] Unauthenticated request using brandId=${brandId}`);
+        // For unauthenticated users, use query param or try to find Dulux brand
+        if (req.query.brandId) {
+          brandId = parseInt(req.query.brandId as string, 10);
+          brandIdSource = "query parameter";
+        } else if (partners[0]?.brandId) {
+          brandId = Number(partners[0].brandId);
+          brandIdSource = "first partner in request";
+        }
+        
+        console.log(`[DemoBulkImport] Unauthenticated request`);
+      }
+      
+      console.log(`[DemoBulkImport] Initial brandId=${brandId} from ${brandIdSource}`);
+      
+      // Make sure we have a valid number
+      if (isNaN(Number(brandId))) {
+        console.log(`[DemoBulkImport] Invalid brandId format: ${brandId} (${typeof brandId})`);
+        brandId = undefined;
+      }
+      
+      // If we don't have a brand ID yet, find the Dulux brand
+      if (!brandId) {
+        // Try to find Dulux by username
+        const duluxBrand = await storage.getUserByUsername('dulux');
+        
+        if (duluxBrand && duluxBrand.role === 'brand') {
+          console.log(`[DemoBulkImport] Found Dulux brand with ID ${duluxBrand.id}`);
+          brandId = duluxBrand.id;
+        } else {
+          // If we can't find Dulux, try to get the demo brand
+          const demoBrand = await storage.getUserByUsername('demo');
+          
+          if (demoBrand) {
+            console.log(`[DemoBulkImport] Using demo brand as fallback: ${demoBrand.name} (ID: ${demoBrand.id})`);
+            brandId = demoBrand.id;
+          } else {
+            // Last resort - get any brand user
+            const brandUsers = await storage.getUsersByRole('brand');
+            
+            if (brandUsers.length > 0) {
+              brandId = brandUsers[0].id;
+              console.log(`[DemoBulkImport] Using first available brand as last resort: ${brandUsers[0].name} (ID: ${brandId})`);
+            } else {
+              console.log(`[DemoBulkImport] No brands found in the system`);
+              return res.status(404).json({ message: "No brands found in the system" });
+            }
+          }
+        }
       }
       
       // Process each partner in the array

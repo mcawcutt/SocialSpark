@@ -1,46 +1,13 @@
-
-import { createBackup } from '../backup';
-import fs from 'fs';
 import { Express, Request, Response, NextFunction } from "express";
 import { storage } from "../storage";
 import { z } from "zod";
 import { User } from "@shared/schema";
-
-// Custom middleware for admin routes
-const adminOnly = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated()) {
-    console.log(`[AdminAPI] ${req.method} ${req.path} - Not authenticated`);
-    return res.status(401).json({ 
-      message: "Unauthorized", 
-      detail: "You must be logged in to access this resource." 
-    });
-  }
-  
-  if (!req.user || req.user.role !== 'admin') {
-    console.log(`[AdminAPI] ${req.method} ${req.path} - Not admin, role:`, req.user?.role);
-    return res.status(403).json({ 
-      message: "Forbidden", 
-      detail: "You do not have permission to access this resource. Admin access required." 
-    });
-  }
-  
-  console.log(`[AdminAPI] ${req.method} ${req.path} - Admin access granted:`, req.user.username);
-  next();
-};
-
-// Schema for creating a new brand
-const createBrandSchema = z.object({
-  name: z.string().min(1, "Brand name is required"),
-  email: z.string().email("Invalid email address"),
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  planType: z.string().default("standard"),
-  logo: z.string().optional(),
-});
+import { createBackup } from '../backup';
+import fs from 'fs';
 
 export function setupAdminRoutes(app: Express) {
   // Add backup endpoint
-  app.get('/api/admin/backup', adminOnly, async (req: Request, res: Response) => {
+  app.get('/api/admin/backup', async (req, res) => {
     try {
       const backupFile = await createBackup();
       res.download(backupFile, () => {
@@ -52,6 +19,39 @@ export function setupAdminRoutes(app: Express) {
       res.status(500).json({ error: 'Failed to create backup' });
     }
   });
+
+  // Custom middleware for admin routes
+  const adminOnly = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.isAuthenticated()) {
+      console.log(`[AdminAPI] ${req.method} ${req.path} - Not authenticated`);
+      return res.status(401).json({ 
+        message: "Unauthorized", 
+        detail: "You must be logged in to access this resource." 
+      });
+    }
+
+    if (!req.user || req.user.role !== 'admin') {
+      console.log(`[AdminAPI] ${req.method} ${req.path} - Not admin, role:`, req.user?.role);
+      return res.status(403).json({ 
+        message: "Forbidden", 
+        detail: "You do not have permission to access this resource. Admin access required." 
+      });
+    }
+
+    console.log(`[AdminAPI] ${req.method} ${req.path} - Admin access granted:`, req.user.username);
+    next();
+  };
+
+  // Schema for creating a new brand
+  const createBrandSchema = z.object({
+    name: z.string().min(1, "Brand name is required"),
+    email: z.string().email("Invalid email address"),
+    username: z.string().min(3, "Username must be at least 3 characters"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    planType: z.string().default("standard"),
+    logo: z.string().optional(),
+  });
+
   // Debug route to get brands without auth - FOR TESTING ONLY
   app.get('/api/debug/brands', async (_req: Request, res: Response) => {
     try {
@@ -215,7 +215,7 @@ export function setupAdminRoutes(app: Express) {
         console.log(`[AdminImpersonation] ERROR: User not available in request!`);
         return res.status(500).json({ message: "User not available in request" });
       }
-
+      
       const adminUser = req.user;
       console.log(`[AdminImpersonation] Storing admin user in session: ${adminUser.id} (${adminUser.username})`);
       
@@ -270,7 +270,7 @@ export function setupAdminRoutes(app: Express) {
       return res.status(500).json({ message: "Server error" });
     }
   });
-  
+
   // Return to admin account after impersonation
   app.post('/api/admin/end-impersonation', (req: Request, res: Response, next: NextFunction) => {
     // Special middleware for end-impersonation - we just need to check if authenticated

@@ -11,6 +11,9 @@ import { setupBrandRoutes } from "./api/brands";
 import { setupInviteRoutes } from "./api/invites";
 import { setupTestInviteRoutes } from "./api/test-invites";
 import { setupAdminRoutes } from "./api/admin";
+
+// Set up admin routes
+setupAdminRoutes(app);
 // Import social API routes
 import { socialRouter } from "./api/social";
 import { createBackup } from "./backup";

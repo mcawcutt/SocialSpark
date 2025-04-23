@@ -6,6 +6,7 @@ import { storage } from './storage';
 export async function createBackup() {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const backupDir = path.join(process.cwd(), 'backups', timestamp);
+  const backupFile = `backup-${timestamp}.tar.gz`;
   
   // Create backup directory
   fs.mkdirSync(backupDir, { recursive: true });
@@ -26,6 +27,25 @@ export async function createBackup() {
     path.join(backupDir, 'data.json'),
     JSON.stringify(data, null, 2)
   );
+
+  // Create tar.gz archive
+  await new Promise((resolve, reject) => {
+    const output = fs.createWriteStream(backupFile);
+    const archive = require('tar').c(
+      {
+        gzip: true,
+        filter: (path) => !path.includes('node_modules') && !path.includes('.git')
+      },
+      ['.']
+    );
+    
+    archive.pipe(output);
+    output.on('close', resolve);
+    archive.on('error', reject);
+  });
+
+  // Clean up backup directory
+  fs.rmSync(backupDir, { recursive: true });
   
-  return backupDir;
+  return backupFile;
 }

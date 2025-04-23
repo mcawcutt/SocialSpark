@@ -1,3 +1,20 @@
+
+import { createBackup } from '../backup';
+
+// Add backup endpoint
+app.get('/api/admin/backup', async (req, res) => {
+  try {
+    const backupFile = await createBackup();
+    res.download(backupFile, () => {
+      // Clean up backup file after download
+      fs.unlinkSync(backupFile);
+    });
+  } catch (error) {
+    console.error('Backup creation failed:', error);
+    res.status(500).json({ error: 'Failed to create backup' });
+  }
+});
+
 import { Express, Request, Response, NextFunction } from "express";
 import { storage } from "../storage";
 import { z } from "zod";

@@ -30,19 +30,55 @@ export function setupContentRoutes(app: Express) {
   // Get evergreen content posts
   app.get('/api/content-posts/evergreen', async (req: Request, res: Response) => {
     try {
-      const { brandId } = req.query;
+      const { brandId, demo } = req.query;
       
-      if (!brandId) {
-        return res.status(400).json({ error: 'Brand ID is required' });
+      // Check if this is a demo request
+      const isDemoRequest = demo === 'true';
+      
+      if (!brandId && !isDemoRequest) {
+        return res.status(400).json({ error: 'Brand ID is required for non-demo requests' });
       }
       
-      const brandIdNum = parseInt(brandId as string);
-      if (isNaN(brandIdNum)) {
-        return res.status(400).json({ error: 'Invalid brand ID' });
+      let brandIdNum: number | undefined;
+      
+      if (brandId) {
+        brandIdNum = parseInt(brandId as string);
+        if (isNaN(brandIdNum)) {
+          return res.status(400).json({ error: 'Invalid brand ID' });
+        }
       }
       
+      // If demo mode is requested, try to find the Dulux brand
+      if (isDemoRequest && !brandIdNum) {
+        console.log('[API] Demo mode requested for evergreen posts, searching for Dulux brand');
+        const duluxBrand = await storage.getUserByUsername('dulux');
+        
+        if (duluxBrand) {
+          console.log(`[API] Found Dulux brand with ID: ${duluxBrand.id}`);
+          brandIdNum = duluxBrand.id;
+        } else {
+          // Fallback to demo user if Dulux not found
+          console.log('[API] Dulux brand not found, falling back to demo user');
+          const demoUser = await storage.getUserByUsername('demo');
+          
+          if (demoUser) {
+            console.log(`[API] Found demo user with ID: ${demoUser.id}`);
+            brandIdNum = demoUser.id;
+          } else {
+            return res.status(404).json({ error: 'No demo brands found' });
+          }
+        }
+      }
+      
+      if (!brandIdNum) {
+        return res.status(400).json({ error: 'Could not determine brand ID' });
+      }
+      
+      console.log(`[API] Fetching evergreen posts for brandId: ${brandIdNum}`);
       const allPosts = await storage.getContentPostsByBrandId(brandIdNum);
       const evergreenPosts = allPosts.filter(post => post.isEvergreen);
+      
+      console.log(`[API] Found ${evergreenPosts.length} evergreen posts for brandId: ${brandIdNum}`);
       
       res.json(evergreenPosts);
     } catch (error) {

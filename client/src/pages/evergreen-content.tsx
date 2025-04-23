@@ -55,11 +55,22 @@ export default function EvergreenContent() {
   const { data: evergreenPosts, isLoading } = useQuery<ContentPost[]>({
     queryKey: ["/api/content-posts/evergreen", user?.id],
     queryFn: async () => {
-      // If no user is authenticated, use the demo endpoint
-      const endpoint = user ? `/api/content-posts/evergreen?brandId=${user.id}` : "/api/content-posts/evergreen?demo=true";
+      // If no user is authenticated, use the demo endpoint with demo=true parameter
+      // If user is authenticated but might be Dulux (brandId vs id issue), use brandId parameter correctly
+      const brandIdParam = user?.brandId || user?.id;
+      const endpoint = user 
+        ? `/api/content-posts/evergreen?brandId=${brandIdParam}` 
+        : "/api/content-posts/evergreen?demo=true";
+      
       console.log(`[EvergreenContent] Fetching from: ${endpoint}`);
       
       const res = await apiRequest("GET", endpoint);
+      
+      if (!res.ok) {
+        console.error(`[EvergreenContent] Error fetching evergreen posts: ${res.status} ${res.statusText}`);
+        return [];
+      }
+      
       const data = await res.json();
       console.log(`[EvergreenContent] Received ${data.length} evergreen posts`);
       return data;

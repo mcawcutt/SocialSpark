@@ -112,19 +112,27 @@ export function EvergreenPostModal({
     }
   }, [partners, partnerDistribution]);
   
-  // Determine proper evergreen posts endpoint
-  const evergreenPostsEndpoint = user ? "/api/content-posts/evergreen" : "/api/demo/content-posts/evergreen";
+  // Always use the same endpoint for evergreen posts, but with different query parameters
+  const evergreenPostsEndpoint = "/api/content-posts/evergreen";
   
   // Get evergreen posts
   const { data: evergreenPosts = [], isLoading: isLoadingPosts } = useQuery<any[]>({
-    queryKey: [evergreenPostsEndpoint, user?.id],
+    queryKey: [evergreenPostsEndpoint, user?.id, isOpen],
     queryFn: async () => {
       console.log(`[EvergreenPostModal] Fetching evergreen posts from: ${evergreenPostsEndpoint}, user: ${user?.username || 'not authenticated'}`);
       
       // Make the request to the appropriate endpoint
       try {
-        // Include brandId in the request if authenticated
-        const url = user ? `${evergreenPostsEndpoint}?brandId=${user.brandId || user.id}` : evergreenPostsEndpoint;
+        // For authenticated users, use brandId if available (handling impersonation case)
+        // For demo/unauthenticated, add demo=true parameter
+        let url;
+        if (user) {
+          const brandIdParam = user.brandId || user.id;
+          url = `${evergreenPostsEndpoint}?brandId=${brandIdParam}`;
+        } else {
+          url = `${evergreenPostsEndpoint}?demo=true`;
+        }
+        
         console.log(`[EvergreenPostModal] Requesting URL: ${url}`);
         
         const res = await fetch(url);
@@ -141,7 +149,8 @@ export function EvergreenPostModal({
         return [];
       }
     },
-    enabled: isOpen && !!user,
+    // Enable the query when modal is open, regardless of user authentication state
+    enabled: isOpen,
   });
   
   // Handle platform toggle

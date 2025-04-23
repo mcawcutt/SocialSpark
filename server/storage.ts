@@ -613,31 +613,13 @@ export class MemStorage implements IStorage {
 
   // Helper method to create or preserve an existing demo user
   private async createOrPreserveDemoUser() {
-    // Check if the demo user already exists
-    const existingDemoUser = await this.getUserByUsername("demo");
-    
-    if (!existingDemoUser) {
-      // Create the demo user if it doesn't exist
-      console.log("Creating new demo user...");
-      this.createUser({
-        username: "demo",
-        password: "password", // Will be hashed by our auth.ts hashPassword function
-        name: "Acme Brands",
-        email: "demo@example.com",
-        role: "brand",
-        planType: "premium"
-      });
-    } else {
-      console.log(`Demo user already exists with name: ${existingDemoUser.name}`);
-    }
-    
     // Check if admin user already exists
     const existingAdminUser = await this.getUserByUsername("admin");
     
     if (!existingAdminUser) {
       // Create the admin user if it doesn't exist
       console.log("Creating new admin user...");
-      this.createUser({
+      await this.createUser({
         username: "admin",
         password: "Ignyt456#", // Will be hashed by our auth.ts hashPassword function
         name: "Ignyt Admin",
@@ -645,120 +627,34 @@ export class MemStorage implements IStorage {
         role: "admin",
         planType: "premium"
       });
-      
-      // Create additional demo brands for admin view
-      console.log("Creating additional demo brands for admin view...");
-      
-      // Create Dulux brand
-      await this.createUser({
-        username: "dulux",
-        password: "password",
-        name: "Dulux Paints",
-        email: "contact@dulux.com",
-        role: "brand",
-        planType: "premium",
-        logo: "/uploads/demo-logo.png",
-        active: true
-      });
-      
-      // Create SportX brand
-      await this.createUser({
-        username: "sportx",
-        password: "password",
-        name: "SportX Gear",
-        email: "info@sportx.com",
-        role: "brand",
-        planType: "basic",
-        logo: "/uploads/demo-logo.png",
-        active: true
-      });
-      
-      // Create TechHub brand
-      await this.createUser({
-        username: "techhub",
-        password: "password",
-        name: "TechHub Solutions",
-        email: "support@techhub.com",
-        role: "brand",
-        planType: "premium",
-        logo: "/uploads/demo-logo.png",
-        active: false
-      });
     } else {
       console.log(`Admin user already exists with name: ${existingAdminUser.name}`);
-      
-      // Check if the demo brands already exist
-      const existingDulux = await this.getUserByUsername("dulux");
-      const existingSportX = await this.getUserByUsername("sportx");
-      const existingTechHub = await this.getUserByUsername("techhub");
-      
-      // Create any missing brands
-      if (!existingDulux) {
-        console.log("Creating Dulux demo brand...");
-        await this.createUser({
-          username: "dulux",
-          password: "password",
-          name: "Dulux Paints",
-          email: "contact@dulux.com",
-          role: "brand",
-          planType: "premium",
-          logo: "/uploads/demo-logo.png",
-          active: true
-        });
-      }
-      
-      if (!existingSportX) {
-        console.log("Creating SportX demo brand...");
-        await this.createUser({
-          username: "sportx",
-          password: "password",
-          name: "SportX Gear",
-          email: "info@sportx.com",
-          role: "brand",
-          planType: "basic",
-          logo: "/uploads/demo-logo.png",
-          active: true
-        });
-      }
-      
-      if (!existingTechHub) {
-        console.log("Creating TechHub demo brand...");
-        await this.createUser({
-          username: "techhub",
-          password: "password",
-          name: "TechHub Solutions",
-          email: "support@techhub.com",
-          role: "brand",
-          planType: "premium",
-          logo: "/uploads/demo-logo.png",
-          active: false
-        });
-      }
+    }
+    
+    // Check if Dulux brand already exists
+    const existingDuluxUser = await this.getUserByUsername("dulux");
+    
+    if (!existingDuluxUser) {
+      // Create the Dulux brand if it doesn't exist
+      console.log("Creating Dulux brand user...");
+      await this.createUser({
+        username: "dulux",
+        password: "Dulux123#", // Will be hashed by our auth.ts hashPassword function
+        name: "Dulux Paints",
+        email: "dulux@example.com",
+        role: "brand",
+        planType: "premium",
+        logo: "/uploads/demo-logo.png",
+        active: true
+      });
+    } else {
+      console.log(`Dulux brand user already exists with ID: ${existingDuluxUser.id}`);
     }
   }
   
   // Seed demo data for the demo and Dulux users
   private async seedDemoDataIfNeeded() {
-    // Get the demo user
-    const demoUser = await this.getUserByUsername("demo");
-    
-    if (!demoUser) {
-      console.log("Demo user not found, skipping demo data seeding.");
-      return;
-    }
-    
-    // Check if we already have retail partners for the demo user
-    const existingDemoPartners = Array.from(this.retailPartners.values())
-      .filter(partner => partner.brandId === demoUser.id);
-    
-    if (existingDemoPartners.length === 0) {
-      console.log("No existing partners found for demo user, seeding demo data...");
-      this.seedDemoData(demoUser.id);
-    } else {
-      console.log(`Found ${existingDemoPartners.length} existing partners for demo user, skipping demo data seeding.`);
-    }
-    
-    // Get the Dulux user and seed data for them as well
+    // We're only keeping the Dulux brand
     const duluxUser = await this.getUserByUsername("dulux");
     
     if (!duluxUser) {
@@ -785,6 +681,9 @@ export class MemStorage implements IStorage {
       
       // Create evergreen posts for Dulux
       this.seedDuluxEvergreen(duluxUser.id);
+      
+      // Create media items for Dulux
+      this.seedDuluxMedia(duluxUser.id);
     } else {
       console.log(`Found ${duluxPosts.length} existing evergreen posts for Dulux brand, skipping Dulux data seeding.`);
     }

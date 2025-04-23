@@ -135,24 +135,30 @@ export const checkPartnerAccess = (partnerIdParam: string = "partnerId") => {
       
       // Brand users can access partners under their brands
       if (req.user?.role === "brand") {
-        // First get all brands owned by this user
+        // First check if the partner exists
+        const partner = await db.query.retailPartners.findFirst({
+          where: eq(retailPartners.id, partnerId)
+        });
+        
+        if (!partner) {
+          return res.status(404).json({ message: "Retail partner not found" });
+        }
+        
+        // Then check if the partner belongs to the user's brandId
+        // Either directly through user.brandId or through brands owned by this user
+        if (req.user.brandId === partner.brandId) {
+          return next();
+        }
+        
+        // If the user doesn't have a brandId or the brandId doesn't match,
+        // check all brands owned by this user
         const userBrands = await db.query.brands.findMany({
           where: eq(brands.ownerId, req.user.id)
         });
         
+        // Check if partner.brandId is in the list of user's brand IDs
         const brandIds = userBrands.map(brand => brand.id);
-        
-        // Now check if the partner belongs to any of those brands
-        const partner = await db.query.retailPartners.findFirst({
-          where: and(
-            eq(retailPartners.id, partnerId),
-            // This is a simplified check - in a real implementation 
-            // you'd use an "in" operator for brandIds
-            eq(retailPartners.brandId, brandIds[0])
-          )
-        });
-        
-        if (partner || brandIds.length === 0) {
+        if (brandIds.includes(partner.brandId)) {
           return next();
         }
       }

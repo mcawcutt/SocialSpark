@@ -117,7 +117,7 @@ export function EvergreenPostModal({
   
   // Get evergreen posts
   const { data: evergreenPosts = [], isLoading: isLoadingPosts } = useQuery<any[]>({
-    queryKey: [evergreenPostsEndpoint],
+    queryKey: [evergreenPostsEndpoint, user?.id],
     queryFn: async () => {
       console.log(`[EvergreenPostModal] Fetching evergreen posts from: ${evergreenPostsEndpoint}, user: ${user?.username || 'not authenticated'}`);
       
@@ -125,13 +125,17 @@ export function EvergreenPostModal({
       try {
         // Include brandId in the request if authenticated
         const url = user ? `${evergreenPostsEndpoint}?brandId=${user.brandId || user.id}` : evergreenPostsEndpoint;
+        console.log(`[EvergreenPostModal] Requesting URL: ${url}`);
+        
         const res = await fetch(url);
         
         if (!res.ok) {
           throw new Error(`Failed to fetch evergreen posts: ${res.status} ${res.statusText}`);
         }
         
-        return res.json();
+        const data = await res.json();
+        console.log(`[EvergreenPostModal] Received ${data.length} evergreen posts`);
+        return data;
       } catch (e) {
         console.error("Error fetching evergreen posts:", e);
         return [];

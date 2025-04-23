@@ -55,10 +55,17 @@ export default function EvergreenContent() {
   const { data: evergreenPosts, isLoading } = useQuery<ContentPost[]>({
     queryKey: ["/api/content-posts/evergreen", user?.id],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/content-posts/evergreen?brandId=${user?.id}`);
-      return await res.json();
+      // If no user is authenticated, use the demo endpoint
+      const endpoint = user ? `/api/content-posts/evergreen?brandId=${user.id}` : "/api/content-posts/evergreen?demo=true";
+      console.log(`[EvergreenContent] Fetching from: ${endpoint}`);
+      
+      const res = await apiRequest("GET", endpoint);
+      const data = await res.json();
+      console.log(`[EvergreenContent] Received ${data.length} evergreen posts`);
+      return data;
     },
-    enabled: !!user?.id,
+    // Enable the query even if user is not authenticated, to support demo mode
+    enabled: true,
   });
 
   // Fetch categories (in a real app, this would come from the backend)

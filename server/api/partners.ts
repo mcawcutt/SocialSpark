@@ -56,7 +56,8 @@ export function setupPartnerRoutes(app: Express) {
       });
       
       // Get unique tags only
-      const uniqueTags = [...new Set(allTags)];
+      const uniqueTagsSet = new Set<string>(allTags);
+      const uniqueTags = Array.from(uniqueTagsSet);
       console.log(`[GetPartnerTags] Found ${uniqueTags.length} unique tags for brandId=${effectiveBrandId}`);
       
       // If there are no tags, return some defaults
@@ -157,7 +158,8 @@ export function setupPartnerRoutes(app: Express) {
       });
       
       // Get unique tags only
-      const uniqueTags = [...new Set(allTags)];
+      const uniqueTagsSet = new Set<string>(allTags);
+      const uniqueTags = Array.from(uniqueTagsSet);
       console.log(`[DemoGetTags] Found ${uniqueTags.length} unique tags for brandId=${brandId}`);
       
       // If no tags found, return default tags
@@ -337,14 +339,21 @@ export function setupPartnerRoutes(app: Express) {
   app.patch('/api/retail-partners/:partnerId', requireAuth, checkPartnerAccess(), async (req: Request, res: Response) => {
     try {
       const partnerId = parseInt(req.params.partnerId, 10);
+      console.log(`[UpdatePartner] Attempting to update partnerId=${partnerId}, user=${req.user?.username} (${req.user?.id}), role=${req.user?.role}, brandId=${req.user?.brandId}`);
+      console.log(`[UpdatePartner] Request body:`, JSON.stringify(req.body));
+      
       const partner = await storage.getRetailPartner(partnerId);
       
       if (!partner) {
+        console.log(`[UpdatePartner] Partner with ID ${partnerId} not found`);
         return res.status(404).json({ message: "Retail partner not found" });
       }
       
+      console.log(`[UpdatePartner] Found partner: ${partner.name}, status=${partner.status}, brandId=${partner.brandId}`);
+      
       // For partner users, limit what fields they can update
       if (req.user?.role === 'partner') {
+        console.log(`[UpdatePartner] Partner user is updating their own profile`);
         const allowedFields = ['footerTemplate', 'contactPhone', 'contactEmail', 'address'];
         const updatedData: any = {};
         
@@ -355,18 +364,29 @@ export function setupPartnerRoutes(app: Express) {
         }
         
         if (Object.keys(updatedData).length === 0) {
+          console.log(`[UpdatePartner] No valid fields to update for partner user`);
           return res.status(400).json({ message: "No valid fields to update" });
         }
         
+        console.log(`[UpdatePartner] Updating partner with data:`, JSON.stringify(updatedData));
         const updatedPartner = await storage.updateRetailPartner(partnerId, updatedData);
+        console.log(`[UpdatePartner] Partner successfully updated`);
         return res.json(updatedPartner);
       }
       
       // For brand and admin users, allow updating any fields
-      const updatedPartner = await storage.updateRetailPartner(partnerId, req.body);
-      return res.json(updatedPartner);
+      console.log(`[UpdatePartner] ${req.user?.role} user is updating a partner with data:`, JSON.stringify(req.body));
+      
+      try {
+        const updatedPartner = await storage.updateRetailPartner(partnerId, req.body);
+        console.log(`[UpdatePartner] Partner successfully updated to status: ${updatedPartner.status}`);
+        return res.json(updatedPartner);
+      } catch (storageError) {
+        console.error(`[UpdatePartner] Storage error:`, storageError);
+        return res.status(500).json({ message: "Error updating partner in storage" });
+      }
     } catch (error) {
-      console.error("Error updating retail partner:", error);
+      console.error("[UpdatePartner] Error updating retail partner:", error);
       return res.status(500).json({ message: "Server error" });
     }
   });

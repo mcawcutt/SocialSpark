@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from 'date-fns';
 import { SiFacebook, SiInstagram, SiGoogle } from 'react-icons/si';
@@ -7,7 +7,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import Image from '../../../components/ui/image';
 import Video from '../../../components/ui/video';
-import { MoreHorizontal, MessageCircle, ThumbsUp, Share2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MoreHorizontal, MessageCircle, ThumbsUp, Share2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface PlatformPreviewProps {
   title: string;
@@ -36,18 +37,68 @@ export function PlatformPreview({
 }: PlatformPreviewProps) {
   const [selectedPlatform, setSelectedPlatform] = useState(platforms[0] || 'facebook');
   
-  // Get the main media item or fallback to imageUrl
-  const mainMedia = mediaItems.find(item => item.isMain) || 
-                   (mediaItems.length > 0 ? mediaItems[0] : null);
+  // State for media carousel
+  const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+  const mediaScrollRef = useRef<HTMLDivElement>(null);
   
-  const mediaUrl = mainMedia?.url || imageUrl;
-  const mediaType = mainMedia?.type || (imageUrl?.match(/\.(mp4|mov|webm)$/i) ? 'video' : 'image');
+  // Create an array of all media items, ensuring the main one is first if it exists
+  const allMediaItems = (() => {
+    if (mediaItems.length === 0 && imageUrl) {
+      // If no media items but we have an imageUrl, create a single item
+      return [{
+        url: imageUrl,
+        type: imageUrl.match(/\.(mp4|mov|webm)$/i) ? 'video' : 'image',
+        isMain: true
+      }];
+    }
+    
+    if (mediaItems.length > 0) {
+      // Sort mediaItems to put the main one first
+      const mainItem = mediaItems.find(item => item.isMain);
+      if (mainItem) {
+        return [
+          mainItem,
+          ...mediaItems.filter(item => !item.isMain)
+        ];
+      }
+    }
+    
+    return mediaItems;
+  })();
   
   // Format date for display
   const formattedDate = scheduledDate ? format(scheduledDate, 'dd MMM') : 'Today';
 
+  // Functions to navigate media carousel
+  const previousMedia = () => {
+    if (currentMediaIndex > 0) {
+      setCurrentMediaIndex(prev => prev - 1);
+    }
+  };
+
+  const nextMedia = () => {
+    if (currentMediaIndex < allMediaItems.length - 1) {
+      setCurrentMediaIndex(prev => prev + 1);
+    }
+  };
+  
+  // Scroll to the current media item when index changes
+  useEffect(() => {
+    if (mediaScrollRef.current && allMediaItems.length > 0) {
+      const scrollElement = mediaScrollRef.current;
+      const itemWidth = scrollElement.offsetWidth;
+      scrollElement.scrollTo({
+        left: currentMediaIndex * itemWidth,
+        behavior: 'smooth'
+      });
+    }
+  }, [currentMediaIndex]);
+
+  // Current media item
+  const currentMedia = allMediaItems[currentMediaIndex] || null;
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full max-w-[400px]">
       {/* Platform selector */}
       <Tabs value={selectedPlatform} onValueChange={setSelectedPlatform}>
         <TabsList className="grid w-full grid-cols-3">
@@ -88,7 +139,7 @@ export function PlatformPreview({
         
         {/* Facebook Preview */}
         <TabsContent value="facebook">
-          <Card className="overflow-hidden border shadow-sm max-w-sm mx-auto">
+          <Card className="overflow-hidden border shadow-sm w-full">
             {/* Header */}
             <div className="p-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -117,31 +168,81 @@ export function PlatformPreview({
               )}
               
               {/* Media content */}
-              {mediaUrl && (
-                <div className="w-full">
-                  {mediaType === 'video' ? (
-                    <div className="relative pb-[56.25%] overflow-hidden">
-                      <Video 
-                        src={mediaUrl} 
-                        className="absolute inset-0 w-full h-full object-contain bg-black" 
-                      />
-                    </div>
-                  ) : (
-                    <div className="relative bg-gray-100">
-                      <div className="aspect-[4/3] flex items-center justify-center overflow-hidden">
-                        <Image 
-                          src={mediaUrl} 
-                          alt={title || 'Post image'} 
-                          className="w-full h-full object-contain"
+              {allMediaItems.length > 0 && (
+                <div className="relative w-full bg-gray-50">
+                  {/* Media carousel */}
+                  <div 
+                    ref={mediaScrollRef}
+                    className="w-full overflow-hidden"
+                  >
+                    <div 
+                      className="w-full"
+                      style={{
+                        position: 'relative',
+                        paddingBottom: '75%' // 4:3 aspect ratio
+                      }}
+                    >
+                      {currentMedia.type === 'video' ? (
+                        <Video 
+                          src={currentMedia.url} 
+                          className="absolute top-0 left-0 w-full h-full object-contain bg-gray-50" 
                         />
-                      </div>
+                      ) : (
+                        <Image 
+                          src={currentMedia.url} 
+                          alt={title || 'Post image'} 
+                          className="absolute top-0 left-0 w-full h-full object-contain bg-gray-50" 
+                        />
+                      )}
                     </div>
+                  </div>
+                  
+                  {/* Media navigation controls */}
+                  {allMediaItems.length > 1 && (
+                    <>
+                      {/* Navigation arrows */}
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-80 bg-white/80"
+                        onClick={previousMedia}
+                        disabled={currentMediaIndex === 0}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-80 bg-white/80"
+                        onClick={nextMedia}
+                        disabled={currentMediaIndex === allMediaItems.length - 1}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      
+                      {/* Indicators */}
+                      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                        {allMediaItems.map((_, idx) => (
+                          <div 
+                            key={idx}
+                            className={cn(
+                              "h-1.5 rounded-full transition-all",
+                              idx === currentMediaIndex 
+                                ? "w-4 bg-primary" 
+                                : "w-1.5 bg-gray-400/70"
+                            )}
+                            onClick={() => setCurrentMediaIndex(idx)}
+                          />
+                        ))}
+                      </div>
+                    </>
                   )}
                 </div>
               )}
               
               {/* Engagement bar */}
-              <div className="flex justify-between border-t mx-3 py-2 mt-1">
+              <div className="flex justify-between px-3 py-2 border-t mt-1">
                 <div className="flex items-center gap-1 text-muted-foreground text-sm">
                   <ThumbsUp className="h-4 w-4" />
                   <span>Like</span>
@@ -161,7 +262,7 @@ export function PlatformPreview({
         
         {/* Instagram Preview */}
         <TabsContent value="instagram">
-          <Card className="overflow-hidden border shadow-sm max-w-sm mx-auto">
+          <Card className="overflow-hidden border shadow-sm w-full">
             {/* Header */}
             <div className="p-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -176,30 +277,86 @@ export function PlatformPreview({
 
             {/* Media content first for Instagram */}
             <CardContent className="p-0">
-              {mediaUrl ? (
-                <div className="w-full">
-                  {mediaType === 'video' ? (
-                    <div className="relative pb-[100%] overflow-hidden">
-                      <Video 
-                        src={mediaUrl} 
-                        className="absolute inset-0 w-full h-full object-cover bg-black" 
-                      />
-                    </div>
-                  ) : (
-                    <div className="relative bg-gray-100">
-                      <div className="aspect-square flex items-center justify-center overflow-hidden">
-                        <Image 
-                          src={mediaUrl} 
-                          alt={title || 'Post image'} 
-                          className="w-full h-full object-cover"
+              {allMediaItems.length > 0 ? (
+                <div className="relative w-full bg-gray-50">
+                  {/* Media carousel */}
+                  <div 
+                    ref={mediaScrollRef}
+                    className="w-full overflow-hidden"
+                  >
+                    <div 
+                      className="w-full"
+                      style={{
+                        position: 'relative',
+                        paddingBottom: '100%' // 1:1 aspect ratio for Instagram
+                      }}
+                    >
+                      {currentMedia.type === 'video' ? (
+                        <Video 
+                          src={currentMedia.url} 
+                          className="absolute top-0 left-0 w-full h-full object-contain bg-gray-50" 
                         />
-                      </div>
+                      ) : (
+                        <Image 
+                          src={currentMedia.url} 
+                          alt={title || 'Post image'} 
+                          className="absolute top-0 left-0 w-full h-full object-contain bg-gray-50" 
+                        />
+                      )}
                     </div>
+                  </div>
+                  
+                  {/* Media navigation controls */}
+                  {allMediaItems.length > 1 && (
+                    <>
+                      {/* Navigation arrows */}
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-80 bg-white/80"
+                        onClick={previousMedia}
+                        disabled={currentMediaIndex === 0}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-80 bg-white/80"
+                        onClick={nextMedia}
+                        disabled={currentMediaIndex === allMediaItems.length - 1}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      
+                      {/* Indicators */}
+                      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                        {allMediaItems.map((_, idx) => (
+                          <div 
+                            key={idx}
+                            className={cn(
+                              "h-1.5 rounded-full transition-all",
+                              idx === currentMediaIndex 
+                                ? "w-4 bg-primary" 
+                                : "w-1.5 bg-gray-400/70"
+                            )}
+                            onClick={() => setCurrentMediaIndex(idx)}
+                          />
+                        ))}
+                      </div>
+                    </>
                   )}
                 </div>
               ) : (
-                <div className="aspect-square bg-muted flex items-center justify-center">
-                  <span className="text-muted-foreground text-sm">Media required for Instagram</span>
+                <div 
+                  className="bg-muted flex items-center justify-center" 
+                  style={{ 
+                    position: 'relative',
+                    paddingBottom: '100%' // 1:1 aspect ratio for Instagram
+                  }}
+                >
+                  <span className="absolute text-muted-foreground text-sm">Media required for Instagram</span>
                 </div>
               )}
               
@@ -227,7 +384,7 @@ export function PlatformPreview({
         
         {/* Google Business Preview */}
         <TabsContent value="google">
-          <Card className="overflow-hidden border shadow-sm max-w-sm mx-auto">
+          <Card className="overflow-hidden border shadow-sm w-full">
             {/* Header */}
             <div className="p-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -252,25 +409,75 @@ export function PlatformPreview({
               </div>
               
               {/* Media content */}
-              {mediaUrl && (
-                <div className="w-full">
-                  {mediaType === 'video' ? (
-                    <div className="relative pb-[56.25%] overflow-hidden">
-                      <Video 
-                        src={mediaUrl} 
-                        className="absolute inset-0 w-full h-full object-contain bg-black" 
-                      />
-                    </div>
-                  ) : (
-                    <div className="relative bg-gray-100">
-                      <div className="aspect-[4/3] flex items-center justify-center overflow-hidden">
-                        <Image 
-                          src={mediaUrl} 
-                          alt={title || 'Post image'} 
-                          className="w-full h-full object-contain"
+              {allMediaItems.length > 0 && (
+                <div className="relative w-full bg-gray-50">
+                  {/* Media carousel */}
+                  <div 
+                    ref={mediaScrollRef}
+                    className="w-full overflow-hidden"
+                  >
+                    <div 
+                      className="w-full"
+                      style={{
+                        position: 'relative',
+                        paddingBottom: '75%' // 4:3 aspect ratio
+                      }}
+                    >
+                      {currentMedia.type === 'video' ? (
+                        <Video 
+                          src={currentMedia.url} 
+                          className="absolute top-0 left-0 w-full h-full object-contain bg-gray-50" 
                         />
-                      </div>
+                      ) : (
+                        <Image 
+                          src={currentMedia.url} 
+                          alt={title || 'Post image'} 
+                          className="absolute top-0 left-0 w-full h-full object-contain bg-gray-50" 
+                        />
+                      )}
                     </div>
+                  </div>
+                  
+                  {/* Media navigation controls */}
+                  {allMediaItems.length > 1 && (
+                    <>
+                      {/* Navigation arrows */}
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-80 bg-white/80"
+                        onClick={previousMedia}
+                        disabled={currentMediaIndex === 0}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-80 bg-white/80"
+                        onClick={nextMedia}
+                        disabled={currentMediaIndex === allMediaItems.length - 1}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      
+                      {/* Indicators */}
+                      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                        {allMediaItems.map((_, idx) => (
+                          <div 
+                            key={idx}
+                            className={cn(
+                              "h-1.5 rounded-full transition-all",
+                              idx === currentMediaIndex 
+                                ? "w-4 bg-primary" 
+                                : "w-1.5 bg-gray-400/70"
+                            )}
+                            onClick={() => setCurrentMediaIndex(idx)}
+                          />
+                        ))}
+                      </div>
+                    </>
                   )}
                 </div>
               )}

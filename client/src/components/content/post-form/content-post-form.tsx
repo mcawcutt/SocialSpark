@@ -1344,7 +1344,8 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                   imageUrl={watchedImageUrl}
                   mediaItems={mediaItems}
                   platforms={watchedPlatforms}
-                  brandName={user?.username}
+                  brandName={user?.username || 'Your Brand'}
+                  brandLogo={user?.logo || '/uploads/demo-logo.png'}
                 />
               </div>
             </div>

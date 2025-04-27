@@ -1138,36 +1138,40 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                               const newMediaItem = {
                                 url: imageUrl,
                                 type: mediaItem.fileType?.startsWith('image/') ? 'image' as const : 'video' as const,
-                                isMain: true // Mark as main by default
+                                isMain: mediaItems.length === 0 // Mark as main only if it's the first item
                               };
                               
-                              // Get current media items
-                              const currentMediaItems = form.getValues('mediaItems') || [];
+                              // Get existing media items from current state
+                              const existingItems = [...mediaItems];
                               
-                              // If we're adding a new main item, unmark existing items as main
-                              if (currentMediaItems.length > 0) {
-                                currentMediaItems.forEach(item => item.isMain = false);
+                              // If we're adding a main item, unmark existing items as main
+                              if (newMediaItem.isMain && existingItems.length > 0) {
+                                existingItems.forEach(item => item.isMain = false);
                               }
                               
-                              // Add the new item to the array
-                              const updatedMediaItems = [...currentMediaItems, newMediaItem];
+                              // Add the new item
+                              const updatedItems = [...existingItems, newMediaItem];
                               
-                              // Update the mediaItems field in the form
-                              form.setValue('mediaItems', updatedMediaItems, {
+                              // Update the form value
+                              form.setValue('mediaItems', updatedItems, {
                                 shouldDirty: true,
                                 shouldTouch: true,
                                 shouldValidate: true
                               });
                               
-                              // Also update the legacy imageUrl field for backward compatibility
-                              form.setValue('imageUrl', imageUrl, {
-                                shouldDirty: true,
-                                shouldTouch: true,
-                                shouldValidate: true
-                              });
+                              // Update the legacy imageUrl field if this is the main item
+                              if (newMediaItem.isMain) {
+                                form.setValue('imageUrl', imageUrl, {
+                                  shouldDirty: true,
+                                  shouldTouch: true,
+                                  shouldValidate: true
+                                });
+                                setImagePreview(imageUrl);
+                              }
                               
                               // Update component state
-                              setMediaItems(updatedMediaItems);
+                              setMediaItems(updatedItems);
+                              console.log('Media items are now:', updatedItems);
                               
                               // Force a small delay before updating preview state
                               setTimeout(() => {
@@ -1176,7 +1180,7 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                                 
                                 // Log confirmation
                                 console.log('ContentPostForm: Media successfully attached');
-                                console.log('Media items are now:', updatedMediaItems);
+                                console.log('Media items are now:', form.getValues('mediaItems'));
                                 console.log('Form value is now:', form.getValues('imageUrl'));
                               }, 50);
                             }}

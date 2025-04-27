@@ -98,7 +98,7 @@ export function PlatformPreview({
   const currentMedia = allMediaItems[currentMediaIndex] || null;
 
   // Media rendering helper
-  const renderMedia = (mediaItem, aspectRatio = '75%') => {
+  const renderMedia = (mediaItem: {url: string, type: string} | null, aspectRatio = '75%') => {
     if (!mediaItem) return null;
     
     return (

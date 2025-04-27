@@ -27,7 +27,7 @@ export function FileUploader({
     if (!files || files.length === 0) return;
 
     // For multiple files
-    if (multiple && files.length > 1) {
+    if (multiple) {
       console.log(`${files.length} files selected for upload`);
       setIsUploading(true);
       
@@ -50,7 +50,7 @@ export function FileUploader({
           formData.append('media', file);
           
           // Send to the API
-          const response = await fetch('/api/upload?demo=true', {
+          const response = await fetch('/api/upload', {
             method: 'POST',
             body: formData,
           });
@@ -107,8 +107,8 @@ export function FileUploader({
         const formData = new FormData();
         formData.append('media', file);
         
-        // Send to the API - using the demo route
-        const response = await fetch('/api/upload?demo=true', {
+        // Send to the API
+        const response = await fetch('/api/upload', {
           method: 'POST',
           body: formData,
         });

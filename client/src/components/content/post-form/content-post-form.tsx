@@ -1330,7 +1330,7 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
               </div>
 
               {/* Right column: Preview */}
-              <div className="space-y-4 border rounded-lg p-4">
+              <div className="space-y-4 border rounded-lg p-4 flex flex-col items-center">
                 <h3 className="font-medium text-center mb-2">Post Preview</h3>
                 <PlatformPreview
                   title={watchedTitle}

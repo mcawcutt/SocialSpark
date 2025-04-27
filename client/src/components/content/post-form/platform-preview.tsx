@@ -97,8 +97,84 @@ export function PlatformPreview({
   // Current media item
   const currentMedia = allMediaItems[currentMediaIndex] || null;
 
+  // Media rendering helper
+  const renderMedia = (mediaItem, aspectRatio = '75%') => {
+    if (!mediaItem) return null;
+    
+    return (
+      <div 
+        className="w-full"
+        style={{
+          position: 'relative',
+          paddingBottom: aspectRatio
+        }}
+      >
+        <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-gray-50">
+          {mediaItem.type === 'video' ? (
+            <Video 
+              src={mediaItem.url} 
+              className="max-w-full max-h-full object-contain" 
+            />
+          ) : (
+            <Image 
+              src={mediaItem.url} 
+              alt={title || 'Post image'} 
+              className="max-w-full max-h-full object-contain" 
+            />
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Media navigation controls
+  const renderMediaControls = () => {
+    if (allMediaItems.length <= 1) return null;
+    
+    return (
+      <>
+        {/* Navigation arrows */}
+        <Button
+          size="icon"
+          variant="secondary"
+          className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-80 bg-white/80"
+          onClick={previousMedia}
+          disabled={currentMediaIndex === 0}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        
+        <Button
+          size="icon"
+          variant="secondary"
+          className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-80 bg-white/80"
+          onClick={nextMedia}
+          disabled={currentMediaIndex === allMediaItems.length - 1}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        
+        {/* Indicators */}
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+          {allMediaItems.map((_, idx) => (
+            <div 
+              key={idx}
+              className={cn(
+                "h-1.5 rounded-full transition-all",
+                idx === currentMediaIndex 
+                  ? "w-4 bg-primary" 
+                  : "w-1.5 bg-gray-400/70"
+              )}
+              onClick={() => setCurrentMediaIndex(idx)}
+            />
+          ))}
+        </div>
+      </>
+    );
+  };
+
   return (
-    <div className="space-y-4 w-full max-w-[400px]">
+    <div className="space-y-4 w-full max-w-[320px]">
       {/* Platform selector */}
       <Tabs value={selectedPlatform} onValueChange={setSelectedPlatform}>
         <TabsList className="grid w-full grid-cols-3">
@@ -169,75 +245,17 @@ export function PlatformPreview({
               
               {/* Media content */}
               {allMediaItems.length > 0 && (
-                <div className="relative w-full bg-gray-50">
+                <div className="relative w-full">
                   {/* Media carousel */}
                   <div 
                     ref={mediaScrollRef}
                     className="w-full overflow-hidden"
                   >
-                    <div 
-                      className="w-full"
-                      style={{
-                        position: 'relative',
-                        paddingBottom: '75%' // 4:3 aspect ratio
-                      }}
-                    >
-                      {currentMedia.type === 'video' ? (
-                        <Video 
-                          src={currentMedia.url} 
-                          className="absolute top-0 left-0 w-full h-full object-contain bg-gray-50" 
-                        />
-                      ) : (
-                        <Image 
-                          src={currentMedia.url} 
-                          alt={title || 'Post image'} 
-                          className="absolute top-0 left-0 w-full h-full object-contain bg-gray-50" 
-                        />
-                      )}
-                    </div>
+                    {renderMedia(currentMedia, '75%')}
                   </div>
                   
                   {/* Media navigation controls */}
-                  {allMediaItems.length > 1 && (
-                    <>
-                      {/* Navigation arrows */}
-                      <Button
-                        size="icon"
-                        variant="secondary"
-                        className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-80 bg-white/80"
-                        onClick={previousMedia}
-                        disabled={currentMediaIndex === 0}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      
-                      <Button
-                        size="icon"
-                        variant="secondary"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-80 bg-white/80"
-                        onClick={nextMedia}
-                        disabled={currentMediaIndex === allMediaItems.length - 1}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                      
-                      {/* Indicators */}
-                      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                        {allMediaItems.map((_, idx) => (
-                          <div 
-                            key={idx}
-                            className={cn(
-                              "h-1.5 rounded-full transition-all",
-                              idx === currentMediaIndex 
-                                ? "w-4 bg-primary" 
-                                : "w-1.5 bg-gray-400/70"
-                            )}
-                            onClick={() => setCurrentMediaIndex(idx)}
-                          />
-                        ))}
-                      </div>
-                    </>
-                  )}
+                  {renderMediaControls()}
                 </div>
               )}
               
@@ -278,75 +296,17 @@ export function PlatformPreview({
             {/* Media content first for Instagram */}
             <CardContent className="p-0">
               {allMediaItems.length > 0 ? (
-                <div className="relative w-full bg-gray-50">
+                <div className="relative w-full">
                   {/* Media carousel */}
                   <div 
                     ref={mediaScrollRef}
                     className="w-full overflow-hidden"
                   >
-                    <div 
-                      className="w-full"
-                      style={{
-                        position: 'relative',
-                        paddingBottom: '100%' // 1:1 aspect ratio for Instagram
-                      }}
-                    >
-                      {currentMedia.type === 'video' ? (
-                        <Video 
-                          src={currentMedia.url} 
-                          className="absolute top-0 left-0 w-full h-full object-contain bg-gray-50" 
-                        />
-                      ) : (
-                        <Image 
-                          src={currentMedia.url} 
-                          alt={title || 'Post image'} 
-                          className="absolute top-0 left-0 w-full h-full object-contain bg-gray-50" 
-                        />
-                      )}
-                    </div>
+                    {renderMedia(currentMedia, '100%')}
                   </div>
                   
                   {/* Media navigation controls */}
-                  {allMediaItems.length > 1 && (
-                    <>
-                      {/* Navigation arrows */}
-                      <Button
-                        size="icon"
-                        variant="secondary"
-                        className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-80 bg-white/80"
-                        onClick={previousMedia}
-                        disabled={currentMediaIndex === 0}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      
-                      <Button
-                        size="icon"
-                        variant="secondary"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-80 bg-white/80"
-                        onClick={nextMedia}
-                        disabled={currentMediaIndex === allMediaItems.length - 1}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                      
-                      {/* Indicators */}
-                      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                        {allMediaItems.map((_, idx) => (
-                          <div 
-                            key={idx}
-                            className={cn(
-                              "h-1.5 rounded-full transition-all",
-                              idx === currentMediaIndex 
-                                ? "w-4 bg-primary" 
-                                : "w-1.5 bg-gray-400/70"
-                            )}
-                            onClick={() => setCurrentMediaIndex(idx)}
-                          />
-                        ))}
-                      </div>
-                    </>
-                  )}
+                  {renderMediaControls()}
                 </div>
               ) : (
                 <div 
@@ -410,75 +370,17 @@ export function PlatformPreview({
               
               {/* Media content */}
               {allMediaItems.length > 0 && (
-                <div className="relative w-full bg-gray-50">
+                <div className="relative w-full">
                   {/* Media carousel */}
                   <div 
                     ref={mediaScrollRef}
                     className="w-full overflow-hidden"
                   >
-                    <div 
-                      className="w-full"
-                      style={{
-                        position: 'relative',
-                        paddingBottom: '75%' // 4:3 aspect ratio
-                      }}
-                    >
-                      {currentMedia.type === 'video' ? (
-                        <Video 
-                          src={currentMedia.url} 
-                          className="absolute top-0 left-0 w-full h-full object-contain bg-gray-50" 
-                        />
-                      ) : (
-                        <Image 
-                          src={currentMedia.url} 
-                          alt={title || 'Post image'} 
-                          className="absolute top-0 left-0 w-full h-full object-contain bg-gray-50" 
-                        />
-                      )}
-                    </div>
+                    {renderMedia(currentMedia, '75%')}
                   </div>
                   
                   {/* Media navigation controls */}
-                  {allMediaItems.length > 1 && (
-                    <>
-                      {/* Navigation arrows */}
-                      <Button
-                        size="icon"
-                        variant="secondary"
-                        className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-80 bg-white/80"
-                        onClick={previousMedia}
-                        disabled={currentMediaIndex === 0}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      
-                      <Button
-                        size="icon"
-                        variant="secondary"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-80 bg-white/80"
-                        onClick={nextMedia}
-                        disabled={currentMediaIndex === allMediaItems.length - 1}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                      
-                      {/* Indicators */}
-                      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                        {allMediaItems.map((_, idx) => (
-                          <div 
-                            key={idx}
-                            className={cn(
-                              "h-1.5 rounded-full transition-all",
-                              idx === currentMediaIndex 
-                                ? "w-4 bg-primary" 
-                                : "w-1.5 bg-gray-400/70"
-                            )}
-                            onClick={() => setCurrentMediaIndex(idx)}
-                          />
-                        ))}
-                      </div>
-                    </>
-                  )}
+                  {renderMediaControls()}
                 </div>
               )}
               

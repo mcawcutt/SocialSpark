@@ -912,11 +912,11 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                         {mediaItems.length > 0 && (
                           <div className="space-y-2">
                             <div className="text-sm font-medium">Media Files ({mediaItems.length})</div>
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="grid grid-cols-4 gap-2">
                               {mediaItems.map((item, index) => (
                                 <div 
                                   key={index} 
-                                  className={`relative w-full h-28 rounded-md overflow-hidden border ${item.isMain ? 'ring-2 ring-primary' : ''}`}
+                                  className={`relative w-16 h-16 rounded-md overflow-hidden border ${item.isMain ? 'ring-2 ring-primary' : ''}`}
                                 >
                                   {item.type === 'video' || 
                                    (item.url && (item.url.endsWith('.mp4') || item.url.endsWith('.webm') || item.url.endsWith('.mov'))) ? (

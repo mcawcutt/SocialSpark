@@ -72,7 +72,31 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
     url: string;
     type: "image" | "video";
     isMain: boolean;
-  }>>(initialData?.metadata?.mediaItems || []);
+  }>>((() => {
+    // Try to extract mediaItems from metadata if it exists
+    if (initialData?.metadata && typeof initialData.metadata === 'object') {
+      const metadata = initialData.metadata as { mediaItems?: any[] };
+      if (metadata.mediaItems && Array.isArray(metadata.mediaItems)) {
+        // Ensure the data is properly typed
+        return metadata.mediaItems.map(item => ({
+          url: String(item.url || ''),
+          type: item.type === 'video' ? 'video' as const : 'image' as const,
+          isMain: Boolean(item.isMain)
+        }));
+      }
+    }
+    // If no media items in metadata but we have an imageUrl, create one item
+    if (initialData?.imageUrl) {
+      const isVideo = initialData.imageUrl.match(/\.(mp4|mov|webm)$/i);
+      return [{
+        url: initialData.imageUrl,
+        type: isVideo ? 'video' as const : 'image' as const,
+        isMain: true
+      }];
+    }
+    // Otherwise return empty array
+    return [];
+  })());
 
   // Determine which endpoint to use based on authentication status
   const partnersEndpoint = user ? "/api/retail-partners" : "/api/demo/retail-partners";
@@ -959,16 +983,46 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                       <div className="flex items-center gap-2">
                         {/* New FileUploader component */}
                         <FileUploader 
-                          onFileUploaded={(fileUrl) => {
-                            console.log('FileUploader: Upload complete, URL:', fileUrl);
-                            // Set form value
+                          onFileUploaded={(fileUrl, fileType) => {
+                            console.log('FileUploader: Upload complete, URL:', fileUrl, 'Type:', fileType);
+                            
+                            // Create new media item
+                            const newMediaItem = {
+                              url: fileUrl,
+                              type: fileType?.startsWith('image/') ? 'image' as const : 'video' as const,
+                              isMain: true // New uploads are always marked as main
+                            };
+                            
+                            // Get current media items
+                            const currentMediaItems = [...mediaItems];
+                            
+                            // If we're adding a new main item, unmark existing items as main
+                            if (currentMediaItems.length > 0) {
+                              currentMediaItems.forEach(item => item.isMain = false);
+                            }
+                            
+                            // Add the new item
+                            const updatedItems = [...currentMediaItems, newMediaItem];
+                            
+                            // Update mediaItems in form and state
+                            form.setValue('mediaItems', updatedItems, {
+                              shouldDirty: true,
+                              shouldTouch: true,
+                              shouldValidate: true
+                            });
+                            
+                            setMediaItems(updatedItems);
+                            
+                            // Still set legacy imageUrl for backward compatibility
                             form.setValue('imageUrl', fileUrl, {
                               shouldDirty: true,
                               shouldTouch: true,
                               shouldValidate: true
                             });
-                            // Update preview
+                            
+                            // Update preview to show the new image
                             setImagePreview(fileUrl);
+                            
                             // Clear selected file
                             setSelectedFile(null);
                           }}
@@ -1031,24 +1085,34 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                           }}
                         />
                         
-                        {imagePreview && (
+                        {/* Only show clear button if we have media items or a preview */}
+                        {(mediaItems.length > 0 || imagePreview) && (
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
                             onClick={() => {
-                              console.log('Clearing media...');
+                              console.log('Clearing all media...');
                               // Clear everything related to media
                               setImagePreview(null);
                               setSelectedFile(null);
+                              setMediaItems([]);
+                              
+                              // Clear form values
                               form.setValue('imageUrl', '', {
+                                shouldDirty: true,
+                                shouldTouch: true,
+                                shouldValidate: true
+                              });
+                              
+                              form.setValue('mediaItems', [], {
                                 shouldDirty: true,
                                 shouldTouch: true,
                                 shouldValidate: true
                               });
                             }}
                           >
-                            Remove
+                            Clear All
                           </Button>
                         )}
                       </div>

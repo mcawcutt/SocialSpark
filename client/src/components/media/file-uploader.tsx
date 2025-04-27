@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
 interface FileUploaderProps {
-  onFileUploaded: (fileUrl: string) => void;
+  onFileUploaded: (fileUrl: string, fileType?: string) => void;
   accept?: string;
   maxSize?: number; // size in MB
   className?: string;
@@ -58,8 +58,8 @@ export function FileUploader({
       
       console.log("Upload successful, file URL:", fileUrl);
       
-      // Call the callback with the file URL
-      onFileUploaded(fileUrl);
+      // Call the callback with the file URL and file type
+      onFileUploaded(fileUrl, file.type);
       
       toast({
         title: "Upload successful",

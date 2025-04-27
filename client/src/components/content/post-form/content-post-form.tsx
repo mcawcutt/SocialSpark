@@ -29,7 +29,14 @@ import { FileUploader } from "@/components/media/file-uploader";
 const contentPostSchema = z.object({
   title: z.string().min(5, { message: "Title must be at least 5 characters" }),
   description: z.string().min(10, { message: "Description must be at least 10 characters" }),
+  // Keep imageUrl for backward compatibility but make it optional
   imageUrl: z.string().optional(),
+  // Add a new field for multiple media items
+  mediaItems: z.array(z.object({
+    url: z.string(),
+    type: z.enum(["image", "video"]),
+    isMain: z.boolean().default(false)
+  })).optional().default([]),
   platforms: z.array(z.string()).min(1, { message: "Select at least one platform" }),
   scheduledDate: z.date().optional(),
   tags: z.string().optional(),
@@ -59,6 +66,13 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
   const [imagePreview, setImagePreview] = useState<string | null>(initialData?.imageUrl || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
+  
+  // State for multiple media items
+  const [mediaItems, setMediaItems] = useState<Array<{
+    url: string;
+    type: "image" | "video";
+    isMain: boolean;
+  }>>(initialData?.metadata?.mediaItems || []);
 
   // Determine which endpoint to use based on authentication status
   const partnersEndpoint = user ? "/api/retail-partners" : "/api/demo/retail-partners";
@@ -152,6 +166,23 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
       title: initialData?.title || "",
       description: initialData?.description || "",
       imageUrl: initialData?.imageUrl || "",
+      // Initialize mediaItems from existing data or from the state
+      mediaItems: (() => {
+        // First check if there's media items in metadata
+        if (initialData?.metadata?.mediaItems && Array.isArray(initialData.metadata.mediaItems)) {
+          return initialData.metadata.mediaItems;
+        }
+        // If we have an existing single image, convert it to the new format
+        else if (initialData?.imageUrl) {
+          return [{
+            url: initialData.imageUrl,
+            type: initialData.imageUrl.match(/\.(mp4|mov|webm)$/i) ? "video" : "image",
+            isMain: true
+          }];
+        }
+        // Otherwise return an empty array
+        return [];
+      })(),
       platforms: initialData?.platforms || ["facebook", "instagram"],
       scheduledDate: schedDate,
       tags: (() => {
@@ -201,25 +232,36 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
   // Create content post mutation
   const createPostMutation = useMutation({
     mutationFn: async (data: ContentPostFormValues) => {
+      // Determine main image URL (for backward compatibility)
+      // If we have media items, use the first one marked as main or the first one
+      let mainImageUrl = data.imageUrl || "";
+      
+      if (data.mediaItems && data.mediaItems.length > 0) {
+        const mainItem = data.mediaItems.find(item => item.isMain) || data.mediaItems[0];
+        mainImageUrl = mainItem.url;
+      }
+      
       // Prepare the data for the API with the proper brandId (from user.brandId if impersonated)
       const contentPost: Partial<InsertContentPost> = {
         brandId: user?.brandId || user!.id,
         creatorId: user!.id, // Set creator ID to current user's ID
         title: data.title,
         description: data.description,
-        imageUrl: data.imageUrl,
+        imageUrl: mainImageUrl, // Set primary image for backward compatibility
         platforms: data.platforms,
         scheduledDate: data.scheduledDate,
         status: data.scheduledDate ? "scheduled" : "draft",
         isEvergreen: data.isEvergreen
       };
 
-      // Add additional metadata including partner distribution
+      // Add additional metadata including partner distribution and media items
       const postWithMetadata = {
         ...contentPost,
         metadata: {
           tags: data.tags?.split(",").map(tag => tag.trim()),
           category: data.category,
+          // Store all media items in metadata
+          mediaItems: data.mediaItems,
           // Add partner distribution data for non-evergreen posts
           ...((!data.isEvergreen) ? {
             partnerDistribution: data.partnerDistribution,
@@ -262,11 +304,20 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
         throw new Error("Missing post ID for update");
       }
 
+      // Determine main image URL (for backward compatibility)
+      // If we have media items, use the first one marked as main or the first one
+      let mainImageUrl = data.imageUrl || "";
+      
+      if (data.mediaItems && data.mediaItems.length > 0) {
+        const mainItem = data.mediaItems.find(item => item.isMain) || data.mediaItems[0];
+        mainImageUrl = mainItem.url;
+      }
+
       // Prepare the data for the API
       const contentPost: Partial<ContentPost> = {
         title: data.title,
         description: data.description,
-        imageUrl: data.imageUrl,
+        imageUrl: mainImageUrl, // Set primary image for backward compatibility
         platforms: data.platforms,
         scheduledDate: data.scheduledDate,
         status: data.scheduledDate ? "scheduled" : "draft",
@@ -274,6 +325,8 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
         metadata: {
           tags: data.tags?.split(",").map(tag => tag.trim()),
           category: data.category,
+          // Store all media items in metadata
+          mediaItems: data.mediaItems,
           // Add partner distribution data for non-evergreen posts
           ...((!data.isEvergreen) ? {
             partnerDistribution: data.partnerDistribution,
@@ -487,7 +540,37 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
           shouldValidate: true 
         });
         
+        // Add this file to the mediaItems array
+        const newMediaItem = {
+          url: fileUrl,
+          type: file.type.startsWith('image/') ? 'image' as const : 'video' as const,
+          isMain: true // Mark as main by default
+        };
+        
+        // Get current media items
+        const currentMediaItems = form.getValues('mediaItems') || [];
+        
+        // If this is the first item, set it as main, otherwise unmark all items as main
+        if (currentMediaItems.length > 0) {
+          // If we're adding a new main item, unmark existing items as main
+          currentMediaItems.forEach(item => item.isMain = false);
+        }
+        
+        // Add the new item to the array
+        const updatedMediaItems = [...currentMediaItems, newMediaItem];
+        
+        // Update form value
+        form.setValue('mediaItems', updatedMediaItems, {
+          shouldDirty: true,
+          shouldTouch: true,
+          shouldValidate: true
+        });
+        
+        // Update component state
+        setMediaItems(updatedMediaItems);
+        
         console.log('Form imageUrl value is now:', form.getValues('imageUrl'));
+        console.log('Media items now:', updatedMediaItems);
         console.log('Image preview set to:', fileUrl);
       }, 100);
       
@@ -708,7 +791,126 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                   <FormItem>
                     <FormLabel>Media</FormLabel>
                     <div className="space-y-3">
-                      {imagePreview && (
+                      {/* Display media grid for multiple items */}
+                      {mediaItems.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="text-sm font-medium">Media Files ({mediaItems.length})</div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {mediaItems.map((item, index) => (
+                              <div 
+                                key={index} 
+                                className={`relative w-full h-28 rounded-md overflow-hidden border ${item.isMain ? 'ring-2 ring-primary' : ''}`}
+                              >
+                                {item.type === 'video' || 
+                                 (item.url && (item.url.endsWith('.mp4') || item.url.endsWith('.webm') || item.url.endsWith('.mov'))) ? (
+                                  <video 
+                                    src={item.url} 
+                                    className="w-full h-full object-cover"
+                                    controls
+                                  />
+                                ) : (
+                                  <img 
+                                    src={item.url} 
+                                    alt={`Media ${index + 1}`} 
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      console.error('Error loading image preview', index);
+                                      // Try fallback paths
+                                      const imgElement = e.currentTarget;
+                                      const currentSrc = imgElement.src;
+                                      
+                                      if (currentSrc.includes('/uploads/')) {
+                                        const fileName = currentSrc.split('/').pop();
+                                        imgElement.src = `/attached_assets/${fileName}`;
+                                      } else if (currentSrc.includes('/attached_assets/')) {
+                                        const fileName = currentSrc.split('/').pop();
+                                        imgElement.src = `/uploads/${fileName}`;
+                                      } else if (!currentSrc.startsWith('/')) {
+                                        imgElement.src = `/${currentSrc}`;
+                                      } else {
+                                        imgElement.src = '/uploads/demo-logo.png';
+                                      }
+                                    }}
+                                  />
+                                )}
+                                
+                                {/* Media item actions */}
+                                <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 flex items-center justify-center gap-1 transition-opacity">
+                                  {/* Set as main image button */}
+                                  <Button
+                                    type="button"
+                                    variant={item.isMain ? "default" : "secondary"}
+                                    size="sm"
+                                    onClick={() => {
+                                      // Update all items to be not main
+                                      const updatedItems = mediaItems.map(mi => ({
+                                        ...mi,
+                                        isMain: mi === item // Set only this item as main
+                                      }));
+                                      
+                                      form.setValue('mediaItems', updatedItems, {
+                                        shouldDirty: true,
+                                        shouldTouch: true
+                                      });
+                                      
+                                      // Update the legacy imageUrl field for backward compatibility
+                                      form.setValue('imageUrl', item.url, {
+                                        shouldDirty: true,
+                                        shouldTouch: true
+                                      });
+                                      
+                                      setMediaItems(updatedItems);
+                                      setImagePreview(item.url);
+                                    }}
+                                  >
+                                    {item.isMain ? "Main" : "Make Main"}
+                                  </Button>
+                                  
+                                  {/* Remove button */}
+                                  <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => {
+                                      // Remove this item
+                                      const updatedItems = mediaItems.filter((_, i) => i !== index);
+                                      
+                                      // If we removed the main item and have other items, set the first one as main
+                                      if (item.isMain && updatedItems.length > 0) {
+                                        updatedItems[0].isMain = true;
+                                        // Update the legacy field
+                                        form.setValue('imageUrl', updatedItems[0].url, {
+                                          shouldDirty: true,
+                                          shouldTouch: true
+                                        });
+                                        setImagePreview(updatedItems[0].url);
+                                      } else if (updatedItems.length === 0) {
+                                        // If no items left, clear the preview
+                                        form.setValue('imageUrl', '', {
+                                          shouldDirty: true,
+                                          shouldTouch: true
+                                        });
+                                        setImagePreview(null);
+                                      }
+                                      
+                                      form.setValue('mediaItems', updatedItems, {
+                                        shouldDirty: true,
+                                        shouldTouch: true
+                                      });
+                                      setMediaItems(updatedItems);
+                                    }}
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Legacy display for compatibility */}
+                      {imagePreview && mediaItems.length === 0 && (
                         <div className="relative w-full h-32 rounded-md overflow-hidden border">
                           {selectedFile?.type.startsWith('video/') || 
                            (imagePreview && (imagePreview.endsWith('.mp4') || imagePreview.endsWith('.webm') || imagePreview.endsWith('.mov'))) ? (
@@ -781,12 +983,40 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                             const imageUrl = String(mediaItem.fileUrl || '');
                             console.log('ContentPostForm: Formatted URL to use:', imageUrl);
                             
-                            // Set the form value FIRST
+                            // Create new media item object
+                            const newMediaItem = {
+                              url: imageUrl,
+                              type: mediaItem.fileType?.startsWith('image/') ? 'image' as const : 'video' as const,
+                              isMain: true // Mark as main by default
+                            };
+                            
+                            // Get current media items
+                            const currentMediaItems = form.getValues('mediaItems') || [];
+                            
+                            // If we're adding a new main item, unmark existing items as main
+                            if (currentMediaItems.length > 0) {
+                              currentMediaItems.forEach(item => item.isMain = false);
+                            }
+                            
+                            // Add the new item to the array
+                            const updatedMediaItems = [...currentMediaItems, newMediaItem];
+                            
+                            // Update the mediaItems field in the form
+                            form.setValue('mediaItems', updatedMediaItems, {
+                              shouldDirty: true,
+                              shouldTouch: true,
+                              shouldValidate: true
+                            });
+                            
+                            // Also update the legacy imageUrl field for backward compatibility
                             form.setValue('imageUrl', imageUrl, {
                               shouldDirty: true,
                               shouldTouch: true,
                               shouldValidate: true
                             });
+                            
+                            // Update component state
+                            setMediaItems(updatedMediaItems);
                             
                             // Force a small delay before updating preview state
                             setTimeout(() => {
@@ -794,7 +1024,9 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                               setImagePreview(imageUrl);
                               
                               // Log confirmation
-                              console.log('ContentPostForm: Media successfully attached, form value is now:', form.getValues('imageUrl'));
+                              console.log('ContentPostForm: Media successfully attached');
+                              console.log('Media items are now:', updatedMediaItems);
+                              console.log('Form value is now:', form.getValues('imageUrl'));
                             }, 50);
                           }}
                         />

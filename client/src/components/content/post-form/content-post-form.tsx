@@ -8,6 +8,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SocialMediaPreview } from "./social-media-preview";
+import { PlatformPreview } from "./platform-preview";
+import { EmojiPicker } from "@/components/ui/emoji-picker";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -17,13 +19,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ImageIcon, Loader2 } from "lucide-react";
+import { ImageIcon, Loader2, MessageSquare, Hash, Smile, AtSign } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TimePicker } from "@/components/ui/time-picker";
 import { Badge } from "@/components/ui/badge";
 import { MediaSelector } from "@/components/media/media-selector";
 import { FileUploader } from "@/components/media/file-uploader";
+import { SiFacebook, SiInstagram, SiGoogle } from "react-icons/si";
 
 // Define validation schema for new content
 const contentPostSchema = z.object({

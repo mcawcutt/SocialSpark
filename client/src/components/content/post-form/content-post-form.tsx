@@ -983,6 +983,7 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                       <div className="flex items-center gap-2">
                         {/* New FileUploader component */}
                         <FileUploader 
+                          multiple={true} // Enable multiple file selection
                           onFileUploaded={(fileUrl, fileType) => {
                             console.log('FileUploader: Upload complete, URL:', fileUrl, 'Type:', fileType);
                             
@@ -990,14 +991,14 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                             const newMediaItem = {
                               url: fileUrl,
                               type: fileType?.startsWith('image/') ? 'image' as const : 'video' as const,
-                              isMain: true // New uploads are always marked as main
+                              isMain: mediaItems.length === 0 // Only mark as main if it's the first item
                             };
                             
                             // Get current media items
                             const currentMediaItems = [...mediaItems];
                             
-                            // If we're adding a new main item, unmark existing items as main
-                            if (currentMediaItems.length > 0) {
+                            // If we're adding a main item and we already have items, unmark existing items as main
+                            if (newMediaItem.isMain && currentMediaItems.length > 0) {
                               currentMediaItems.forEach(item => item.isMain = false);
                             }
                             
@@ -1013,15 +1014,17 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                             
                             setMediaItems(updatedItems);
                             
-                            // Still set legacy imageUrl for backward compatibility
-                            form.setValue('imageUrl', fileUrl, {
-                              shouldDirty: true,
-                              shouldTouch: true,
-                              shouldValidate: true
-                            });
-                            
-                            // Update preview to show the new image
-                            setImagePreview(fileUrl);
+                            // Still set legacy imageUrl for backward compatibility (using the main image)
+                            if (newMediaItem.isMain) {
+                              form.setValue('imageUrl', fileUrl, {
+                                shouldDirty: true,
+                                shouldTouch: true,
+                                shouldValidate: true
+                              });
+                              
+                              // Update preview to show the new image
+                              setImagePreview(fileUrl);
+                            }
                             
                             // Clear selected file
                             setSelectedFile(null);

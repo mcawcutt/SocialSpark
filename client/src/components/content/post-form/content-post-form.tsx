@@ -282,221 +282,175 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
       };
 
       // Add additional metadata including partner distribution and media items
-      const postWithMetadata = {
-        ...contentPost,
-        metadata: {
-          tags: data.tags?.split(",").map(tag => tag.trim()),
-          category: data.category,
-          // Store all media items in metadata
-          mediaItems: data.mediaItems,
-          // Add partner distribution data for non-evergreen posts
-          ...((!data.isEvergreen) ? {
-            partnerDistribution: data.partnerDistribution,
-            partnerTags: data.partnerTags
-          } : {})
-        }
+      const metadata: any = {
+        // Convert tags from comma-separated string to array
+        tags: data.tags ? data.tags.split(',').map(tag => tag.trim()) : [],
+        category: data.category,
+        partnerDistribution: data.partnerDistribution,
+        partnerTags: data.partnerTags || [],
+        mediaItems: data.mediaItems || []
       };
 
-      const res = await apiRequest("POST", "/api/content-posts", postWithMetadata);
-      return await res.json();
+      contentPost.metadata = metadata;
+
+      if (user) {
+        // Only include the API endpoint if we have a user (i.e. not in demo mode)
+        const endpoint = data.isEvergreen 
+          ? "/api/content-posts/evergreen" 
+          : "/api/content-posts";
+          
+        const response = await apiRequest('POST', endpoint, contentPost);
+        return await response.json();
+      } else {
+        // Demo mode
+        // Just return the post with a fake ID for demo purposes
+        return {
+          ...contentPost,
+          id: Math.floor(Math.random() * 1000),
+          createdAt: new Date()
+        };
+      }
     },
     onSuccess: () => {
+      onClose();
+      form.reset();
+      
       toast({
-        title: "Content created",
-        description: `Your ${isEvergreen ? "evergreen" : ""} content has been created successfully.`,
+        title: "Success",
+        description: isEvergreen 
+          ? "Evergreen content created successfully" 
+          : "Content post created successfully",
       });
-      // Invalidate relevant queries
+      
+      // Invalidate the relevant queries to refresh the UI
       if (isEvergreen) {
         queryClient.invalidateQueries({ queryKey: ["/api/content-posts/evergreen", user?.id] });
       } else {
         queryClient.invalidateQueries({ queryKey: ["/api/content-posts"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/content-posts/calendar"] });
       }
-      resetForm();
-      onClose();
     },
-    onError: (error: Error) => {
+    onError: (error) => {
+      console.error('Error creating post:', error);
       toast({
-        title: "Error creating content",
-        description: error.message,
+        title: "Error",
+        description: "Failed to create content post. Please try again.",
         variant: "destructive",
       });
-    },
+    }
   });
 
-  // Update content post mutation
+  // Update existing content post mutation
   const updatePostMutation = useMutation({
     mutationFn: async (data: ContentPostFormValues) => {
       if (!initialData || !initialData.id) {
-        throw new Error("Missing post ID for update");
+        throw new Error("Cannot update post without an ID");
       }
-
-      // Determine main image URL (for backward compatibility)
-      // If we have media items, use the first one marked as main or the first one
+      
+      // Similar to create logic but for updating
       let mainImageUrl = data.imageUrl || "";
       
       if (data.mediaItems && data.mediaItems.length > 0) {
         const mainItem = data.mediaItems.find(item => item.isMain) || data.mediaItems[0];
         mainImageUrl = mainItem.url;
       }
-
-      // Prepare the data for the API
+      
       const contentPost: Partial<ContentPost> = {
+        id: initialData.id,
         title: data.title,
         description: data.description,
-        imageUrl: mainImageUrl, // Set primary image for backward compatibility
+        imageUrl: mainImageUrl,
         platforms: data.platforms,
         scheduledDate: data.scheduledDate,
         status: data.scheduledDate ? "scheduled" : "draft",
-        isEvergreen: data.isEvergreen,
-        metadata: {
-          tags: data.tags?.split(",").map(tag => tag.trim()),
-          category: data.category,
-          // Store all media items in metadata
-          mediaItems: data.mediaItems,
-          // Add partner distribution data for non-evergreen posts
-          ...((!data.isEvergreen) ? {
-            partnerDistribution: data.partnerDistribution,
-            partnerTags: data.partnerTags
-          } : {})
-        }
+        isEvergreen: data.isEvergreen
       };
-
-      const res = await apiRequest("PATCH", `/api/content-posts/${initialData.id}`, contentPost);
-      return await res.json();
+      
+      // Add metadata
+      const metadata: any = {
+        tags: data.tags ? data.tags.split(',').map(tag => tag.trim()) : [],
+        category: data.category,
+        partnerDistribution: data.partnerDistribution,
+        partnerTags: data.partnerTags || [],
+        mediaItems: data.mediaItems || []
+      };
+      
+      contentPost.metadata = metadata;
+      
+      if (user) {
+        const endpoint = data.isEvergreen 
+          ? `/api/content-posts/evergreen/${initialData.id}`
+          : `/api/content-posts/${initialData.id}`;
+          
+        const response = await apiRequest('PATCH', endpoint, contentPost);
+        return await response.json();
+      } else {
+        // Demo mode fallback
+        return {
+          ...contentPost,
+          updatedAt: new Date()
+        };
+      }
     },
     onSuccess: () => {
+      onClose();
+      form.reset();
+      
       toast({
-        title: "Content updated",
-        description: "Your content has been updated successfully.",
+        title: "Success",
+        description: "Content post updated successfully",
       });
-      // Invalidate relevant queries
+      
+      // Invalidate queries
       if (isEvergreen) {
         queryClient.invalidateQueries({ queryKey: ["/api/content-posts/evergreen", user?.id] });
       } else {
         queryClient.invalidateQueries({ queryKey: ["/api/content-posts"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/content-posts/calendar"] });
       }
-      resetForm();
-      onClose();
     },
-    onError: (error: Error) => {
+    onError: (error) => {
+      console.error('Error updating post:', error);
       toast({
-        title: "Error updating content",
-        description: error.message,
+        title: "Error",
+        description: "Failed to update content post. Please try again.",
         variant: "destructive",
       });
-    },
+    }
   });
 
-  // This function is no longer used - the upload is handled directly in handleFileChange
-  // But we'll keep it as a reference or potential future use
-  const uploadImage = async (file: File): Promise<string | null> => {
-    console.log('⚠️ uploadImage should not be called directly anymore');
-    return null;
-  };
-
-  // Media validation based on platform requirements
-  const validateMediaFile = (file: File, platforms: string[]): { valid: boolean; error?: string } => {
-    // Convert file size to MB for easier comparison
-    const fileSizeMB = file.size / 1024 / 1024;
+  // Utility function to validate media files against platforms
+  const validateMediaFile = (file: File, platforms: string[]) => {
+    // Instagram requirements
+    const isImageFile = file.type.startsWith('image/');
+    const isVideoFile = file.type.startsWith('video/');
     
-    // Check if Facebook or Instagram are selected platforms
-    const needsFacebookValidation = platforms.includes('facebook');
-    const needsInstagramValidation = platforms.includes('instagram');
-    
-    // Common file type validation
-    const isImage = file.type.startsWith('image/');
-    const isVideo = file.type.startsWith('video/');
-    
-    if (!isImage && !isVideo) {
-      return { 
-        valid: false, 
-        error: "Only image and video files are supported."
+    if (!isImageFile && !isVideoFile) {
+      return {
+        valid: false,
+        error: "File must be an image or video"
       };
     }
     
-    // Facebook requirements
-    if (needsFacebookValidation) {
-      // Images: JPG, PNG (up to 8MB)
-      // Videos: MP4, MOV (up to 4GB, 240min)
-      if (isImage) {
-        const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-        if (!validImageTypes.includes(file.type)) {
-          return { 
-            valid: false, 
-            error: "Facebook requires JPG or PNG images." 
-          };
-        }
-        
-        if (fileSizeMB > 8) {
-          return { 
-            valid: false, 
-            error: "Facebook images must be under 8MB." 
-          };
-        }
+    if (platforms.includes('instagram')) {
+      // Instagram has specific requirements
+      const fileSizeMB = file.size / (1024 * 1024);
+      if (isImageFile && fileSizeMB > 8) {
+        return {
+          valid: false,
+          error: "Instagram images must be under 8MB"
+        };
       }
-      
-      if (isVideo) {
-        const validVideoTypes = ['video/mp4', 'video/quicktime']; // quicktime = .mov
-        if (!validVideoTypes.includes(file.type)) {
-          return { 
-            valid: false, 
-            error: "Facebook requires MP4 or MOV video formats." 
-          };
-        }
-        
-        if (fileSizeMB > 4000) { // 4GB max
-          return { 
-            valid: false, 
-            error: "Facebook videos must be under 4GB." 
-          };
-        }
-      }
-    }
-    
-    // Instagram requirements
-    if (needsInstagramValidation) {
-      // Images: JPG, PNG (aspect ratio between 4:5 and 1.91:1, up to 30MB)
-      // Videos: MP4 (up to 100MB, 60sec)
-      if (isImage) {
-        const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-        if (!validImageTypes.includes(file.type)) {
-          return { 
-            valid: false, 
-            error: "Instagram requires JPG or PNG images." 
-          };
-        }
-        
-        if (fileSizeMB > 30) {
-          return { 
-            valid: false, 
-            error: "Instagram images must be under 30MB." 
-          };
-        }
-      }
-      
-      if (isVideo) {
-        if (file.type !== 'video/mp4') {
-          return { 
-            valid: false, 
-            error: "Instagram only supports MP4 video format." 
-          };
-        }
-        
-        if (fileSizeMB > 100) {
-          return { 
-            valid: false, 
-            error: "Instagram videos must be under 100MB." 
-          };
-        }
+      if (isVideoFile && fileSizeMB > 100) {
+        return {
+          valid: false,
+          error: "Instagram videos must be under 100MB"
+        };
       }
     }
     
     return { valid: true };
   };
 
-  // Completely refactored handleFileChange with explicit value setting
+  // File upload handler
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
     
@@ -634,8 +588,6 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
     }
   };
 
-  // Removed AI content generation functionality
-
   // Enhanced form submission handler
   const onSubmit = async (data: ContentPostFormValues) => {
     console.log('Form submitting with data:', data);
@@ -698,29 +650,24 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
       return [];
     }
     
+    // Handle distribution methods
     if (selectedDistributionMethod === "all") {
       console.log('Distribution method is "all", returning all partners');
       return partners;
     }
     
-    console.log('Calculating targeted partners for tags:', selectedPartnerTags);
-    console.log('Available partners for matching:', partners.length);
+    // If byTag, filter by selected tags
+    console.log('Distribution method is "byTag", filtering by tags:', selectedPartnerTags);
     
-    // Log all partners and their tags for debugging
-    partners.forEach(partner => {
-      console.log(`DEBUG - Partner ${partner.name} metadata:`, partner.metadata);
-    });
-    
-    // If distribution method is by tag, find all partners that have any of the selected tags
     const filteredPartners = partners.filter(partner => {
+      // Safety check for metadata
       if (!partner.metadata || typeof partner.metadata !== 'object') {
-        console.log(`Partner ${partner.name} has no metadata object`);
+        console.log(`Partner ${partner.name} has no metadata`);
         return false;
       }
       
-      // Type assertion to access metadata properties safely
+      // Type assertion to access tags property safely
       const metadata = partner.metadata as { tags?: string[] };
-      
       if (!metadata.tags) {
         console.log(`Partner ${partner.name} has metadata but no tags property`);
         return false;
@@ -764,7 +711,7 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
         }
       }}
     >
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {initialData ? "Edit Content" : isEvergreen ? "Add New Evergreen Content" : "Create New Post"}
@@ -778,696 +725,644 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Title</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Enter a title for this content" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Content</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      {...field} 
-                      placeholder="Write the post content here..." 
-                      className="min-h-[120px]"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Platform Quick Selector */}
+            <div className="mb-4 flex flex-wrap items-center justify-center gap-2">
               <FormField
                 control={form.control}
-                name="imageUrl"
+                name="platforms"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Media</FormLabel>
-                    <div className="space-y-3">
-                      {/* Display media grid for multiple items */}
-                      {mediaItems.length > 0 && (
-                        <div className="space-y-2">
-                          <div className="text-sm font-medium">Media Files ({mediaItems.length})</div>
-                          <div className="grid grid-cols-2 gap-2">
-                            {mediaItems.map((item, index) => (
-                              <div 
-                                key={index} 
-                                className={`relative w-full h-28 rounded-md overflow-hidden border ${item.isMain ? 'ring-2 ring-primary' : ''}`}
-                              >
-                                {item.type === 'video' || 
-                                 (item.url && (item.url.endsWith('.mp4') || item.url.endsWith('.webm') || item.url.endsWith('.mov'))) ? (
-                                  <video 
-                                    src={item.url} 
-                                    className="w-full h-full object-cover"
-                                    controls
-                                  />
-                                ) : (
-                                  <img 
-                                    src={item.url} 
-                                    alt={`Media ${index + 1}`} 
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      console.error('Error loading image preview', index);
-                                      // Try fallback paths
-                                      const imgElement = e.currentTarget;
-                                      const currentSrc = imgElement.src;
-                                      
-                                      if (currentSrc.includes('/uploads/')) {
-                                        const fileName = currentSrc.split('/').pop();
-                                        imgElement.src = `/attached_assets/${fileName}`;
-                                      } else if (currentSrc.includes('/attached_assets/')) {
-                                        const fileName = currentSrc.split('/').pop();
-                                        imgElement.src = `/uploads/${fileName}`;
-                                      } else if (!currentSrc.startsWith('/')) {
-                                        imgElement.src = `/${currentSrc}`;
-                                      } else {
-                                        imgElement.src = '/uploads/demo-logo.png';
-                                      }
-                                    }}
-                                  />
-                                )}
-                                
-                                {/* Media item actions */}
-                                <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 flex items-center justify-center gap-1 transition-opacity">
-                                  {/* Set as main image button */}
-                                  <Button
-                                    type="button"
-                                    variant={item.isMain ? "default" : "secondary"}
-                                    size="sm"
-                                    onClick={() => {
-                                      // Update all items to be not main
-                                      const updatedItems = mediaItems.map(mi => ({
-                                        ...mi,
-                                        isMain: mi === item // Set only this item as main
-                                      }));
-                                      
-                                      form.setValue('mediaItems', updatedItems, {
-                                        shouldDirty: true,
-                                        shouldTouch: true
-                                      });
-                                      
-                                      // Update the legacy imageUrl field for backward compatibility
-                                      form.setValue('imageUrl', item.url, {
-                                        shouldDirty: true,
-                                        shouldTouch: true
-                                      });
-                                      
-                                      setMediaItems(updatedItems);
-                                      setImagePreview(item.url);
-                                    }}
-                                  >
-                                    {item.isMain ? "Main" : "Make Main"}
-                                  </Button>
-                                  
-                                  {/* Remove button */}
-                                  <Button
-                                    type="button"
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={() => {
-                                      // Remove this item
-                                      const updatedItems = mediaItems.filter((_, i) => i !== index);
-                                      
-                                      // If we removed the main item and have other items, set the first one as main
-                                      if (item.isMain && updatedItems.length > 0) {
-                                        updatedItems[0].isMain = true;
-                                        // Update the legacy field
-                                        form.setValue('imageUrl', updatedItems[0].url, {
-                                          shouldDirty: true,
-                                          shouldTouch: true
-                                        });
-                                        setImagePreview(updatedItems[0].url);
-                                      } else if (updatedItems.length === 0) {
-                                        // If no items left, clear the preview
-                                        form.setValue('imageUrl', '', {
-                                          shouldDirty: true,
-                                          shouldTouch: true
-                                        });
-                                        setImagePreview(null);
-                                      }
-                                      
-                                      form.setValue('mediaItems', updatedItems, {
-                                        shouldDirty: true,
-                                        shouldTouch: true
-                                      });
-                                      setMediaItems(updatedItems);
-                                    }}
-                                  >
-                                    Remove
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Legacy display for compatibility */}
-                      {imagePreview && mediaItems.length === 0 && (
-                        <div className="relative w-full h-32 rounded-md overflow-hidden border">
-                          {selectedFile?.type.startsWith('video/') || 
-                           (imagePreview && (imagePreview.endsWith('.mp4') || imagePreview.endsWith('.webm') || imagePreview.endsWith('.mov'))) ? (
-                            <video 
-                              src={imagePreview} 
-                              className="w-full h-full object-cover"
-                              controls
-                            />
-                          ) : (
-                            <img 
-                              src={imagePreview} 
-                              alt="Preview" 
-                              className="w-full h-full object-cover"
-                              onLoad={() => console.log('Image loaded successfully:', imagePreview)}
-                              onError={(e) => {
-                                console.error('Error loading image preview from:', imagePreview);
-                                // Try fallback paths
-                                const imgElement = e.currentTarget;
-                                const currentSrc = imgElement.src;
-                                
-                                if (currentSrc.includes('/uploads/')) {
-                                  console.log('Trying alternate path with /attached_assets/');
-                                  const fileName = currentSrc.split('/').pop();
-                                  imgElement.src = `/attached_assets/${fileName}`;
-                                } else if (currentSrc.includes('/attached_assets/')) {
-                                  console.log('Trying alternate path with /uploads/');
-                                  const fileName = currentSrc.split('/').pop();
-                                  imgElement.src = `/uploads/${fileName}`;
-                                } else if (!currentSrc.startsWith('/')) {
-                                  console.log('Adding leading slash to path');
-                                  imgElement.src = `/${currentSrc}`;
-                                } else {
-                                  // Final fallback
-                                  console.log('Using fallback image');
-                                  imgElement.src = '/uploads/demo-logo.png';
-                                }
-                              }}
-                            />
-                          )}
-                        </div>
-                      )}
-                      <input
-                        type="hidden"
-                        {...field}
-                      />
-                      <div className="flex items-center gap-2">
-                        {/* New FileUploader component */}
-                        <FileUploader 
-                          multiple={true} // Enable multiple file selection
-                          onFileUploaded={(fileUrl, fileType) => {
-                            console.log('FileUploader: Upload complete, URL:', fileUrl, 'Type:', fileType);
-                            
-                            // Create new media item
-                            const newMediaItem = {
-                              url: fileUrl,
-                              type: fileType?.startsWith('image/') ? 'image' as const : 'video' as const,
-                              isMain: mediaItems.length === 0 // Only mark as main if it's the first item
-                            };
-                            
-                            // Get current media items
-                            const currentMediaItems = [...mediaItems];
-                            
-                            // If we're adding a main item and we already have items, unmark existing items as main
-                            if (newMediaItem.isMain && currentMediaItems.length > 0) {
-                              currentMediaItems.forEach(item => item.isMain = false);
-                            }
-                            
-                            // Add the new item
-                            const updatedItems = [...currentMediaItems, newMediaItem];
-                            
-                            // Update mediaItems in form and state
-                            form.setValue('mediaItems', updatedItems, {
-                              shouldDirty: true,
-                              shouldTouch: true,
-                              shouldValidate: true
-                            });
-                            
-                            setMediaItems(updatedItems);
-                            
-                            // Still set legacy imageUrl for backward compatibility (using the main image)
-                            if (newMediaItem.isMain) {
-                              form.setValue('imageUrl', fileUrl, {
-                                shouldDirty: true,
-                                shouldTouch: true,
-                                shouldValidate: true
-                              });
-                              
-                              // Update preview to show the new image
-                              setImagePreview(fileUrl);
-                            }
-                            
-                            // Clear selected file
-                            setSelectedFile(null);
-                          }}
-                        />
-                        
-                        <MediaSelector 
-                          onSelect={(mediaItem) => {
-                            console.log('ContentPostForm: Media selected from library:', mediaItem.name);
-                            console.log('ContentPostForm: Media URL:', mediaItem.fileUrl);
-                            
-                            // Force the URL to be a string and correctly formatted
-                            const imageUrl = String(mediaItem.fileUrl || '');
-                            console.log('ContentPostForm: Formatted URL to use:', imageUrl);
-                            
-                            // Create new media item object
-                            const newMediaItem = {
-                              url: imageUrl,
-                              type: mediaItem.fileType?.startsWith('image/') ? 'image' as const : 'video' as const,
-                              isMain: true // Mark as main by default
-                            };
-                            
-                            // Get current media items
-                            const currentMediaItems = form.getValues('mediaItems') || [];
-                            
-                            // If we're adding a new main item, unmark existing items as main
-                            if (currentMediaItems.length > 0) {
-                              currentMediaItems.forEach(item => item.isMain = false);
-                            }
-                            
-                            // Add the new item to the array
-                            const updatedMediaItems = [...currentMediaItems, newMediaItem];
-                            
-                            // Update the mediaItems field in the form
-                            form.setValue('mediaItems', updatedMediaItems, {
-                              shouldDirty: true,
-                              shouldTouch: true,
-                              shouldValidate: true
-                            });
-                            
-                            // Also update the legacy imageUrl field for backward compatibility
-                            form.setValue('imageUrl', imageUrl, {
-                              shouldDirty: true,
-                              shouldTouch: true,
-                              shouldValidate: true
-                            });
-                            
-                            // Update component state
-                            setMediaItems(updatedMediaItems);
-                            
-                            // Force a small delay before updating preview state
-                            setTimeout(() => {
-                              // Then update the preview state
-                              setImagePreview(imageUrl);
-                              
-                              // Log confirmation
-                              console.log('ContentPostForm: Media successfully attached');
-                              console.log('Media items are now:', updatedMediaItems);
-                              console.log('Form value is now:', form.getValues('imageUrl'));
-                            }, 50);
-                          }}
-                        />
-                        
-                        {/* Only show clear button if we have media items or a preview */}
-                        {(mediaItems.length > 0 || imagePreview) && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              console.log('Clearing all media...');
-                              // Clear everything related to media
-                              setImagePreview(null);
-                              setSelectedFile(null);
-                              setMediaItems([]);
-                              
-                              // Clear form values
-                              form.setValue('imageUrl', '', {
-                                shouldDirty: true,
-                                shouldTouch: true,
-                                shouldValidate: true
-                              });
-                              
-                              form.setValue('mediaItems', [], {
-                                shouldDirty: true,
-                                shouldTouch: true,
-                                shouldValidate: true
-                              });
-                            }}
-                          >
-                            Clear All
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={field.value.includes("facebook") ? "default" : "outline"}
+                      className={`flex items-center gap-2 ${field.value.includes("facebook") ? "bg-blue-600 hover:bg-blue-700" : ""}`}
+                      onClick={() => {
+                        const newValue = field.value.includes("facebook")
+                          ? field.value.filter(p => p !== "facebook")
+                          : [...field.value, "facebook"];
+                        field.onChange(newValue.length ? newValue : ["facebook"]); // Ensure at least one platform is selected
+                      }}
                     >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a category" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
+                      <SiFacebook className="h-4 w-4" />
+                      <span>Facebook</span>
+                    </Button>
+                    
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={field.value.includes("instagram") ? "default" : "outline"}
+                      className={`flex items-center gap-2 ${field.value.includes("instagram") ? "bg-pink-600 hover:bg-pink-700" : ""}`}
+                      onClick={() => {
+                        const newValue = field.value.includes("instagram")
+                          ? field.value.filter(p => p !== "instagram")
+                          : [...field.value, "instagram"];
+                        field.onChange(newValue.length ? newValue : ["instagram"]); // Ensure at least one platform is selected
+                      }}
+                    >
+                      <SiInstagram className="h-4 w-4" />
+                      <span>Instagram</span>
+                    </Button>
+                    
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={field.value.includes("google") ? "default" : "outline"}
+                      className={`flex items-center gap-2 ${field.value.includes("google") ? "bg-red-600 hover:bg-red-700" : ""}`}
+                      onClick={() => {
+                        const newValue = field.value.includes("google")
+                          ? field.value.filter(p => p !== "google")
+                          : [...field.value, "google"];
+                        field.onChange(newValue.length ? newValue : ["google"]); // Ensure at least one platform is selected
+                      }}
+                    >
+                      <SiGoogle className="h-4 w-4" />
+                      <span>Google</span>
+                    </Button>
+                  </div>
                 )}
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="tags"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tags (comma separated)</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="product, sale, tip, etc." />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Split into two columns for editor and preview */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left column: Editor */}
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Title</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Enter a title for this content" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="platforms"
-              render={() => (
-                <FormItem>
-                  <div className="mb-2">
-                    <FormLabel>Platforms</FormLabel>
-                  </div>
-                  <div className="flex gap-4">
-                    <FormField
-                      control={form.control}
-                      name="platforms"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value?.includes("facebook")}
-                              onCheckedChange={(checked) => {
-                                const updatedPlatforms = checked 
-                                  ? [...field.value, "facebook"] 
-                                  : field.value.filter(platform => platform !== "facebook");
-                                field.onChange(updatedPlatforms);
-                              }}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">Facebook</FormLabel>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="platforms"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value?.includes("instagram")}
-                              onCheckedChange={(checked) => {
-                                const updatedPlatforms = checked 
-                                  ? [...field.value, "instagram"] 
-                                  : field.value.filter(platform => platform !== "instagram");
-                                field.onChange(updatedPlatforms);
-                              }}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">Instagram</FormLabel>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="platforms"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value?.includes("google")}
-                              onCheckedChange={(checked) => {
-                                const updatedPlatforms = checked 
-                                  ? [...field.value, "google"] 
-                                  : field.value.filter(platform => platform !== "google");
-                                field.onChange(updatedPlatforms);
-                              }}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">Google Business</FormLabel>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {!isEvergreen && (
-              <>
-                <div className="flex flex-col space-y-4">
-                  <h3 className="font-medium">Schedule Post (optional)</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="scheduledDate"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Date</FormLabel>
-                          <DatePicker
-                            date={field.value}
-                            setDate={(date) => {
-                              if (date) {
-                                // Preserve the current time when changing the date
-                                const currentDate = field.value || new Date();
-                                date.setHours(currentDate.getHours());
-                                date.setMinutes(currentDate.getMinutes());
-                                field.onChange(date);
-                                setSelectedDate(date);
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center justify-between">
+                        <span>Content</span>
+                        <div className="flex items-center text-xs text-muted-foreground">
+                          {field.value.length} characters
+                        </div>
+                      </FormLabel>
+                      <div className="relative">
+                        <FormControl>
+                          <Textarea 
+                            {...field} 
+                            placeholder="Write the post content here..." 
+                            className="min-h-[200px] pr-10" 
+                          />
+                        </FormControl>
+                        <div className="absolute bottom-2 right-2 flex items-center gap-1">
+                          <EmojiPicker 
+                            onEmojiSelect={(emoji) => {
+                              const textarea = document.querySelector('textarea[name="description"]') as HTMLTextAreaElement;
+                              if (textarea) {
+                                const start = textarea.selectionStart;
+                                const end = textarea.selectionEnd;
+                                const newValue = field.value.substring(0, start) + emoji + field.value.substring(end);
+                                field.onChange(newValue);
+                                
+                                // Set cursor position after the inserted emoji
+                                setTimeout(() => {
+                                  textarea.focus();
+                                  textarea.selectionStart = start + emoji.length;
+                                  textarea.selectionEnd = start + emoji.length;
+                                }, 10);
                               } else {
-                                field.onChange(undefined);
-                                setSelectedDate(undefined);
+                                field.onChange(field.value + emoji);
                               }
                             }}
                           />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="scheduledDate"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Time</FormLabel>
-                          <TimePicker
-                            time={field.value}
-                            setTime={(time) => {
-                              if (time) {
-                                // Preserve the current date when changing just the time
-                                if (field.value) {
-                                  const newDate = new Date(field.value);
-                                  newDate.setHours(time.getHours());
-                                  newDate.setMinutes(time.getMinutes());
-                                  field.onChange(newDate);
-                                } else {
-                                  field.onChange(time);
-                                }
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8"
+                            type="button"
+                            onClick={() => {
+                              const textarea = document.querySelector('textarea[name="description"]') as HTMLTextAreaElement;
+                              if (textarea) {
+                                const start = textarea.selectionStart;
+                                const end = textarea.selectionEnd;
+                                const newValue = field.value.substring(0, start) + '#' + field.value.substring(end);
+                                field.onChange(newValue);
+                                
+                                // Set cursor position after the inserted character
+                                setTimeout(() => {
+                                  textarea.focus();
+                                  textarea.selectionStart = start + 1;
+                                  textarea.selectionEnd = start + 1;
+                                }, 10);
                               } else {
-                                field.onChange(undefined);
-                              }
-                            }}
-                          />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-                
-                {/* Partner Distribution Selection */}
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Partner Distribution</h3>
-                  <FormField
-                    control={form.control}
-                    name="partnerDistribution"
-                    render={({ field }) => (
-                      <div className="space-y-4">
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <input
-                              type="radio"
-                              checked={field.value === "all"}
-                              onChange={() => field.onChange("all")}
-                              className="h-4 w-4 text-primary border-muted-foreground" 
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">
-                            All Retail Partners
-                          </FormLabel>
-                        </FormItem>
-                        
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <input
-                              type="radio"
-                              checked={field.value === "byTag"}
-                              onChange={() => field.onChange("byTag")}
-                              className="h-4 w-4 text-primary border-muted-foreground"
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">
-                            Target Partners by Tag
-                          </FormLabel>
-                        </FormItem>
-                      </div>
-                    )}
-                  />
-                  
-                  {form.watch("partnerDistribution") === "byTag" && (
-                    <FormField
-                      control={form.control}
-                      name="partnerTags"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Partner Tags</FormLabel>
-                          <Select
-                            onValueChange={(value) => {
-                              const currentTags = field.value || [];
-                              if (!currentTags.includes(value)) {
-                                field.onChange([...currentTags, value]);
+                                field.onChange(field.value + '#');
                               }
                             }}
                           >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select partner tags" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {availableTags.length > 0 ? (
-                                availableTags.map((tag) => (
-                                  <SelectItem key={tag} value={tag}>
-                                    {tag}
-                                  </SelectItem>
-                                ))
-                              ) : (
-                                <SelectItem value="no-tags" disabled>
-                                  No partner tags available
-                                </SelectItem>
-                              )}
-                            </SelectContent>
-                          </Select>
-                          
-                          {/* Display selected tags */}
-                          {field.value && field.value.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {field.value.map((tag) => (
-                                <Badge key={tag} className="flex items-center gap-1">
-                                  {tag}
-                                  <button
-                                    type="button" 
-                                    onClick={() => {
-                                      const newTags = field.value ? field.value.filter((t) => t !== tag) : [];
-                                      field.onChange(newTags);
-                                    }}
-                                    className="w-4 h-4 rounded-full inline-flex items-center justify-center text-xs"
-                                  >
-                                    ×
-                                  </button>
-                                </Badge>
+                            <Hash className="h-5 w-5" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8"
+                            type="button"
+                            onClick={() => {
+                              const textarea = document.querySelector('textarea[name="description"]') as HTMLTextAreaElement;
+                              if (textarea) {
+                                const start = textarea.selectionStart;
+                                const end = textarea.selectionEnd;
+                                const newValue = field.value.substring(0, start) + '@' + field.value.substring(end);
+                                field.onChange(newValue);
+                                
+                                // Set cursor position after the inserted character
+                                setTimeout(() => {
+                                  textarea.focus();
+                                  textarea.selectionStart = start + 1;
+                                  textarea.selectionEnd = start + 1;
+                                }, 10);
+                              } else {
+                                field.onChange(field.value + '@');
+                              }
+                            }}
+                          >
+                            <AtSign className="h-5 w-5" />
+                          </Button>
+                        </div>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="imageUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Media</FormLabel>
+                      <div className="space-y-3">
+                        {/* Display media grid for multiple items */}
+                        {mediaItems.length > 0 && (
+                          <div className="space-y-2">
+                            <div className="text-sm font-medium">Media Files ({mediaItems.length})</div>
+                            <div className="grid grid-cols-2 gap-2">
+                              {mediaItems.map((item, index) => (
+                                <div 
+                                  key={index} 
+                                  className={`relative w-full h-28 rounded-md overflow-hidden border ${item.isMain ? 'ring-2 ring-primary' : ''}`}
+                                >
+                                  {item.type === 'video' || 
+                                   (item.url && (item.url.endsWith('.mp4') || item.url.endsWith('.webm') || item.url.endsWith('.mov'))) ? (
+                                    <video 
+                                      src={item.url} 
+                                      className="w-full h-full object-cover"
+                                      controls
+                                    />
+                                  ) : (
+                                    <img 
+                                      src={item.url} 
+                                      alt={`Media ${index + 1}`} 
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        console.error('Error loading image preview', index);
+                                        // Try fallback paths
+                                        const imgElement = e.currentTarget;
+                                        const currentSrc = imgElement.src;
+                                        
+                                        if (currentSrc.includes('/uploads/')) {
+                                          const fileName = currentSrc.split('/').pop();
+                                          imgElement.src = `/attached_assets/${fileName}`;
+                                        } else if (currentSrc.includes('/attached_assets/')) {
+                                          const fileName = currentSrc.split('/').pop();
+                                          imgElement.src = `/uploads/${fileName}`;
+                                        } else if (!currentSrc.startsWith('/')) {
+                                          imgElement.src = `/${currentSrc}`;
+                                        } else {
+                                          imgElement.src = '/uploads/demo-logo.png';
+                                        }
+                                      }}
+                                    />
+                                  )}
+                                  
+                                  {/* Media item actions */}
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 flex items-center justify-center gap-1 transition-opacity">
+                                    {/* Set as main image button */}
+                                    <Button
+                                      type="button"
+                                      variant={item.isMain ? "default" : "secondary"}
+                                      size="sm"
+                                      onClick={() => {
+                                        // Update all items to be not main
+                                        const updatedItems = mediaItems.map(mi => ({
+                                          ...mi,
+                                          isMain: mi === item // Set only this item as main
+                                        }));
+                                        
+                                        form.setValue('mediaItems', updatedItems, {
+                                          shouldDirty: true,
+                                          shouldTouch: true
+                                        });
+                                        
+                                        // Update the legacy imageUrl field for backward compatibility
+                                        form.setValue('imageUrl', item.url, {
+                                          shouldDirty: true,
+                                          shouldTouch: true
+                                        });
+                                        
+                                        setMediaItems(updatedItems);
+                                        setImagePreview(item.url);
+                                      }}
+                                    >
+                                      {item.isMain ? "Main" : "Make Main"}
+                                    </Button>
+                                    
+                                    {/* Remove button */}
+                                    <Button
+                                      type="button"
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() => {
+                                        // Remove this item
+                                        const updatedItems = mediaItems.filter((_, i) => i !== index);
+                                        
+                                        // If we removed the main item and have other items, set the first one as main
+                                        if (item.isMain && updatedItems.length > 0) {
+                                          updatedItems[0].isMain = true;
+                                          // Update the legacy field
+                                          form.setValue('imageUrl', updatedItems[0].url, {
+                                            shouldDirty: true,
+                                            shouldTouch: true
+                                          });
+                                          setImagePreview(updatedItems[0].url);
+                                        } else if (updatedItems.length === 0) {
+                                          // If no items left, clear the preview
+                                          form.setValue('imageUrl', '', {
+                                            shouldDirty: true,
+                                            shouldTouch: true
+                                          });
+                                          setImagePreview(null);
+                                        }
+                                        
+                                        form.setValue('mediaItems', updatedItems, {
+                                          shouldDirty: true,
+                                          shouldTouch: true
+                                        });
+                                        setMediaItems(updatedItems);
+                                      }}
+                                    >
+                                      Remove
+                                    </Button>
+                                  </div>
+                                </div>
                               ))}
                             </div>
-                          )}
-                          <FormMessage />
+                          </div>
+                        )}
+                        
+                        {/* Legacy display for compatibility */}
+                        {imagePreview && mediaItems.length === 0 && (
+                          <div className="relative w-full h-32 rounded-md overflow-hidden border">
+                            {selectedFile?.type.startsWith('video/') || 
+                             (imagePreview && (imagePreview.endsWith('.mp4') || imagePreview.endsWith('.webm') || imagePreview.endsWith('.mov'))) ? (
+                              <video 
+                                src={imagePreview} 
+                                className="w-full h-full object-cover"
+                                controls
+                              />
+                            ) : (
+                              <img 
+                                src={imagePreview} 
+                                alt="Preview" 
+                                className="w-full h-full object-cover"
+                                onLoad={() => console.log('Image loaded successfully:', imagePreview)}
+                                onError={(e) => {
+                                  console.error('Error loading image preview from:', imagePreview);
+                                  // Try fallback paths
+                                  const imgElement = e.currentTarget;
+                                  const currentSrc = imgElement.src;
+                                  
+                                  if (currentSrc.includes('/uploads/')) {
+                                    console.log('Trying alternate path with /attached_assets/');
+                                    const fileName = currentSrc.split('/').pop();
+                                    imgElement.src = `/attached_assets/${fileName}`;
+                                  } else if (currentSrc.includes('/attached_assets/')) {
+                                    console.log('Trying alternate path with /uploads/');
+                                    const fileName = currentSrc.split('/').pop();
+                                    imgElement.src = `/uploads/${fileName}`;
+                                  } else if (!currentSrc.startsWith('/')) {
+                                    console.log('Adding leading slash to path');
+                                    imgElement.src = `/${currentSrc}`;
+                                  } else {
+                                    // Final fallback
+                                    console.log('Using fallback image');
+                                    imgElement.src = '/uploads/demo-logo.png';
+                                  }
+                                }}
+                              />
+                            )}
+                          </div>
+                        )}
+                        
+                        <input
+                          type="hidden"
+                          {...field}
+                        />
+                        <div className="flex items-center gap-2">
+                          {/* New FileUploader component */}
+                          <FileUploader 
+                            multiple={true} // Enable multiple file selection
+                            onFileUploaded={(fileUrl, fileType) => {
+                              console.log('FileUploader: Upload complete, URL:', fileUrl, 'Type:', fileType);
+                              
+                              // Create new media item
+                              const newMediaItem = {
+                                url: fileUrl,
+                                type: fileType?.startsWith('image/') ? 'image' as const : 'video' as const,
+                                isMain: mediaItems.length === 0 // Only mark as main if it's the first item
+                              };
+                              
+                              // Get current media items
+                              const currentMediaItems = [...mediaItems];
+                              
+                              // If we're adding a main item and we already have items, unmark existing items as main
+                              if (newMediaItem.isMain && currentMediaItems.length > 0) {
+                                currentMediaItems.forEach(item => item.isMain = false);
+                              }
+                              
+                              // Add the new item
+                              const updatedItems = [...currentMediaItems, newMediaItem];
+                              
+                              // Update mediaItems in form and state
+                              form.setValue('mediaItems', updatedItems, {
+                                shouldDirty: true,
+                                shouldTouch: true,
+                                shouldValidate: true
+                              });
+                              
+                              setMediaItems(updatedItems);
+                              
+                              // Still set legacy imageUrl for backward compatibility (using the main image)
+                              if (newMediaItem.isMain) {
+                                form.setValue('imageUrl', fileUrl, {
+                                  shouldDirty: true,
+                                  shouldTouch: true,
+                                  shouldValidate: true
+                                });
+                                
+                                // Update preview to show the new image
+                                setImagePreview(fileUrl);
+                              }
+                              
+                              // Clear selected file
+                              setSelectedFile(null);
+                            }}
+                          />
                           
-                          {/* Display partners that will receive this post */}
-                          {selectedDistributionMethod === "byTag" && selectedPartnerTags.length > 0 && (
-                            <div className="mt-4 border rounded-md p-3 bg-muted/30">
-                              <h4 className="text-sm font-medium mb-2">Partners receiving this content:</h4>
-                              {targetedPartners.length > 0 ? (
-                                <div className="space-y-1">
-                                  {targetedPartners.map(partner => (
-                                    <div key={partner.id} className="text-sm flex items-center gap-2">
-                                      <div className="w-2 h-2 rounded-full bg-primary"></div>
-                                      {partner.name}
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <p className="text-sm text-muted-foreground">No partners match the selected tags.</p>
-                              )}
-                            </div>
+                          <MediaSelector 
+                            onSelect={(mediaItem) => {
+                              console.log('ContentPostForm: Media selected from library:', mediaItem.name);
+                              console.log('ContentPostForm: Media URL:', mediaItem.fileUrl);
+                              
+                              // Force the URL to be a string and correctly formatted
+                              const imageUrl = String(mediaItem.fileUrl || '');
+                              console.log('ContentPostForm: Formatted URL to use:', imageUrl);
+                              
+                              // Create new media item object
+                              const newMediaItem = {
+                                url: imageUrl,
+                                type: mediaItem.fileType?.startsWith('image/') ? 'image' as const : 'video' as const,
+                                isMain: true // Mark as main by default
+                              };
+                              
+                              // Get current media items
+                              const currentMediaItems = form.getValues('mediaItems') || [];
+                              
+                              // If we're adding a new main item, unmark existing items as main
+                              if (currentMediaItems.length > 0) {
+                                currentMediaItems.forEach(item => item.isMain = false);
+                              }
+                              
+                              // Add the new item to the array
+                              const updatedMediaItems = [...currentMediaItems, newMediaItem];
+                              
+                              // Update the mediaItems field in the form
+                              form.setValue('mediaItems', updatedMediaItems, {
+                                shouldDirty: true,
+                                shouldTouch: true,
+                                shouldValidate: true
+                              });
+                              
+                              // Also update the legacy imageUrl field for backward compatibility
+                              form.setValue('imageUrl', imageUrl, {
+                                shouldDirty: true,
+                                shouldTouch: true,
+                                shouldValidate: true
+                              });
+                              
+                              // Update component state
+                              setMediaItems(updatedMediaItems);
+                              
+                              // Force a small delay before updating preview state
+                              setTimeout(() => {
+                                // Then update the preview state
+                                setImagePreview(imageUrl);
+                                
+                                // Log confirmation
+                                console.log('ContentPostForm: Media successfully attached');
+                                console.log('Media items are now:', updatedMediaItems);
+                                console.log('Form value is now:', form.getValues('imageUrl'));
+                              }, 50);
+                            }}
+                          />
+                          
+                          {/* Only show clear button if we have media items or a preview */}
+                          {(mediaItems.length > 0 || imagePreview) && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                console.log('Clearing all media...');
+                                // Clear everything related to media
+                                setImagePreview(null);
+                                setSelectedFile(null);
+                                setMediaItems([]);
+                                
+                                // Clear form values
+                                form.setValue('imageUrl', '', {
+                                  shouldDirty: true,
+                                  shouldTouch: true,
+                                  shouldValidate: true
+                                });
+                                
+                                form.setValue('mediaItems', [], {
+                                  shouldDirty: true,
+                                  shouldTouch: true,
+                                  shouldValidate: true
+                                });
+                              }}
+                            >
+                              Clear All
+                            </Button>
                           )}
-                        </FormItem>
-                      )}
-                    />
+                        </div>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
                   )}
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {categories.map((category) => (
+                              <SelectItem key={category} value={category}>
+                                {category}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="tags"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tags (comma separated)</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="product, sale, tip, etc." />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-              </>
-            )}
 
-            {!initialData && (
-              <FormField
-                control={form.control}
-                name="isEvergreen"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        Save as evergreen content
-                      </FormLabel>
-                      <p className="text-sm text-muted-foreground">
-                        This content will be available in your evergreen library for future use
-                      </p>
+                {!isEvergreen && (
+                  <>
+                    <div className="flex flex-col space-y-4">
+                      <h3 className="font-medium">Schedule Post (optional)</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="scheduledDate"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                              <FormLabel>Date</FormLabel>
+                              <DatePicker
+                                date={field.value}
+                                setDate={(date) => {
+                                  if (date) {
+                                    // Preserve the current time when changing the date
+                                    const currentDate = field.value || new Date();
+                                    date.setHours(currentDate.getHours());
+                                    date.setMinutes(currentDate.getMinutes());
+                                    field.onChange(date);
+                                    setSelectedDate(date);
+                                  } else {
+                                    field.onChange(undefined);
+                                    setSelectedDate(undefined);
+                                  }
+                                }}
+                              />
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="scheduledDate"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                              <FormLabel>Time</FormLabel>
+                              <TimePicker
+                                time={field.value}
+                                setTime={(time) => {
+                                  if (time) {
+                                    // Preserve the current date when changing just the time
+                                    if (field.value) {
+                                      const newDate = new Date(field.value);
+                                      newDate.setHours(time.getHours());
+                                      newDate.setMinutes(time.getMinutes());
+                                      field.onChange(newDate);
+                                    } else {
+                                      field.onChange(time);
+                                    }
+                                  } else {
+                                    field.onChange(undefined);
+                                  }
+                                }}
+                              />
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
                     </div>
-                  </FormItem>
+                  </>
                 )}
-              />
-            )}
+              </div>
 
-            <Separator className="my-4" />
-            
-            {/* Social Media Preview Section */}
-            <div className="mb-6">
-              <SocialMediaPreview
-                imageUrl={imagePreview || watchedImageUrl}
-                title={watchedTitle}
-                description={watchedDescription}
-                scheduledDate={watchedScheduledDate}
-                platforms={watchedPlatforms}
-              />
+              {/* Right column: Preview */}
+              <div className="space-y-4 border rounded-lg p-4">
+                <h3 className="font-medium text-center mb-2">Post Preview</h3>
+                <PlatformPreview
+                  title={watchedTitle}
+                  description={watchedDescription}
+                  imageUrl={watchedImageUrl}
+                  mediaItems={mediaItems}
+                  platforms={watchedPlatforms}
+                  brandName={user?.username}
+                />
+              </div>
             </div>
+
+            <FormField
+              control={form.control}
+              name="isEvergreen"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Evergreen Content</FormLabel>
+                    <FormDescription>
+                      Evergreen content can be reused in future automated posts.
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
+            />
 
             <DialogFooter>
               <Button 

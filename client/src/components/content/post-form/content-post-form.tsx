@@ -952,12 +952,13 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                                   )}
                                   
                                   {/* Media item actions */}
-                                  <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 flex items-center justify-center gap-1 transition-opacity">
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 flex flex-col items-center justify-center gap-2 transition-opacity p-1">
                                     {/* Set as main image button */}
                                     <Button
                                       type="button"
                                       variant={item.isMain ? "default" : "secondary"}
-                                      size="sm"
+                                      size="xs"
+                                      className="text-xs w-full"
                                       onClick={() => {
                                         // Update all items to be not main
                                         const updatedItems = mediaItems.map(mi => ({
@@ -987,7 +988,8 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                                     <Button
                                       type="button"
                                       variant="destructive"
-                                      size="sm"
+                                      size="xs"
+                                      className="text-xs w-full"
                                       onClick={() => {
                                         // Remove this item
                                         const updatedItems = mediaItems.filter((_, i) => i !== index);

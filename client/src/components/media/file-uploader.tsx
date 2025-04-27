@@ -46,26 +46,35 @@ export function FileUploader({
             continue; // Skip this file but continue with others
           }
           
+          // Create a new FormData for each file
           const formData = new FormData();
           formData.append('media', file);
           
-          // Send to the API
-          const response = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData,
-          });
+          console.log(`Uploading file ${i+1}/${files.length}: ${file.name}`);
           
-          if (!response.ok) {
-            throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+          try {
+            // Send to the API
+            const response = await fetch('/api/upload', {
+              method: 'POST',
+              body: formData,
+            });
+            
+            if (!response.ok) {
+              console.error(`Failed to upload ${file.name}: ${response.status} ${response.statusText}`);
+              continue; // Skip this file but continue with others
+            }
+            
+            const data = await response.json();
+            const fileUrl = data.file.url;
+            
+            console.log(`Upload ${i+1}/${files.length} successful, file URL:`, fileUrl);
+            
+            // Call the callback with each file individually
+            onFileUploaded(fileUrl, file.type);
+          } catch (uploadError) {
+            console.error(`Error uploading ${file.name}:`, uploadError);
+            // Continue with other files if one fails
           }
-          
-          const data = await response.json();
-          const fileUrl = data.file.url;
-          
-          console.log(`Upload ${i+1}/${files.length} successful, file URL:`, fileUrl);
-          
-          // Call the callback with each file
-          onFileUploaded(fileUrl, file.type);
         }
         
         toast({

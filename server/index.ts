@@ -60,11 +60,29 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
+
+  // Function to find an available port
+  const findAvailablePort = async (startPort: number): Promise<number> => {
+    return new Promise((resolve) => {
+      const server = require('http').createServer();
+      server.listen(startPort, '0.0.0.0', () => {
+        const port = server.address().port;
+        server.close(() => resolve(port));
+      });
+      server.on('error', () => {
+        resolve(findAvailablePort(startPort + 1));
+      });
+    });
+  };
+
+  // Start server with port fallback
+  findAvailablePort(port).then((availablePort) => {
+    server.listen({
+      port: availablePort,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, () => {
+      log(`serving on port ${availablePort}`);
+    });
   });
 })();

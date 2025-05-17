@@ -690,6 +690,7 @@ export default function MediaLibrary() {
       onDragOver={handlePageDragOver}
       onDrop={handlePageDrop}
     >
+      <div className="space-y-6">
       {isDragging && (
         <div className="fixed inset-0 bg-primary/20 flex items-center justify-center z-50 pointer-events-none">
           <div className="bg-background p-8 rounded-lg shadow-lg text-center">
@@ -705,8 +706,8 @@ export default function MediaLibrary() {
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Media Library</h1>
+      <div className="flex items-center justify-between mb-6 px-4">
+        <h1 className="text-3xl font-bold tracking-tight">Media Library</h1>
         <div className="flex gap-2">
           {/* Quick Upload Button */}
           <Dialog open={isQuickUploadOpen} onOpenChange={setIsQuickUploadOpen}>

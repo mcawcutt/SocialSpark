@@ -684,7 +684,7 @@ export default function MediaLibrary() {
 
   return (
     <div 
-      className="container py-8" 
+      className="" 
       onDragEnter={handlePageDragEnter}
       onDragLeave={handlePageDragLeave}
       onDragOver={handlePageDragOver}

@@ -44,6 +44,13 @@ export function PlatformPreview({
   // Use a default logo if none is provided
   const [logoUrl, setLogoUrl] = useState(brandLogo || '/uploads/demo-logo.png');
   
+  // Update logoUrl when brandLogo prop changes
+  useEffect(() => {
+    if (brandLogo) {
+      setLogoUrl(brandLogo);
+    }
+  }, [brandLogo]);
+  
   // Handle logo errors by falling back to the default
   const handleLogoError = () => {
     console.log('Logo failed to load, falling back to default');
@@ -294,7 +301,7 @@ export function PlatformPreview({
             <div className="p-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Avatar className="h-8 w-8 ring-1 ring-primary/20">
-                  <AvatarImage src={brandLogo} alt={brandName} />
+                  <AvatarImage src={logoUrl} alt={brandName} onError={handleLogoError} />
                   <AvatarFallback>{brandName.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="font-semibold text-sm">{brandName.toLowerCase().replace(/\s+/g, '_')}</div>

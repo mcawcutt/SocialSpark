@@ -32,7 +32,7 @@ export function PlatformPreview({
   mediaItems = [],
   platforms,
   brandName = 'Your Brand',
-  brandLogo = '/uploads/demo-logo.png',
+  brandLogo,
   scheduledDate
 }: PlatformPreviewProps) {
   const [selectedPlatform, setSelectedPlatform] = useState(platforms[0] || 'facebook');
@@ -40,6 +40,15 @@ export function PlatformPreview({
   // State for media carousel
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const mediaScrollRef = useRef<HTMLDivElement>(null);
+  
+  // Use a default logo if none is provided
+  const [logoUrl, setLogoUrl] = useState(brandLogo || '/uploads/demo-logo.png');
+  
+  // Handle logo errors by falling back to the default
+  const handleLogoError = () => {
+    console.log('Logo failed to load, falling back to default');
+    setLogoUrl('/uploads/demo-logo.png');
+  };
   
   // Create an array of all media items, ensuring the main one is first if it exists
   const allMediaItems = (() => {

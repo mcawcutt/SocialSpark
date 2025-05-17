@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import * as http from 'http';
 
 const app = express();
 app.use(express.json());
@@ -60,29 +61,8 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = 5000;
-
-  // Function to find an available port
-  const findAvailablePort = async (startPort: number): Promise<number> => {
-    return new Promise((resolve) => {
-      const server = require('http').createServer();
-      server.listen(startPort, '0.0.0.0', () => {
-        const port = server.address().port;
-        server.close(() => resolve(port));
-      });
-      server.on('error', () => {
-        resolve(findAvailablePort(startPort + 1));
-      });
-    });
-  };
-
-  // Start server with port fallback
-  findAvailablePort(port).then((availablePort) => {
-    server.listen({
-      port: availablePort,
-      host: "0.0.0.0",
-      reusePort: true,
-    }, () => {
-      log(`serving on port ${availablePort}`);
-    });
+  
+  server.listen(port, "0.0.0.0", () => {
+    log(`serving on port ${port}`);
   });
 })();

@@ -53,10 +53,12 @@ export function MainLayout({ children }: MainLayoutProps) {
     <div className="flex h-screen">
       <Sidebar />
       <main className="flex-1 overflow-auto">
-        <div className="container mx-auto py-6">
+        <div className="mx-auto">
           {isImpersonating && <ImpersonationBanner />}
           <DemoBanner />
-          {children}
+          <div className="px-6">
+            {children}
+          </div>
         </div>
       </main>
     </div>

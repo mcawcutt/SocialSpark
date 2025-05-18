@@ -15,6 +15,7 @@ import { setupAdminRoutes } from "./api/admin";
 import { socialRouter } from "./api/social";
 import facebookAuthRoutes from "./api/facebook-auth";
 import { setupFacebookOAuthRoutes } from "./api/facebook-oauth";
+import facebookCallbackRouter from "./api/facebook-callback";
 import { createBackup } from "./backup";
 import { z } from "zod";
 import {
@@ -136,6 +137,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up new Facebook OAuth routes
   setupFacebookOAuthRoutes(app);
+  
+  // Set up Facebook callback handler
+  app.use('/api/facebook-auth', facebookCallbackRouter);
 
   // Debug endpoint to check if server is running correctly
   // Backup endpoint

@@ -24,6 +24,7 @@ import AdminAnalytics from "@/pages/admin/analytics";
 import TestUpload from "@/pages/test-upload";
 import PartnerConnectSuccess from "@/pages/partner-connect-success";
 import FacebookIntegration from "@/pages/facebook-integration";
+import FacebookConnect from "@/pages/facebook-connect";
 import { AuthProvider } from "@/hooks/use-auth";
 import { MainLayout } from "@/components/layout/main-layout";
 
@@ -63,6 +64,7 @@ function Router() {
             
             {/* Facebook Integration */}
             <Route path="/facebook-integration" component={FacebookIntegration} />
+            <Route path="/facebook-connect" component={FacebookConnect} />
             
             {/* Not found route */}
             <Route component={NotFound} />

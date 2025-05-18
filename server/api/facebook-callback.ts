@@ -54,66 +54,17 @@ router.get('/', async (req, res) => {
     const userResponse = await axios.get(`https://graph.facebook.com/me?access_token=${access_token}&fields=id,name,email`);
     console.log('[Facebook OAuth] User info:', userResponse.data);
     
-    // Display success page with the data (for development purposes only)
-    res.send(`
-      <html>
-        <head>
-          <title>Facebook OAuth Success</title>
-          <style>
-            body {
-              font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-              max-width: 800px;
-              margin: 0 auto;
-              padding: 20px;
-              line-height: 1.5;
-            }
-            pre {
-              background: #f5f5f5;
-              padding: 15px;
-              border-radius: 5px;
-              overflow-x: auto;
-            }
-            .success-icon {
-              color: #4CAF50;
-              font-size: 48px;
-              margin-bottom: 20px;
-            }
-            h1 {
-              color: #333;
-            }
-            .container {
-              text-align: center;
-              margin-top: 50px;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="success-icon">✓</div>
-            <h1>Facebook Authentication Successful</h1>
-            <p>You have successfully authenticated with Facebook.</p>
-            <p>Check the server console for the access token and page list.</p>
-          </div>
-          
-          <h2>User Info:</h2>
-          <pre>${JSON.stringify(userResponse.data, null, 2)}</pre>
-          
-          <h2>Pages:</h2>
-          <pre>${JSON.stringify(pagesResponse.data, null, 2)}</pre>
-          
-          <div style="margin-top: 20px; padding: 15px; background-color: #e8f5e9; border-radius: 5px;">
-            <h3 style="margin-top: 0;">Next Steps</h3>
-            <p>
-              You can now use the page access tokens to post to your Facebook Pages.
-              These tokens are stored in the console logs for now.
-            </p>
-            <a href="/facebook-connect" style="display: inline-block; padding: 10px 15px; background-color: #1877F2; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px;">
-              Return to Facebook Connect
-            </a>
-          </div>
-        </body>
-      </html>
-    `);
+    // Store relevant user and pages data in session for potential future use
+    if (req.session) {
+      req.session.facebookAuth = {
+        profile: userResponse.data,
+        accessToken: access_token,
+        pages: pagesResponse.data.data
+      };
+    }
+    
+    // On success, redirect to the success page
+    res.redirect('/facebook-success');
     
   } catch (error) {
     console.error('[Facebook OAuth] Error in Facebook callback:', error);
@@ -124,55 +75,8 @@ router.get('/', async (req, res) => {
       console.error('[Facebook OAuth] Error response status:', error.response.status);
     }
     
-    res.status(500).send(`
-      <html>
-        <head>
-          <title>Facebook OAuth Error</title>
-          <style>
-            body {
-              font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-              max-width: 800px;
-              margin: 0 auto;
-              padding: 20px;
-              line-height: 1.5;
-            }
-            pre {
-              background: #f5f5f5;
-              padding: 15px;
-              border-radius: 5px;
-              overflow-x: auto;
-            }
-            .error-icon {
-              color: #f44336;
-              font-size: 48px;
-              margin-bottom: 20px;
-            }
-            h1 {
-              color: #333;
-            }
-            .container {
-              text-align: center;
-              margin-top: 50px;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="error-icon">✗</div>
-            <h1>Error Processing Facebook Authentication</h1>
-            <p>There was an error processing your Facebook authentication.</p>
-            <p>Please check the server logs for more details.</p>
-          </div>
-          
-          <h2>Error:</h2>
-          <pre>${error.message}</pre>
-          
-          <a href="/facebook-connect" style="display: block; text-align: center; margin-top: 20px; padding: 10px 15px; background-color: #f5f5f5; color: #333; text-decoration: none; border-radius: 5px; width: 200px; margin-left: auto; margin-right: auto;">
-            Try Again
-          </a>
-        </body>
-      </html>
-    `);
+    // Redirect to error page instead of inline HTML
+    res.redirect('/facebook-error');
   }
 });
 

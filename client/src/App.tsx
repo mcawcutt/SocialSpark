@@ -25,6 +25,8 @@ import TestUpload from "@/pages/test-upload";
 import PartnerConnectSuccess from "@/pages/partner-connect-success";
 import FacebookIntegration from "@/pages/facebook-integration";
 import FacebookConnect from "@/pages/facebook-connect";
+import FacebookSuccess from "@/pages/facebook-success";
+import FacebookError from "@/pages/facebook-error";
 import { AuthProvider } from "@/hooks/use-auth";
 import { MainLayout } from "@/components/layout/main-layout";
 
@@ -35,6 +37,8 @@ function Router() {
       <Route path="/auth" component={AuthPage} />
       <Route path="/accept-invite" component={AcceptInvite} />
       <Route path="/partner-connect-success" component={PartnerConnectSuccess} />
+      <Route path="/facebook-success" component={FacebookSuccess} />
+      <Route path="/facebook-error" component={FacebookError} />
 
       {/* Routes with MainLayout */}
       <Route>

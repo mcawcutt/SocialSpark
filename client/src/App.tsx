@@ -27,6 +27,7 @@ import FacebookIntegration from "@/pages/facebook-integration";
 import FacebookConnect from "@/pages/facebook-connect";
 import FacebookSuccess from "@/pages/facebook-success";
 import FacebookError from "@/pages/facebook-error";
+import FacebookErrorDetails from "@/pages/facebook-error-details";
 import { AuthProvider } from "@/hooks/use-auth";
 import { MainLayout } from "@/components/layout/main-layout";
 
@@ -39,6 +40,7 @@ function Router() {
       <Route path="/partner-connect-success" component={PartnerConnectSuccess} />
       <Route path="/facebook-success" component={FacebookSuccess} />
       <Route path="/facebook-error" component={FacebookError} />
+      <Route path="/facebook-error-details" component={FacebookErrorDetails} />
 
       {/* Routes with MainLayout */}
       <Route>

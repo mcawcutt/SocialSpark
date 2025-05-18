@@ -2,9 +2,14 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
 import { useLocation } from "wouter";
 
-export default function FacebookError() {
-  const [, setLocation] = useLocation();
-
+export default function FacebookErrorDetails() {
+  // Get the current location which might include query parameters
+  const [location] = useLocation();
+  
+  // Parse query parameters
+  const params = new URLSearchParams(location.split("?")[1] || "");
+  const message = params.get("message") || "Something went wrong with your Facebook connection.";
+  
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-gradient-to-b from-background to-muted">
       <div className="w-full max-w-md p-8 space-y-6 bg-card rounded-lg shadow-lg">
@@ -16,24 +21,17 @@ export default function FacebookError() {
         
         <h1 className="text-2xl font-bold text-center">Facebook Connection Failed</h1>
         
-        <p className="text-center text-muted-foreground">
-          We couldn't connect to your Facebook account. This could be due to:
-        </p>
-        
-        <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-          <li>Permissions were not granted</li>
-          <li>The connection timed out</li>
-          <li>Facebook service issues</li>
-          <li>The app may not be in "Live" mode</li>
-        </ul>
+        <div className="p-4 border border-red-200 bg-red-50 rounded-md text-red-800">
+          <p>{message}</p>
+        </div>
         
         <div className="flex flex-col space-y-3 pt-4">
-          <Button onClick={() => setLocation("/facebook-connect")} variant="default">
-            Try Again
+          <Button asChild variant="default">
+            <a href="/facebook-connect">Try Again</a>
           </Button>
           
-          <Button variant="outline" onClick={() => setLocation("/")}>
-            Return to Dashboard
+          <Button asChild variant="outline">
+            <a href="/">Return to Dashboard</a>
           </Button>
         </div>
       </div>

@@ -75,8 +75,9 @@ router.get('/', async (req, res) => {
       console.error('[Facebook OAuth] Error response status:', error.response.status);
     }
     
-    // Redirect to error page instead of inline HTML
-    res.redirect('/facebook-error');
+    // Pass the error message in the URL for detailed error page
+    const errorMessage = encodeURIComponent(error.message || 'Facebook authentication failed');
+    res.redirect(`/facebook-error-details?message=${errorMessage}`);
   }
 });
 

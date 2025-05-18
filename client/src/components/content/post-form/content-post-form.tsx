@@ -45,8 +45,8 @@ const contentPostSchema = z.object({
   })).optional().default([]),
   platforms: z.array(z.string()).min(1, { message: "Select at least one platform" }),
   scheduledDate: z.date().optional(),
-  tags: z.string().optional(),
-  category: z.string().min(1, { message: "Category is required" }),
+  // Tags field removed as requested
+  // Category field removed as requested
   isEvergreen: z.boolean().default(false),
   partnerDistribution: z.enum(["all", "byTag"]).default("all"),
   partnerTags: z.array(z.string()).optional()
@@ -1221,19 +1221,7 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Category dropdown removed as requested */}
 
-                  <FormField
-                    control={form.control}
-                    name="tags"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tags (comma separated)</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="product, sale, tip, etc." />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+{/* Tags field removed as requested */}
                 </div>
 
                 {!isEvergreen && (

@@ -1298,6 +1298,217 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
                         />
                       </div>
                     </div>
+
+                    {/* Partner Distribution Options - moved to bottom as requested */}
+                    {partners && partners.length > 0 && (
+                      <div className="mt-6 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-medium">Partner Distribution</h3>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-5 w-5 p-0">
+                                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                                  <span className="sr-only">Partner distribution help</span>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-[250px] p-3">
+                                <p className="text-sm">
+                                  Control which retail partners will receive this content post.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        
+                        <FormField
+                          control={form.control}
+                          name="partnerDistribution"
+                          render={({ field }) => (
+                            <RadioGroup 
+                              value={field.value} 
+                              onValueChange={(value) => {
+                                field.onChange(value);
+                                // Clear partner tags when switching to "all"
+                                if (value === "all") {
+                                  form.setValue("partnerTags", []);
+                                }
+                              }}
+                              className="space-y-3"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="all" id="all-partners" />
+                                <Label htmlFor="all-partners" className="font-normal cursor-pointer">
+                                  All Retail Partners
+                                </Label>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-5 w-5 p-0">
+                                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-[250px] p-3">
+                                      <p className="text-sm">
+                                        Send this post to all your retail partners.
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                              
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="byTag" id="by-tag" />
+                                <Label htmlFor="by-tag" className="font-normal cursor-pointer">
+                                  Target Partners by Tag
+                                </Label>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-5 w-5 p-0">
+                                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-[250px] p-3">
+                                      <p className="text-sm">
+                                        Select specific tags to target only those retail partners that match at least one of the selected tags.
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                            </RadioGroup>
+                          )}
+                        />
+                        
+                        {/* Tag Selection - only shown when byTag is selected */}
+                        {form.watch("partnerDistribution") === "byTag" && (
+                          <div className="mt-4">
+                            <div className="flex items-center gap-2">
+                              <Label className="text-sm">Partner Tags</Label>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-5 w-5 p-0">
+                                      <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                                      <span className="sr-only">Tag selection help</span>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-[250px] p-3">
+                                    <p className="text-sm">
+                                      Select one or more tags to filter partners. Only partners with at least one matching tag will receive the content.
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                            
+                            <FormField
+                              control={form.control}
+                              name="partnerTags"
+                              render={({ field }) => (
+                                <Select
+                                  onValueChange={(value) => {
+                                    const currentTags = field.value || [];
+                                    if (!currentTags.includes(value)) {
+                                      field.onChange([...currentTags, value]);
+                                    }
+                                  }}
+                                >
+                                  <SelectTrigger className="mt-2">
+                                    <SelectValue placeholder="Select tags" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {availableTags.length > 0 ? (
+                                      availableTags.map((tag) => (
+                                        <SelectItem key={tag} value={tag}>
+                                          {tag}
+                                        </SelectItem>
+                                      ))
+                                    ) : (
+                                      <div className="px-2 py-4 text-center">
+                                        <p className="text-sm text-gray-500">No partner tags available</p>
+                                      </div>
+                                    )}
+                                  </SelectContent>
+                                </Select>
+                              )}
+                            />
+                            
+                            {/* Selected tags */}
+                            {form.watch("partnerTags")?.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mt-3">
+                                {form.watch("partnerTags")?.map((tag) => (
+                                  <div key={tag} className="bg-muted rounded-full px-3 py-1 text-xs flex items-center gap-1">
+                                    {tag}
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-4 w-4 p-0 rounded-full hover:bg-background/50"
+                                      onClick={() => {
+                                        const currentTags = form.getValues("partnerTags") || [];
+                                        form.setValue(
+                                          "partnerTags",
+                                          currentTags.filter((t) => t !== tag)
+                                        );
+                                      }}
+                                    >
+                                      <span className="sr-only">Remove</span>
+                                      ×
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            
+                            {/* Display partners that will receive this post */}
+                            {form.watch("partnerTags")?.length > 0 && targetedPartners.length > 0 && (
+                              <div className="mt-4 border rounded-md p-3 bg-muted/30">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <h4 className="text-sm font-medium">Partners receiving this content:</h4>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-5 w-5 p-0">
+                                          <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="max-w-[250px] p-3">
+                                        <p className="text-sm">
+                                          These are the partners that match at least one of your selected tags.
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                </div>
+                                
+                                <div className="max-h-40 overflow-y-auto">
+                                  {targetedPartners.map((partner) => (
+                                    <div key={partner.id} className="py-1.5 border-b border-border/50 last:border-0 flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-6 h-6 bg-muted rounded-full flex items-center justify-center">
+                                          <span className="text-xs font-medium">{partner.name[0]}</span>
+                                        </div>
+                                        <span className="text-sm">{partner.name}</span>
+                                      </div>
+                                      {partner.metadata?.tags && (
+                                        <div className="flex gap-1 items-center">
+                                          {(partner.metadata.tags as string[]).filter(tag => form.watch("partnerTags")?.includes(tag)).map(tag => (
+                                            <Badge key={tag} variant="outline" className="text-xs px-1.5">
+                                              {tag}
+                                            </Badge>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </>
                 )}
               </div>

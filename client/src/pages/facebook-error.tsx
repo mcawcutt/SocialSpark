@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ExternalLink } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function FacebookError() {
@@ -26,6 +26,25 @@ export default function FacebookError() {
           <li>Facebook service issues</li>
           <li>The app may not be in "Live" mode</li>
         </ul>
+        
+        <div className="p-4 border border-amber-200 bg-amber-50 rounded-md">
+          <h3 className="font-semibold text-amber-800 mb-2">App Configuration</h3>
+          <p className="text-amber-800 text-sm">
+            For the Facebook integration to work in production, make sure your domain
+            is added to the Facebook App settings in the "App Domains" section 
+            and that your app is in "Live" mode.
+          </p>
+          <div className="flex items-center mt-2 text-sm">
+            <a 
+              href="https://developers.facebook.com/apps/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 flex items-center"
+            >
+              Facebook Developer Console <ExternalLink className="w-3 h-3 ml-1" />
+            </a>
+          </div>
+        </div>
         
         <div className="flex flex-col space-y-3 pt-4">
           <Button onClick={() => setLocation("/facebook-connect")} variant="default">

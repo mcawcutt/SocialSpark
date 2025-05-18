@@ -8,7 +8,16 @@ export default function FacebookErrorDetails() {
   
   // Parse query parameters
   const params = new URLSearchParams(location.split("?")[1] || "");
-  const message = params.get("message") || "Something went wrong with your Facebook connection.";
+  let message = params.get("message") || "Something went wrong with your Facebook connection.";
+  
+  // Try to clean up common Facebook error messages to make them more user-friendly
+  if (message.includes("invalid_client") || message.includes("App ID")) {
+    message = "The Facebook app configuration is invalid. Please contact support.";
+  } else if (message.includes("access denied") || message.includes("declined")) {
+    message = "You declined to provide the necessary permissions. Please try again and allow all requested permissions.";
+  } else if (message.includes("expired")) {
+    message = "The authentication session expired. Please try again.";
+  }
   
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-gradient-to-b from-background to-muted">

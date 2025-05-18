@@ -226,10 +226,137 @@ router.get('/instagram-accounts', async (req: Request, res: Response) => {
   }
 });
 
-// For testing: Clear Facebook auth session
+// For user authentication: Clear Facebook auth session
 router.post('/logout', (req: Request, res: Response) => {
   delete req.session.facebookAuth;
   res.json({ success: true });
+});
+
+/**
+ * Get Facebook auth status
+ */
+router.get('/status', (req: Request, res: Response) => {
+  const facebookAuth = req.session.facebookAuth;
+  
+  if (!facebookAuth || !facebookAuth.accessToken) {
+    return res.json({ authenticated: false });
+  }
+  
+  res.json({
+    authenticated: true,
+    userId: facebookAuth.userId,
+    userName: facebookAuth.userName
+  });
+});
+
+/**
+ * Generate a direct connection URL for the user (not partner-specific)
+ */
+router.get('/connect-url', async (req: Request, res: Response) => {
+  try {
+    // Get the current host
+    const protocol = req.get('x-forwarded-proto') || req.protocol;
+    const host = req.get('host');
+
+    // Create a redirect URL
+    const redirectUri = `${protocol}://${host}/api/facebook-auth/callback`;
+    
+    // Store this in the session for later verification
+    req.session.facebookRedirectUri = redirectUri;
+    
+    // Define required permissions
+    const permissions = [
+      'pages_show_list',
+      'pages_read_engagement',
+      'pages_manage_posts',
+      'instagram_basic',
+      'pages_manage_metadata'
+    ];
+
+    // Create the OAuth URL
+    const oauthUrl = new URL('https://www.facebook.com/v17.0/dialog/oauth');
+    oauthUrl.searchParams.append('client_id', FACEBOOK_APP_ID);
+    oauthUrl.searchParams.append('redirect_uri', redirectUri);
+    oauthUrl.searchParams.append('state', 'direct_connect'); // Using a special state for direct connection
+    oauthUrl.searchParams.append('scope', permissions.join(','));
+    
+    // Return the OAuth URL
+    res.json({ url: oauthUrl.toString() });
+  } catch (error) {
+    console.error('Error generating Facebook connection URL:', error);
+    res.status(500).json({ error: 'Failed to generate connection URL' });
+  }
+});
+
+/**
+ * Create a post on a Facebook page
+ */
+router.post('/post', async (req: Request, res: Response) => {
+  try {
+    const { pageId, accessToken, message } = req.body;
+    
+    if (!pageId || !accessToken || !message) {
+      return res.status(400).json({ error: 'Missing required parameters' });
+    }
+    
+    let imageUrl = null;
+    
+    // If there's an image file, upload it first
+    if (req.files && req.files.image) {
+      const imageFile = req.files.image;
+      
+      // Create form data for the image upload
+      const formData = new FormData();
+      formData.append('source', imageFile.data, { 
+        filename: imageFile.name,
+        contentType: imageFile.mimetype 
+      });
+      formData.append('access_token', accessToken);
+      
+      // Upload the image to Facebook
+      const uploadResponse = await axios.post(
+        `https://graph.facebook.com/v17.0/${pageId}/photos`,
+        formData,
+        {
+          headers: {
+            ...formData.getHeaders(),
+          },
+        }
+      );
+      
+      // Get the URL of the uploaded image
+      imageUrl = uploadResponse.data.id;
+    }
+    
+    // Create the post
+    const postData: any = {
+      message,
+      access_token: accessToken
+    };
+    
+    if (imageUrl) {
+      // If we have an image, include it in the post
+      postData.attached_media = [{ media_fbid: imageUrl }];
+    }
+    
+    // Create the post on the page
+    const postResponse = await axios.post(
+      `https://graph.facebook.com/v17.0/${pageId}/feed`,
+      postData
+    );
+    
+    res.json({
+      success: true,
+      id: postResponse.data.id,
+      url: `https://facebook.com/${postResponse.data.id}`
+    });
+  } catch (error) {
+    console.error('Error creating Facebook post:', error);
+    res.status(500).json({ 
+      error: 'Failed to create post',
+      details: error.response?.data?.error || error.message
+    });
+  }
 });
 
 export default router;

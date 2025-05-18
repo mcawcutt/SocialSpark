@@ -60,6 +60,9 @@ function Router() {
             {/* Test routes */}
             <Route path="/test-upload" component={TestUpload} />
             
+            {/* Facebook Integration */}
+            <Route path="/facebook-integration" component={FacebookIntegration} />
+            
             {/* Not found route */}
             <Route component={NotFound} />
           </Switch>

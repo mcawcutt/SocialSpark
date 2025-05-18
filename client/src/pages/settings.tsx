@@ -46,6 +46,7 @@ import {
   LinkedinIcon,
   Globe
 } from "lucide-react";
+import { SiFacebook } from "react-icons/si";
 
 // Profile schema
 const profileSchema = z.object({
@@ -890,7 +891,13 @@ export default function Settings() {
                           <p className="text-gray-500 text-sm">Connect your Facebook Business account</p>
                         </div>
                       </div>
-                      <Button>Connect</Button>
+                      <Button 
+                        className="bg-[#1877F2] hover:bg-[#0d6efd] text-white"
+                        onClick={() => window.location.href = "/facebook-connect"}
+                      >
+                        <SiFacebook className="mr-2 h-5 w-5" />
+                        Connect
+                      </Button>
                     </div>
                     
                     <div className="flex items-center justify-between p-4 border rounded-md">

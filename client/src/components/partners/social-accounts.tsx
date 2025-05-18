@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { apiRequest } from "@/lib/queryClient";
 import { SocialAccount } from "@shared/schema";
-import { SocialConnectButton } from "./social-connect-button";
+import { FacebookInviteButton } from "./facebook-invite-button";
 
 interface SocialAccountsProps {
   partnerId: number;
@@ -139,7 +139,7 @@ export function SocialAccounts({ partnerId, partnerName }: SocialAccountsProps) 
                     {getPlatformIcon(account.platform)}
                   </div>
                   <div>
-                    <p className="font-medium">{account.platformUsername}</p>
+                    <p className="font-medium">{account.accountName}</p>
                     <p className="text-sm text-gray-500 capitalize">{account.platform.replace('_', ' ')}</p>
                   </div>
                 </div>
@@ -192,12 +192,9 @@ export function SocialAccounts({ partnerId, partnerName }: SocialAccountsProps) 
         )}
       </CardContent>
       <CardFooter className="flex flex-wrap gap-2">
-        <SocialConnectButton 
-          partnerId={partnerId} 
-          platform="facebook" 
-          onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ['/api/social-accounts', partnerId] });
-          }}
+        <FacebookInviteButton 
+          partnerId={partnerId}
+          partnerName={partnerName}
         />
         <Button variant="outline" disabled>
           <Instagram className="h-4 w-4 mr-2" /> 

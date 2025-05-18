@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "wouter/use-location";
+import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,8 +8,9 @@ import { CheckCircle2, XCircle, Facebook, Instagram } from "lucide-react";
 import { SiFacebook, SiInstagram } from "react-icons/si";
 
 export default function PartnerConnectSuccess() {
-  const params = useSearchParams();
-  const partnerId = params.get('pid');
+  const [location] = useLocation();
+  const searchParams = new URLSearchParams(location.split('?')[1] || '');
+  const partnerId = searchParams.get('pid');
   const [connectionError, setConnectionError] = useState<string | null>(null);
 
   // Get the Facebook pages from the session

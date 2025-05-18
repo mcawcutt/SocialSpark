@@ -33,7 +33,30 @@ export function FacebookInviteButton({
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Generate the invite URL
+  // Direct connection option
+  const connectDirectlyMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/facebook-auth/oauth-url/${partnerId}`);
+      if (!response.ok) {
+        throw new Error('Failed to generate OAuth URL');
+      }
+      const data = await response.json();
+      return data.url;
+    },
+    onSuccess: (url) => {
+      // Redirect directly to Facebook OAuth
+      window.location.href = url;
+    },
+    onError: (error) => {
+      toast({
+        title: "Connection Failed",
+        description: `Could not connect to Facebook: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Generate the invite URL for dialog
   const generateInviteMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch(`/api/facebook-auth/oauth-url/${partnerId}`);
@@ -82,7 +105,12 @@ export function FacebookInviteButton({
     }
   };
 
-  // Open dialog and generate invite URL
+  // Handle direct connect click
+  const handleDirectConnect = () => {
+    connectDirectlyMutation.mutate();
+  };
+
+  // Open dialog and generate invite URL (for sharing with partner)
   const handleOpen = () => {
     setIsDialogOpen(true);
     if (!inviteUrl) {
@@ -95,11 +123,26 @@ export function FacebookInviteButton({
       <Button
         variant={variant}
         size={size}
-        onClick={handleOpen}
+        onClick={handleDirectConnect}
+        disabled={connectDirectlyMutation.isPending}
         className="flex items-center gap-1.5 bg-[#1877F2] hover:bg-[#0d6efd] text-white"
       >
-        <SiFacebook className="h-4 w-4 text-white" />
+        {connectDirectlyMutation.isPending ? (
+          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+        ) : (
+          <SiFacebook className="h-4 w-4 text-white mr-1" />
+        )}
         <span>Connect Facebook & Instagram</span>
+      </Button>
+      
+      <Button 
+        variant="outline"
+        size="sm"
+        onClick={handleOpen}
+        className="ml-2"
+      >
+        <ExternalLink className="h-4 w-4 mr-1" />
+        <span>Share Link</span>
       </Button>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

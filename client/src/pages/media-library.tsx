@@ -522,7 +522,8 @@ export default function MediaLibrary() {
   const getImageDimensions = (url: string, id: number) => {
     if (!url.match(/\.(jpeg|jpg|png|gif)$/i)) return;
     
-    const img = new Image();
+    // Create HTML image element instead of using the Image constructor
+    const img = document.createElement('img');
     img.onload = () => {
       setImageDimensions(prev => ({
         ...prev,
@@ -690,7 +691,7 @@ export default function MediaLibrary() {
       (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
       
     const matchesTags = selectedTags.length === 0 || 
-      (item.tags && selectedTags.every(tag => item.tags.includes(tag)));
+      (item.tags && Array.isArray(item.tags) && selectedTags.every(tag => item.tags.includes(tag)));
       
     return matchesSearch && matchesTags;
   });
@@ -704,7 +705,8 @@ export default function MediaLibrary() {
         }
       });
     }
-  }, [mediaItems, imageDimensions]);
+  // Remove imageDimensions from the dependency array to avoid infinite updates
+  }, [mediaItems]);
 
   return (
     <div className="px-4 py-6 sm:px-6 lg:px-8">
@@ -1030,7 +1032,7 @@ export default function MediaLibrary() {
                       {item.description}
                     </p>
                   )}
-                  {item.tags && item.tags.length > 0 && (
+                  {item.tags && Array.isArray(item.tags) && item.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
                       {item.tags.slice(0, 3).map(tag => (
                         <Badge key={tag} variant="secondary" className="text-xs">

@@ -263,7 +263,7 @@ export default function FacebookIntegration() {
             </RadioGroup>
           </div>
         ) : (
-          <Alert variant="warning" className="mb-4">
+          <Alert className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>No Facebook Pages Found</AlertTitle>
             <AlertDescription>

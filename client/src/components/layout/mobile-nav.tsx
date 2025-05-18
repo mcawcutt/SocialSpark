@@ -200,6 +200,13 @@ export function MobileNav() {
                       active={location === '/evergreen-content'} 
                       onClick={closeMenu}
                     />
+                    <NavItem 
+                      href="/facebook-integration" 
+                      icon={Facebook} 
+                      label="Facebook Integration" 
+                      active={location === '/facebook-integration'} 
+                      onClick={closeMenu}
+                    />
                   </>
                 )}
                 

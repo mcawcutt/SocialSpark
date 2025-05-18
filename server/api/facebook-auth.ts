@@ -303,25 +303,20 @@ router.post('/post', async (req: Request, res: Response) => {
     
     // If there's an image file, upload it first
     if (req.files && req.files.image) {
-      const imageFile = req.files.image;
+      const imageFile = req.files.image as any; // Cast to any to work with express-fileupload
       
-      // Create form data for the image upload
-      const formData = new FormData();
-      formData.append('source', imageFile.data, { 
-        filename: imageFile.name,
-        contentType: imageFile.mimetype 
-      });
+      // Create FormData for the image upload
+      const formData = new URLSearchParams();
+      
+      // Convert buffer to base64 for Facebook API
+      const base64Image = imageFile.data.toString('base64');
+      formData.append('source', `data:${imageFile.mimetype};base64,${base64Image}`);
       formData.append('access_token', accessToken);
       
       // Upload the image to Facebook
       const uploadResponse = await axios.post(
         `https://graph.facebook.com/v17.0/${pageId}/photos`,
-        formData,
-        {
-          headers: {
-            ...formData.getHeaders(),
-          },
-        }
+        formData
       );
       
       // Get the URL of the uploaded image

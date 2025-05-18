@@ -23,6 +23,7 @@ import AdminBrands from "@/pages/admin/brands";
 import AdminAnalytics from "@/pages/admin/analytics";
 import TestUpload from "@/pages/test-upload";
 import PartnerConnectSuccess from "@/pages/partner-connect-success";
+import FacebookIntegration from "@/pages/facebook-integration";
 import { AuthProvider } from "@/hooks/use-auth";
 import { MainLayout } from "@/components/layout/main-layout";
 

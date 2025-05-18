@@ -6,14 +6,15 @@ const router = Router();
 // Facebook App credentials - should be stored in environment variables in production
 const FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID;
 const FACEBOOK_APP_SECRET = process.env.FACEBOOK_APP_SECRET;
-const REDIRECT_URI = 'https://social-spark-mcawcutt.replit.app/api/facebook-auth/callback';
+const REDIRECT_URI = 'https://social-spark-mcawcutt.replit.app/api/facebook-callback';
 
 /**
  * Facebook OAuth callback handler
  * Exchanges the authorization code for an access token
  * Then fetches the list of pages the user manages
  */
-router.get('/callback', async (req, res) => {
+// Change the route to root '/' since we'll mount it properly in routes.ts
+router.get('/', async (req, res) => {
   try {
     const { code } = req.query;
     

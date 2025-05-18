@@ -24,9 +24,11 @@ import { PlusCircle, X } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 
 export function AddPartnerForm() {
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
   const [partner, setPartner] = useState({
     name: "",
     contactEmail: "",
@@ -34,6 +36,7 @@ export function AddPartnerForm() {
     address: "",
     status: "pending",
     metadata: { tags: [] as string[] },
+    brandId: user?.brandId || user?.id || 3 // Use default brandId of 3 (Dulux) if not available
   });
   const [newTag, setNewTag] = useState("");
   const { toast } = useToast();
@@ -118,7 +121,8 @@ export function AddPartnerForm() {
         contactPhone: "",
         address: "",
         status: "pending",
-        metadata: { tags: [] },
+        metadata: { tags: [] as string[] },
+        brandId: user?.brandId || user?.id || 3
       });
       
       // Invalidate the retail partners query to refresh the list

@@ -138,8 +138,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up new Facebook OAuth routes
   setupFacebookOAuthRoutes(app);
   
-  // Set up Facebook callback handler
+  // Register specific Facebook callback route directly to avoid path conflicts 
   app.use('/api/facebook-auth', facebookCallbackRouter);
+  
+  // Test route to verify the server is responding correctly
+  app.get('/test-route', (req, res) => {
+    res.send('Test route works! Server is responding correctly.');
+  });
 
   // Debug endpoint to check if server is running correctly
   // Backup endpoint

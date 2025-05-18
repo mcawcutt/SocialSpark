@@ -13,6 +13,7 @@ import { setupTestInviteRoutes } from "./api/test-invites";
 import { setupAdminRoutes } from "./api/admin";
 // Import social API routes
 import { socialRouter } from "./api/social";
+import facebookAuthRoutes from "./api/facebook-auth";
 import { createBackup } from "./backup";
 import { z } from "zod";
 import {
@@ -128,6 +129,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up social media routes
   // Using the socialRouter directly
   app.use('/api', socialRouter);
+  
+  // Set up Facebook authentication routes
+  app.use('/api/facebook-auth', facebookAuthRoutes);
 
   // Debug endpoint to check if server is running correctly
   // Backup endpoint

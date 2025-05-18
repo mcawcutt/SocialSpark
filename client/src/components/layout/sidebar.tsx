@@ -260,6 +260,13 @@ export function Sidebar() {
                     href="/evergreen-content" 
                     active={location === '/evergreen-content'}
                   />
+                  
+                  <SidebarItem 
+                    icon={<FaFacebook className="text-blue-600" />} 
+                    label="Facebook Integration" 
+                    href="/facebook-integration" 
+                    active={location === '/facebook-integration'}
+                  />
                 </>
               )}
               

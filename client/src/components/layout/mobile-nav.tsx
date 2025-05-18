@@ -19,18 +19,21 @@ import {
   Users,
   UserPlus
 } from "lucide-react";
+import { FaFacebook } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
 interface NavItemProps {
-  href: string;
+  href?: string;
+  to?: string;
   icon: React.ElementType;
   label: string;
   active?: boolean;
   onClick?: () => void;
 }
 
-function NavItem({ href, icon: Icon, label, active, onClick }: NavItemProps) {
+function NavItem({ href, to, icon: Icon, label, active, onClick }: NavItemProps) {
+  if (href) {
   return (
     <Link href={href}>
       <a 
@@ -202,7 +205,7 @@ export function MobileNav() {
                     />
                     <NavItem 
                       href="/facebook-integration" 
-                      icon={Facebook} 
+                      icon={FaFacebook} 
                       label="Facebook Integration" 
                       active={location === '/facebook-integration'} 
                       onClick={closeMenu}

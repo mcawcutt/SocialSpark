@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SiFacebook } from "react-icons/si";
-import { Copy, ExternalLink, Loader2 } from "lucide-react";
+import { Copy, ExternalLink, Loader2, Facebook } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 

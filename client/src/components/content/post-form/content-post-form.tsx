@@ -168,7 +168,7 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
   }, [partners, tagData]);
 
   // Fetch categories (in a real app, this would come from the backend)
-  const categories = ["Tips & Advice", "Promotions", "Seasonal", "Product Highlights", "Industry News"];
+  // Categories removed as requested
 
   // Log when the dialog is opened/closed
   console.log('Dialog is open:', isOpen);
@@ -215,26 +215,7 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
       })(),
       platforms: initialData?.platforms || ["facebook", "instagram"],
       scheduledDate: schedDate,
-      tags: (() => {
-        if (initialData?.metadata && typeof initialData.metadata === 'object') {
-          // Type assertion to access metadata properties safely
-          const metadata = initialData.metadata as { tags?: string[] };
-          if (metadata.tags && Array.isArray(metadata.tags)) {
-            return metadata.tags.join(", ");
-          }
-        }
-        return "";
-      })(),
-      category: (() => {
-        if (initialData?.metadata && typeof initialData.metadata === 'object') {
-          // Type assertion to access metadata properties safely
-          const metadata = initialData.metadata as { category?: string };
-          if (metadata.category && typeof metadata.category === 'string') {
-            return metadata.category;
-          }
-        }
-        return categories[0];
-      })(),
+      // Tags and category fields removed as requested
       isEvergreen: initialData?.isEvergreen || isEvergreen,
       partnerDistribution: (() => {
         if (initialData?.metadata && typeof initialData.metadata === 'object') {
@@ -286,9 +267,7 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
 
       // Add additional metadata including partner distribution and media items
       const metadata: any = {
-        // Convert tags from comma-separated string to array
-        tags: data.tags ? data.tags.split(',').map(tag => tag.trim()) : [],
-        category: data.category,
+        // Tags and category fields removed as requested
         partnerDistribution: data.partnerDistribution,
         partnerTags: data.partnerTags || [],
         mediaItems: data.mediaItems || []
@@ -370,8 +349,7 @@ export function ContentPostForm({ isOpen, onClose, initialData, isEvergreen = fa
       
       // Add metadata
       const metadata: any = {
-        tags: data.tags ? data.tags.split(',').map(tag => tag.trim()) : [],
-        category: data.category,
+        // Tags and category fields removed as requested
         partnerDistribution: data.partnerDistribution,
         partnerTags: data.partnerTags || [],
         mediaItems: data.mediaItems || []

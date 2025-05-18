@@ -1,7 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { MobileNav } from "@/components/layout/mobile-nav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,6 +45,7 @@ const formSchema = z.object({
 
 type MediaUploadFormValues = z.infer<typeof formSchema>;
 
+// File Upload Form Component
 const FileUploadForm = ({ onSuccess, quickUploadMode = false }: { onSuccess: () => void, quickUploadMode?: boolean }) => {
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
@@ -122,7 +122,6 @@ const FileUploadForm = ({ onSuccess, quickUploadMode = false }: { onSuccess: () 
           tags: []
         };
         
-        console.log("Quick upload: Creating media item with data:", mediaItem);
         await createMediaMutation.mutateAsync(mediaItem);
         
         // Force a refetch to update the UI with new media
@@ -216,8 +215,6 @@ const FileUploadForm = ({ onSuccess, quickUploadMode = false }: { onSuccess: () 
         ? "/api/media" 
         : "/api/media?demo=true&brand=dulux";
       
-      console.log(`Creating media item, posting to: ${url}`);
-      
       // Use authenticated URL when possible, otherwise fallback to demo mode
       const res = await fetch(url, {
         method: "POST",
@@ -228,14 +225,12 @@ const FileUploadForm = ({ onSuccess, quickUploadMode = false }: { onSuccess: () 
       });
       
       if (!res.ok) {
-        console.error(`Failed to create media item: ${res.status} ${res.statusText}`);
         throw new Error(`Failed to add media item: ${res.statusText}`);
       }
       
       return await res.json();
     },
     onSuccess: (data) => {
-      console.log("Successfully created media item:", data);
       toast({
         title: "Success",
         description: "Media item added to library",
@@ -247,7 +242,6 @@ const FileUploadForm = ({ onSuccess, quickUploadMode = false }: { onSuccess: () 
       onSuccess();
     },
     onError: (error) => {
-      console.error("Error saving media:", error);
       toast({
         title: "Failed to add media",
         description: error.message,
@@ -427,9 +421,9 @@ const FileUploadForm = ({ onSuccess, quickUploadMode = false }: { onSuccess: () 
                     <FormLabel>Description</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Enter a description (optional)"
+                        placeholder="Add a description for this media"
+                        className="resize-none"
                         {...field}
-                        value={field.value || ""}
                       />
                     </FormControl>
                     <FormMessage />
@@ -437,185 +431,108 @@ const FileUploadForm = ({ onSuccess, quickUploadMode = false }: { onSuccess: () 
                 )}
               />
 
-              <div className="space-y-2">
-                <FormLabel>Tags</FormLabel>
-                <div className="flex gap-2 flex-wrap mb-2">
-                  {form.watch("tags")?.map((tag) => (
-                    <Badge key={tag} className="flex items-center gap-1">
-                      {tag}
-                      <button
+              <FormField
+                control={form.control}
+                name="tags"
+                render={() => (
+                  <FormItem>
+                    <FormLabel>Tags</FormLabel>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {form.getValues("tags")?.map((tag) => (
+                        <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                          {tag}
+                          <X
+                            className="h-3 w-3 cursor-pointer hover:text-destructive"
+                            onClick={() => removeTag(tag)}
+                          />
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Add tags"
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addTag();
+                          }
+                        }}
+                      />
+                      <Button
                         type="button"
-                        onClick={() => removeTag(tag)}
-                        className="text-xs"
+                        variant="outline"
+                        onClick={addTag}
                       >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Add tags"
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        addTag();
-                      }
-                    }}
-                  />
-                  <Button type="button" onClick={addTag} variant="outline">
-                    Add
-                  </Button>
-                </div>
-              </div>
-              
-              <DialogFooter>
-                <Button type="submit" disabled={createMediaMutation.isPending}>
-                  {createMediaMutation.isPending && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  Save to Library
-                </Button>
-              </DialogFooter>
+                        Add
+                      </Button>
+                    </div>
+                    <FormDescription>
+                      Tags help organize and find media items
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </>
           )}
         </div>
+
+        {!quickUploadMode && (
+          <DialogFooter>
+            <Button
+              type="submit"
+              disabled={isUploading || !uploadedFileUrl}
+              className="w-full sm:w-auto"
+            >
+              {createMediaMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Add to Library"
+              )}
+            </Button>
+          </DialogFooter>
+        )}
       </form>
     </Form>
   );
 };
 
+// Main Media Library Page 
 export default function MediaLibrary() {
+  // State for image dimensions
+  const [imageDimensions, setImageDimensions] = useState<Record<number, { width: number; height: number }>>({});
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isQuickUploadOpen, setIsQuickUploadOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<MediaLibraryItem | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: mediaItems, isLoading, refetch } = useQuery<MediaLibraryItem[]>({
-    queryKey: ["/api/media"],
-    queryFn: async () => {
-      // For authenticated users, use their brand data
-      // For unauthenticated users, use Dulux brand data for testing
-      const url = user 
-        ? "/api/media" 
-        : "/api/media?demo=true&brand=dulux";
-      
-      console.log(`Fetching media items from: ${url}`);
-      const res = await fetch(url);
-      
-      if (!res.ok) {
-        console.error(`Failed to fetch media items: ${res.status} ${res.statusText}`);
-        throw new Error("Failed to fetch media items");
-      }
-      
-      // Sort by createdAt date, most recent first
-      const items = await res.json();
-      console.log(`Received ${items.length} media items`);
-      return items.sort((a: MediaLibraryItem, b: MediaLibraryItem) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-    }
-  });
-
-  const deleteMediaMutation = useMutation({
-    mutationFn: async (id: number) => {
-      // Don't use demo=true to ensure proper authentication and brand isolation
-      const res = await fetch(`/api/media/${id}`, {
-        method: "DELETE",
-      });
-      
-      if (!res.ok) {
-        throw new Error("Failed to delete media item");
-      }
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Media item deleted from library",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/media"] });
-    },
-    onError: (error) => {
-      console.error("Error deleting media:", error);
-      toast({
-        title: "Failed to delete media",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-  
-  const updateMediaMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number, data: Partial<MediaLibraryItem> }) => {
-      // Don't use demo=true to ensure proper authentication and brand isolation
-      const res = await fetch(`/api/media/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-      
-      if (!res.ok) {
-        throw new Error("Failed to update media item");
-      }
-      
-      return await res.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Media item updated successfully",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/media"] });
-    },
-    onError: (error) => {
-      console.error("Error updating media:", error);
-      toast({
-        title: "Failed to update media",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Get unique tags from all media items
-  const allTags = Array.from(
-    new Set(
-      mediaItems
-        ?.flatMap((item) => item.tags || [])
-        .filter(Boolean) || []
-    )
-  );
-
-  // Filter media items based on search term and selected tags
-  const filteredMediaItems = mediaItems?.filter((item) => {
-    const matchesSearch =
-      !searchTerm ||
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.description?.toLowerCase() || "").includes(searchTerm.toLowerCase());
-
-    const matchesTags =
-      selectedTags.length === 0 ||
-      selectedTags.every((tag) => item.tags?.includes(tag));
-
-    return matchesSearch && matchesTags;
-  });
-
-  const handleTagFilter = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag)
-        ? prev.filter((t) => t !== tag)
-        : [...prev, tag]
-    );
+  // Function to get image dimensions for masonry layout
+  const getImageDimensions = (url: string, id: number) => {
+    if (!url.match(/\.(jpeg|jpg|png|gif)$/i)) return;
+    
+    const img = new Image();
+    img.onload = () => {
+      setImageDimensions(prev => ({
+        ...prev,
+        [id]: { width: img.width, height: img.height }
+      }));
+    };
+    img.src = url;
   };
-  
-  // Handle drag events for global page
+
+  // Page-level drag handlers for quick upload
   const handlePageDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -625,58 +542,164 @@ export default function MediaLibrary() {
   const handlePageDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(false);
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    
+    // Only set isDragging to false if we've actually left the element
+    // (not just entered a child element)
+    if (x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom) {
+      setIsDragging(false);
+    }
   };
   
   const handlePageDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(true);
   };
   
-  const handlePageDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+  const handlePageDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
     
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      // If user holds Shift key when dropping, do quick upload
-      if (e.shiftKey) {
-        setIsQuickUploadOpen(true);
-      } else {
-        // Otherwise open normal dialog
-        setIsAddDialogOpen(true);
-      }
+    // Check for shift key to enable quick upload
+    if (e.shiftKey && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      setIsQuickUploadOpen(true);
     }
   };
 
-  // State for quick upload mode
-  const [isQuickUploadOpen, setIsQuickUploadOpen] = useState(false);
+  // Query for media items
+  const { data: mediaItems = [], isLoading, refetch } = useQuery<MediaLibraryItem[]>({
+    queryKey: ["/api/media"],
+    queryFn: async () => {
+      // Get correct URL based on auth status
+      const url = user 
+        ? "/api/media" 
+        : "/api/media?demo=true&brand=dulux";
+        
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error("Failed to fetch media items");
+      }
+      return res.json();
+    },
+  });
   
-  // State for edit mode
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedMedia, setSelectedMedia] = useState<MediaLibraryItem | null>(null);
-  
-  // Track image dimensions
-  const [imageDimensions, setImageDimensions] = useState<Record<number, { width: number, height: number }>>({});
-  
-  // Function to get image dimensions
-  const getImageDimensions = (url: string, id: number) => {
-    const img = document.createElement('img');
-    img.onload = () => {
-      setImageDimensions(prev => ({
-        ...prev,
-        [id]: { width: img.naturalWidth, height: img.naturalHeight }
-      }));
-    };
-    img.src = url;
-  };
-  
-  // Fetch dimensions for all images after they load
+  // Transform tags from media items into a flat list of unique tags
   useEffect(() => {
-    if (mediaItems) {
+    const tags = mediaItems.reduce<string[]>((acc, item) => {
+      if (item.tags && Array.isArray(item.tags)) {
+        item.tags.forEach(tag => {
+          if (!acc.includes(tag)) {
+            acc.push(tag);
+          }
+        });
+      }
+      return acc;
+    }, []);
+    
+    setAvailableTags(tags);
+  }, [mediaItems]);
+
+  // Delete media mutation
+  const deleteMediaMutation = useMutation({
+    mutationFn: async (id: number) => {
+      // Get correct URL based on auth status
+      const url = user 
+        ? `/api/media/${id}` 
+        : `/api/media/${id}?demo=true&brand=dulux`;
+        
+      const res = await fetch(url, {
+        method: "DELETE",
+      });
+      
+      if (!res.ok) {
+        throw new Error("Failed to delete media item");
+      }
+      
+      return id;
+    },
+    onSuccess: (id) => {
+      toast({
+        title: "Media deleted",
+        description: "Media item has been removed from library",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/media"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Delete failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update media mutation
+  const updateMediaMutation = useMutation({
+    mutationFn: async (data: { id: number; updates: Partial<MediaLibraryItem> }) => {
+      // Get correct URL based on auth status
+      const url = user 
+        ? `/api/media/${data.id}` 
+        : `/api/media/${data.id}?demo=true&brand=dulux`;
+        
+      const res = await fetch(url, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data.updates),
+      });
+      
+      if (!res.ok) {
+        throw new Error("Failed to update media item");
+      }
+      
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Media updated",
+        description: "Media item has been updated in the library",
+      });
+      setEditingItem(null);
+      setIsEditDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/media"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Calculate aspect ratio for masonry layout
+  const getAspectRatio = (id: number) => {
+    const dimensions = imageDimensions[id];
+    if (!dimensions) return 1; // Default to square
+    return dimensions.width / dimensions.height;
+  };
+
+  // Filter media items by search query and selected tags
+  const filteredMediaItems = mediaItems.filter(item => {
+    const matchesSearch = searchQuery === "" || 
+      (item.name && item.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+    const matchesTags = selectedTags.length === 0 || 
+      (item.tags && selectedTags.every(tag => item.tags.includes(tag)));
+      
+    return matchesSearch && matchesTags;
+  });
+
+  // Load dimensions for all media items
+  useEffect(() => {
+    if (mediaItems.length > 0) {
       mediaItems.forEach(item => {
-        if (item.fileType.startsWith('image/') && !imageDimensions[item.id]) {
+        if (item.fileUrl && !imageDimensions[item.id]) {
           getImageDimensions(item.fileUrl, item.id);
         }
       });
@@ -684,13 +707,7 @@ export default function MediaLibrary() {
   }, [mediaItems, imageDimensions]);
 
   return (
-    <div
-      onDragEnter={handlePageDragEnter}
-      onDragLeave={handlePageDragLeave}
-      onDragOver={handlePageDragOver}
-      onDrop={handlePageDrop}
-    >
-      <div className="space-y-6">
+    <div className="px-4 py-6 sm:px-6 lg:px-8">
       {isDragging && (
         <div className="fixed inset-0 bg-primary/20 flex items-center justify-center z-50 pointer-events-none">
           <div className="bg-background p-8 rounded-lg shadow-lg text-center">
@@ -706,7 +723,7 @@ export default function MediaLibrary() {
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-6 px-4">
+      <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold tracking-tight">Media Library</h1>
         <div className="flex gap-2">
           {/* Quick Upload Button */}
@@ -719,30 +736,31 @@ export default function MediaLibrary() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
-                <DialogTitle>Quick Upload</DialogTitle>
+                <DialogTitle>Quick Upload Media</DialogTitle>
                 <DialogDescription>
-                  Upload files with automatically generated names. Perfect for bulk uploads. 
-                  Names will be based on filenames.
+                  Files will be uploaded and saved automatically with generated names.
                 </DialogDescription>
               </DialogHeader>
-              <FileUploadForm onSuccess={() => setIsQuickUploadOpen(false)} quickUploadMode={true} />
+              <FileUploadForm 
+                onSuccess={() => setIsQuickUploadOpen(false)} 
+                quickUploadMode={true} 
+              />
             </DialogContent>
           </Dialog>
           
-          {/* Regular Upload Button */}
+          {/* Add Media Button */}
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
-                <FolderPlus className="mr-2 h-4 w-4" />
-                Add to Library
+              <Button className="bg-[#e03eb6] hover:bg-[#e03eb6]/90 text-white">
+                <Upload className="mr-2 h-4 w-4" />
+                Add Media
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle>Add to Media Library</DialogTitle>
                 <DialogDescription>
-                  Upload new images or videos to your media library. Multiple files are supported.
-                  All uploaded media will be available for use in your content posts.
+                  Upload files to your media library to use in posts.
                 </DialogDescription>
               </DialogHeader>
               <FileUploadForm onSuccess={() => setIsAddDialogOpen(false)} />
@@ -751,337 +769,293 @@ export default function MediaLibrary() {
         </div>
       </div>
 
-      <div className="mb-6 space-y-4">
-        <div className="flex items-center gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-            <Input
-              placeholder="Search media files..."
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+      {/* Search and filters */}
+      <div className="mb-6 flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search media..."
+            className="pl-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
-
-        {allTags.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {allTags.map((tag) => (
-              <Badge
-                key={tag}
-                variant={selectedTags.includes(tag) ? "default" : "outline"}
-                className="cursor-pointer hover:opacity-80"
-                onClick={() => handleTagFilter(tag)}
-              >
-                {tag}
-              </Badge>
-            ))}
-            {selectedTags.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSelectedTags([])}
-                className="text-xs h-6"
-              >
-                Clear filters
-              </Button>
-            )}
-          </div>
-        )}
+        
+        <div className="flex-1 sm:flex-initial">
+          <Tabs 
+            defaultValue="all" 
+            className="w-full"
+            onValueChange={(value) => {
+              if (value === "all") {
+                setSelectedTags([]);
+              }
+            }}
+          >
+            <TabsList className="w-full">
+              <TabsTrigger value="all" className="flex-1">All Media</TabsTrigger>
+              <TabsTrigger value="tags" className="flex-1">Filter by Tags</TabsTrigger>
+            </TabsList>
+            <TabsContent value="tags" className="mt-2">
+              <div className="flex flex-wrap gap-2 pt-2">
+                {availableTags.map(tag => (
+                  <Badge 
+                    key={tag} 
+                    variant={selectedTags.includes(tag) ? "default" : "outline"}
+                    className="cursor-pointer"
+                    onClick={() => {
+                      setSelectedTags(prev => 
+                        prev.includes(tag) 
+                          ? prev.filter(t => t !== tag) 
+                          : [...prev, tag]
+                      );
+                    }}
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+                {availableTags.length === 0 && (
+                  <p className="text-sm text-gray-500">No tags available</p>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
 
+      {/* Edit Media Dialog */}
+      {editingItem && (
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Edit Media</DialogTitle>
+              <DialogDescription>
+                Update information for this media item.
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...useForm({
+              resolver: zodResolver(z.object({
+                name: z.string().min(1, "Name is required"),
+                description: z.string().optional(),
+                tags: z.array(z.string()).optional(),
+              })),
+              defaultValues: {
+                name: editingItem.name || "",
+                description: editingItem.description || "",
+                tags: editingItem.tags || [],
+              },
+            })}>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target as HTMLFormElement);
+                const name = formData.get("name") as string;
+                const description = formData.get("description") as string;
+                const tagsInput = formData.get("tags") as string;
+                const tags = tagsInput.split(",").map(t => t.trim()).filter(Boolean);
+                
+                updateMediaMutation.mutate({
+                  id: editingItem.id,
+                  updates: {
+                    name,
+                    description,
+                    tags,
+                  },
+                });
+              }} className="space-y-4">
+                {editingItem.fileUrl && (editingItem.fileUrl.endsWith(".jpg") || 
+                 editingItem.fileUrl.endsWith(".jpeg") || 
+                 editingItem.fileUrl.endsWith(".png") || 
+                 editingItem.fileUrl.endsWith(".gif")) && (
+                  <div className="relative aspect-video rounded-md overflow-hidden border mb-4">
+                    <img
+                      src={editingItem.fileUrl}
+                      alt={editingItem.name || "Preview"}
+                      className="object-contain w-full h-full"
+                    />
+                  </div>
+                )}
+                
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input 
+                    id="name" 
+                    name="name" 
+                    defaultValue={editingItem.name || ""} 
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea 
+                    id="description" 
+                    name="description" 
+                    rows={3} 
+                    defaultValue={editingItem.description || ""} 
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="tags">Tags (comma separated)</Label>
+                  <Input 
+                    id="tags" 
+                    name="tags" 
+                    defaultValue={editingItem.tags?.join(", ") || ""} 
+                  />
+                  <p className="text-xs text-gray-500">
+                    Separate tags with commas, e.g. "summer, promotion, product"
+                  </p>
+                </div>
+                
+                <DialogFooter className="gap-2 sm:gap-0">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => {
+                      if (confirm("Are you sure you want to delete this media item?")) {
+                        deleteMediaMutation.mutate(editingItem.id);
+                        setIsEditDialogOpen(false);
+                      }
+                    }}
+                    disabled={deleteMediaMutation.isPending}
+                  >
+                    {deleteMediaMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </>
+                    )}
+                  </Button>
+                  <Button type="submit" disabled={updateMediaMutation.isPending}>
+                    {updateMediaMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Changes"
+                    )}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      )}
+      
+      {/* Media Grid */}
       {isLoading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin" />
+        <div className="flex justify-center items-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      ) : filteredMediaItems?.length === 0 ? (
+      ) : filteredMediaItems.length === 0 ? (
         <div className="text-center py-12 border rounded-lg">
-          <p className="text-gray-500 mb-4">No media items found</p>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">Add your first media item</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>Add to Media Library</DialogTitle>
-                <DialogDescription>
-                  Upload new images or videos to your media library.
-                </DialogDescription>
-              </DialogHeader>
-              <FileUploadForm onSuccess={() => setIsAddDialogOpen(false)} />
-            </DialogContent>
-          </Dialog>
+          <FolderPlus className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium">No media found</h3>
+          <p className="text-gray-500 mb-6">
+            {searchQuery || selectedTags.length > 0 
+              ? "Try adjusting your search or filters" 
+              : "Upload media to get started"}
+          </p>
+          <Button onClick={() => setIsAddDialogOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Add Media
+          </Button>
         </div>
       ) : (
-        <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-4 xl:columns-5 gap-4 space-y-4">
-          {filteredMediaItems?.map((item) => {
-            // Determine if the item is a video
-            const isVideo = item.fileType.startsWith("video/");
-            const isImage = item.fileType.startsWith("image/");
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {filteredMediaItems.map((item) => {
+            const isImage = item.fileUrl && (
+              item.fileUrl.endsWith(".jpg") || 
+              item.fileUrl.endsWith(".jpeg") || 
+              item.fileUrl.endsWith(".png") || 
+              item.fileUrl.endsWith(".gif")
+            );
             
-            // Determine a random height for the masonry layout based on item ID for consistency
-            // This creates a visually interesting layout similar to the example image
-            const itemHeight = item.id % 3 === 0 ? "h-64" : item.id % 2 === 0 ? "h-48" : "h-56";
+            const aspectRatio = getAspectRatio(item.id);
+            // Determine grid row span based on aspect ratio
+            let rowSpan = 1;
+            if (aspectRatio < 0.7) rowSpan = 2; // Portrait/tall images
             
             return (
-              <div 
-                key={item.id}
-                className="break-inside-avoid mb-4 group relative cursor-pointer transition-all duration-200 hover:shadow-lg rounded-md overflow-hidden"
-                onClick={() => {
-                  setSelectedMedia(item);
-                  setIsEditDialogOpen(true);
-                }}
+              <Card 
+                key={item.id} 
+                className={`overflow-hidden hover:shadow-md transition-shadow ${rowSpan > 1 ? 'md:row-span-2' : ''}`}
               >
-                <div className={`relative bg-gray-100 dark:bg-gray-800 w-full ${isImage ? itemHeight : "h-40"} transition-all`}>
+                <div className="relative group">
                   {isImage ? (
-                    <img
-                      src={item.fileUrl}
-                      alt={item.name}
-                      className="w-full h-full object-cover"
-                      onLoad={(e) => {
-                        // This will record dimensions for already loaded images
-                        const img = e.target as HTMLImageElement;
-                        if (img.naturalWidth && img.naturalHeight) {
-                          setImageDimensions(prev => ({
-                            ...prev,
-                            [item.id]: { width: img.naturalWidth, height: img.naturalHeight }
-                          }));
-                        }
-                      }}
-                    />
-                  ) : isVideo ? (
-                    <div className="relative flex items-center justify-center h-full bg-gray-900">
-                      {/* Video thumbnail would go here - using placeholder for now */}
-                      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/60"></div>
-                      {/* Video play button indicator */}
-                      <div className="absolute w-12 h-12 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center">
-                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
-                          <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[12px] border-l-[#e03eb6] border-b-[6px] border-b-transparent ml-1"></div>
-                        </div>
-                      </div>
-                      <span className="absolute top-2 right-2 text-white text-xs bg-black/50 px-2 py-0.5 rounded backdrop-blur-sm">
-                        0:15
-                      </span>
+                    <div className="aspect-video bg-gray-100 relative overflow-hidden">
+                      <img
+                        src={item.fileUrl}
+                        alt={item.name || "Media"}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <Image className="h-12 w-12 text-gray-400" />
+                    <div className="aspect-video bg-gray-100 flex items-center justify-center">
+                      <div className="text-center p-4">
+                        <Image className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                        <p className="text-sm text-gray-500">
+                          {item.fileUrl ? item.fileUrl.split(".").pop()?.toUpperCase() : "File"}
+                        </p>
+                      </div>
                     </div>
                   )}
                   
-                  {/* Hover details overlay - shows information on hover */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-3">
-                    <div className="text-white text-sm font-medium truncate">{item.name}</div>
-                    
-                    {/* Description on hover */}
-                    {item.description && (
-                      <p className="text-white/80 text-xs line-clamp-2 mt-1">{item.description}</p>
-                    )}
-                    
-                    {/* Image dimensions and date */}
-                    <div className="flex items-center mt-2 text-[10px] text-white/80">
-                      {isVideo && (
-                        <span className="bg-black/30 rounded-sm px-1 py-0.5 backdrop-blur-sm">
-                          Video
-                        </span>
-                      )}
-                      {isImage && imageDimensions[item.id] && (
-                        <span className="bg-black/30 rounded-sm px-1 py-0.5 backdrop-blur-sm">
-                          {imageDimensions[item.id].width} × {imageDimensions[item.id].height}px
-                        </span>
-                      )}
-                      <span className="mx-1 text-white/60">•</span>
-                      <span className="text-[10px] text-white/80">
-                        {new Date(item.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                    
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {item.tags?.slice(0, 3).map((tag) => (
-                        <span key={tag} className="bg-black/30 text-white/90 text-[10px] rounded-sm px-1 py-0.5 backdrop-blur-sm">
-                          #{tag}
-                        </span>
-                      ))}
-                      {(item.tags?.length || 0) > 3 && (
-                        <span className="bg-black/30 text-white/90 text-[10px] rounded-sm px-1 py-0.5 backdrop-blur-sm">
-                          +{item.tags!.length - 3}
-                        </span>
-                      )}
-                    </div>
-                    
-                    {/* Quick actions on hover */}
-                    <div className="absolute top-2 right-2 flex gap-2">
-                      <button 
-                        className="bg-black/50 text-white p-1.5 rounded-full backdrop-blur-sm hover:bg-black/70 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigator.clipboard.writeText(item.fileUrl);
-                          toast({
-                            title: "URL Copied",
-                            description: "URL copied to clipboard",
-                          });
-                        }}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
-                      </button>
-                      <button 
-                        className="bg-black/50 text-white p-1.5 rounded-full backdrop-blur-sm hover:bg-black/70 transition-colors"
-                      >
-                        <Edit className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+                  {/* Overlay with edit button */}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Button 
+                      variant="secondary" 
+                      size="sm"
+                      onClick={() => {
+                        setEditingItem(item);
+                        setIsEditDialogOpen(true);
+                      }}
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
                   </div>
                 </div>
-              </div>
+                
+                <CardContent className="p-3">
+                  <div className="line-clamp-1 font-medium">
+                    {item.name || "Untitled"}
+                  </div>
+                  {item.description && (
+                    <p className="text-gray-500 text-sm line-clamp-1 mt-1">
+                      {item.description}
+                    </p>
+                  )}
+                  {item.tags && item.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {item.tags.slice(0, 3).map(tag => (
+                        <Badge key={tag} variant="secondary" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                      {item.tags.length > 3 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{item.tags.length - 3}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             );
           })}
         </div>
       )}
       
-      {/* Media Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Edit Media</DialogTitle>
-            <DialogDescription>
-              Update the details of your media item. Click save when you're done.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedMedia && (
-            <div className="space-y-4 py-2">
-              <div className="flex items-center space-x-4">
-                <div className="w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded overflow-hidden flex-shrink-0">
-                  {selectedMedia.fileType.startsWith("image/") ? (
-                    <img 
-                      src={selectedMedia.fileUrl} 
-                      alt={selectedMedia.name} 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <Image className="h-10 w-10 text-gray-400" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">File details</p>
-                  <p className="text-xs text-gray-500">{selectedMedia.fileType}</p>
-                  <p className="text-xs text-gray-500">Uploaded on {new Date(selectedMedia.createdAt).toLocaleDateString()}</p>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Name</Label>
-                  <Input 
-                    id="name" 
-                    value={selectedMedia.name} 
-                    onChange={(e) => setSelectedMedia({...selectedMedia, name: e.target.value})}
-                  />
-                </div>
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea 
-                    id="description" 
-                    value={selectedMedia.description || ''} 
-                    onChange={(e) => setSelectedMedia({...selectedMedia, description: e.target.value})}
-                    placeholder="Add a description..."
-                    className="resize-none"
-                    rows={3}
-                  />
-                </div>
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="tags">Tags</Label>
-                  <div className="flex flex-wrap gap-2 border rounded-md p-2">
-                    {selectedMedia.tags?.map(tag => (
-                      <Badge 
-                        key={tag} 
-                        variant="secondary"
-                        className="flex items-center gap-1"
-                      >
-                        {tag}
-                        <X 
-                          className="h-3 w-3 cursor-pointer"
-                          onClick={() => {
-                            setSelectedMedia({
-                              ...selectedMedia, 
-                              tags: selectedMedia.tags ? selectedMedia.tags.filter(t => t !== tag) : []
-                            });
-                          }}
-                        />
-                      </Badge>
-                    ))}
-                    
-                    {/* Tag input */}
-                    <form 
-                      className="flex-1 min-w-[100px]"
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        const input = e.currentTarget.querySelector('input') as HTMLInputElement;
-                        const tag = input.value.trim();
-                        
-                        if (tag && (!selectedMedia.tags?.includes(tag))) {
-                          setSelectedMedia({
-                            ...selectedMedia,
-                            tags: [...(selectedMedia.tags || []), tag]
-                          });
-                          input.value = '';
-                        }
-                      }}
-                    >
-                      <Input 
-                        placeholder="Add tag..." 
-                        className="border-0 p-0 h-6 text-sm focus-visible:ring-0"
-                      />
-                    </form>
-                  </div>
-                  <p className="text-xs text-gray-500">Press Enter to add a tag</p>
-                </div>
-              </div>
-              
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={() => {
-                    updateMediaMutation.mutate({
-                      id: selectedMedia.id,
-                      data: {
-                        name: selectedMedia.name,
-                        description: selectedMedia.description,
-                        tags: selectedMedia.tags
-                      }
-                    });
-                    setIsEditDialogOpen(false);
-                  }}
-                  disabled={updateMediaMutation.isPending}
-                >
-                  {updateMediaMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : 'Save Changes'}
-                </Button>
-              </DialogFooter>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-      
-      {/* Hidden file input for bulk upload feature */}
-      <input 
+      {/* Hidden file input for drag-and-drop uploading */}
+      <input
         type="file"
-        multiple
         accept="image/*,video/*"
+        multiple
         className="hidden"
         ref={fileInputRef}
         onChange={(e) => {

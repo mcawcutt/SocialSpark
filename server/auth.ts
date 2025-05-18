@@ -17,10 +17,24 @@ declare global {
 
     interface Session {
       facebookAuth?: {
-        profile: Profile;
-        accessToken: string;
+        profile?: Profile;
+        accessToken?: string;
         refreshToken?: string;
+        // For partner OAuth flow
+        partnerId?: number;
+        userId?: string;
+        userName?: string;
+        pages?: Array<{
+          id: string;
+          name: string;
+          accessToken: string;
+          category?: string;
+        }>;
       };
+      // For Facebook OAuth redirect validation
+      facebookRedirectUri?: string;
+      facebookPartnerId?: number;
+      // For admin impersonation
       isImpersonated?: boolean;
       adminImpersonator?: {
         id: number;

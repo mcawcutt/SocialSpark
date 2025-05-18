@@ -22,6 +22,7 @@ import AdminDashboard from "@/pages/admin/dashboard";
 import AdminBrands from "@/pages/admin/brands";
 import AdminAnalytics from "@/pages/admin/analytics";
 import TestUpload from "@/pages/test-upload";
+import PartnerConnectSuccess from "@/pages/partner-connect-success";
 import { AuthProvider } from "@/hooks/use-auth";
 import { MainLayout } from "@/components/layout/main-layout";
 
@@ -31,6 +32,7 @@ function Router() {
       {/* Routes outside of MainLayout */}
       <Route path="/auth" component={AuthPage} />
       <Route path="/accept-invite" component={AcceptInvite} />
+      <Route path="/partner-connect-success" component={PartnerConnectSuccess} />
 
       {/* Routes with MainLayout */}
       <Route>

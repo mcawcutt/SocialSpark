@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import axios from 'axios';
 import { db } from '../db';
-import { partners } from '@shared/schema';
+import { retailPartners } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
 // Get environment variables for Facebook integration
@@ -30,7 +30,7 @@ router.get('/oauth-url/:partnerId', async (req: Request, res: Response) => {
     }
 
     // Check that the partner exists
-    const partner = await db.select().from(partners).where(eq(partners.id, id)).limit(1);
+    const partner = await db.select().from(retailPartners).where(eq(retailPartners.id, id)).limit(1);
     if (!partner || partner.length === 0) {
       return res.status(404).json({ error: 'Partner not found' });
     }

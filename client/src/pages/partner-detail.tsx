@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useLocation, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { SiFacebook } from "react-icons/si";
 import { 
   ChevronLeft, 
   User, 
@@ -112,9 +113,16 @@ export default function PartnerDetail() {
             {partner.status.replace('_', ' ')}
           </Badge>
         </div>
-        <div className="mt-4 md:mt-0 space-x-2">
+        <div className="mt-4 md:mt-0 space-x-2 flex items-center">
           <Button variant="outline">Edit Partner</Button>
           <Button variant="secondary">Schedule Content</Button>
+          <Button 
+            className="bg-[#1877F2] hover:bg-[#0d6efd] text-white flex items-center gap-1.5"
+            onClick={() => setActiveTab("social")}
+          >
+            <SiFacebook className="h-4 w-4 text-white" />
+            Connect Social Accounts
+          </Button>
         </div>
       </div>
 

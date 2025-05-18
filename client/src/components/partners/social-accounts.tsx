@@ -143,35 +143,46 @@ export function SocialAccounts({ partnerId, partnerName }: SocialAccountsProps) 
                     <p className="text-sm text-gray-500 capitalize">{account.platform.replace('_', ' ')}</p>
                   </div>
                 </div>
-                {isConfirmingDelete === account.id ? (
-                  <div className="flex items-center gap-2">
-                    <Button 
-                      variant="destructive" 
-                      size="sm" 
-                      onClick={() => deleteMutation.mutate(account.id)}
-                      disabled={deleteMutation.isPending}
-                    >
-                      {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-                      Confirm
-                    </Button>
+                <div className="flex items-center gap-2">
+                  {account.platform === 'facebook' && (
                     <Button 
                       variant="outline" 
-                      size="sm" 
-                      onClick={() => setIsConfirmingDelete(null)}
+                      size="sm"
+                      onClick={() => window.open(`/facebook-integration?pageId=${account.accountId}`, '_blank')}
                     >
-                      Cancel
+                      Post Content
                     </Button>
-                  </div>
-                ) : (
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => setIsConfirmingDelete(account.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span className="sr-only">Remove account</span>
-                  </Button>
-                )}
+                  )}
+                  {isConfirmingDelete === account.id ? (
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant="destructive" 
+                        size="sm" 
+                        onClick={() => deleteMutation.mutate(account.id)}
+                        disabled={deleteMutation.isPending}
+                      >
+                        {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                        Confirm
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setIsConfirmingDelete(null)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => setIsConfirmingDelete(account.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">Remove account</span>
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -185,7 +196,7 @@ export function SocialAccounts({ partnerId, partnerName }: SocialAccountsProps) 
             <div>
               <p className="font-medium">No social accounts connected</p>
               <p className="text-gray-500 text-sm">
-                Use the buttons below to connect social accounts for this partner.
+                Use the button below to connect this retail partner's Facebook & Instagram accounts.
               </p>
             </div>
           </div>

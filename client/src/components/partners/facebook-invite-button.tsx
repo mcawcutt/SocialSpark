@@ -96,9 +96,9 @@ export function FacebookInviteButton({
         variant={variant}
         size={size}
         onClick={handleOpen}
-        className="flex items-center gap-1.5"
+        className="flex items-center gap-1.5 bg-[#1877F2] hover:bg-[#0d6efd] text-white"
       >
-        <SiFacebook className="h-4 w-4 text-blue-500" />
+        <SiFacebook className="h-4 w-4 text-white" />
         <span>Connect Facebook & Instagram</span>
       </Button>
 

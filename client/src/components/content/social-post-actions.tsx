@@ -11,30 +11,16 @@ interface SocialPostActionsProps {
 
 export function SocialPostActions({ post }: SocialPostActionsProps) {
   return (
-    <div className="flex flex-col gap-3 mt-2">
-      <div className="flex items-center text-sm text-muted-foreground gap-1">
-        <Calendar className="h-3.5 w-3.5" />
-        <span>
-          {post.scheduledDate ? format(new Date(post.scheduledDate), "PPP") : "Not scheduled"}
-        </span>
-        {post.scheduledDate && (
-          <>
-            <span className="mx-1">•</span>
-            <Clock className="h-3.5 w-3.5" />
-            <span>{format(new Date(post.scheduledDate), "p")}</span>
-          </>
-        )}
-      </div>
-      
+    <div className="flex flex-col gap-3 mt-2">      
       <div className="flex flex-wrap items-center gap-2 mt-1.5">
         <span className="text-xs text-muted-foreground">Publish now:</span>
         
         {post.platforms.includes("facebook") && (
           <PostToFacebookButton
             postId={post.id}
-            postTitle={post.title}
+            postTitle={post.title || "Untitled Post"}
             postDescription={post.description}
-            postImageUrl={post.imageUrl}
+            postImageUrl={post.imageUrl || undefined}
           />
         )}
         

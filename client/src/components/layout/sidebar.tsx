@@ -12,7 +12,9 @@ import {
   LogOut,
   Building,
   UserPlus,
+  Share2,
 } from "lucide-react";
+import { FaFacebook } from "react-icons/fa";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { 

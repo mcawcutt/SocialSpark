@@ -33,9 +33,8 @@ interface NavItemProps {
 }
 
 function NavItem({ href, to, icon: Icon, label, active, onClick }: NavItemProps) {
-  if (href) {
   return (
-    <Link href={href}>
+    <Link href={href || ""}>
       <a 
         className={cn(
           "flex items-center px-2 py-3 rounded-lg group transition-colors",

@@ -7,6 +7,7 @@ import { ContentPostForm } from "@/components/content/post-form/content-post-for
 import { EvergreenPostIcon } from "@/components/content/calendar/evergreen-post-icon";
 import { EvergreenPostModal } from "@/components/content/calendar/evergreen-post-modal";
 import { PostListView } from "@/components/content/calendar/post-list-view";
+import { PostDetailView } from "@/components/content/calendar/post-detail-view";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -35,6 +36,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { apiRequest } from "@/lib/queryClient";
 import { ContentPost } from "@shared/schema";
 import type { ContentPost as ContentPostType } from "@shared/schema";
 import { CalendarDayCell } from "@/components/content/calendar/calendar-day-cell";
@@ -62,6 +64,9 @@ export default function ContentCalendar() {
   
   // State for edit post dialog
   const [editingPost, setEditingPost] = useState<ContentPost | null>(null);
+  
+  // State for viewing post details
+  const [viewingPost, setViewingPost] = useState<ContentPost | null>(null);
 
   // Query content posts with correct brandId
   const { data: posts, isLoading } = useQuery({
@@ -230,6 +235,32 @@ export default function ContentCalendar() {
   // Close the edit post dialog
   const handleCloseEditDialog = () => {
     setEditingPost(null);
+  };
+  
+  // Handle edit post from detail view
+  const handleEditPost = (post: ContentPost) => {
+    setViewingPost(null);
+    setEditingPost(post);
+  };
+  
+  // Handle delete post
+  const handleDeletePost = async (postId: number) => {
+    try {
+      await apiRequest('DELETE', `/api/content-posts/${postId}`);
+      toast({
+        title: "Post deleted",
+        description: "The post has been deleted successfully."
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/content-posts"] });
+      setViewingPost(null);
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete the post.",
+        variant: "destructive",
+      });
+    }
   };
   
   // Reschedule post mutation
@@ -535,6 +566,17 @@ export default function ContentCalendar() {
           isOpen={!!editingPost}
           onClose={handleCloseEditDialog}
           initialData={editingPost}
+        />
+      )}
+      
+      {/* Post Detail View with Facebook posting */}
+      {viewingPost && (
+        <PostDetailView
+          post={viewingPost}
+          isOpen={!!viewingPost}
+          onClose={() => setViewingPost(null)}
+          onEdit={handleEditPost}
+          onDelete={handleDeletePost}
         />
       )}
       
